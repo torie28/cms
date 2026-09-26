@@ -1,19 +1,21 @@
-import { DatePipe, TitleCasePipe } from '@angular/common';
+import { DatePipe } from '@angular/common';
 import { afterNextRender, ChangeDetectionStrategy, Component, inject, signal } from '@angular/core';
 import { FormBuilder, ReactiveFormsModule, Validators } from '@angular/forms';
 import { httpErrorMessage } from '../../core/http-error';
-import { ManagedUser, USER_ROLES, UsersService } from '../../core/users';
+import { ManagedUser, roleLabel, USER_ROLES, UsersService } from '../../core/users';
 
 @Component({
   selector: 'app-users',
   changeDetection: ChangeDetectionStrategy.OnPush,
-  imports: [DatePipe, ReactiveFormsModule, TitleCasePipe],
+  imports: [DatePipe, ReactiveFormsModule],
   templateUrl: './users.html',
 })
 export class Users {
   private readonly usersApi = inject(UsersService);
 
   protected readonly roles = USER_ROLES;
+  protected readonly roleLabel = roleLabel;
+  protected readonly skeletonRows = [1, 2, 3, 4, 5];
   protected readonly users = signal<ManagedUser[]>([]);
   protected readonly loading = signal(true);
   protected readonly saving = signal(false);
@@ -51,7 +53,7 @@ export class Users {
     try {
       this.users.set(await this.usersApi.list());
     } catch (error) {
-      this.error.set(httpErrorMessage(error, 'Unable to load users.'));
+      this.error.set(httpErrorMessage(error, 'Imeshindwa kupakia watumiaji.'));
     } finally {
       this.loading.set(false);
     }
@@ -77,7 +79,7 @@ export class Users {
       );
       this.closeForm();
     } catch (error) {
-      this.error.set(httpErrorMessage(error, 'Unable to add that user.'));
+      this.error.set(httpErrorMessage(error, 'Imeshindwa kuongeza mtumiaji huyo.'));
     } finally {
       this.saving.set(false);
     }

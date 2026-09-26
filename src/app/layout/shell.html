@@ -2,23 +2,32 @@
   @if (sidebarOpen()) {
     <div
       class="fixed inset-0 z-20 bg-black/40 lg:hidden"
+      animate.enter="backdrop-in"
+      animate.leave="backdrop-out"
       (click)="toggleSidebar()"
       aria-hidden="true"
     ></div>
   }
 
   <aside
-    class="fixed inset-y-0 left-0 z-30 flex w-64 flex-col border-r border-line bg-surface transition-transform lg:sticky lg:top-0 lg:h-dvh lg:translate-x-0"
-    [class]="sidebarOpen() ? 'translate-x-0' : '-translate-x-full'"
+    class="fixed inset-y-0 left-0 z-30 flex w-64 flex-col border-r border-line bg-surface transition-[translate,width] duration-300 ease-out lg:sticky lg:top-0 lg:h-dvh lg:translate-x-0"
+    [class.-translate-x-full]="!sidebarOpen()"
+    [class.translate-x-0]="sidebarOpen()"
+    [class.lg:w-20]="collapsed()"
   >
-    <div class="flex items-center gap-3 border-b border-line px-5 py-5">
-      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.4" class="h-8 w-8 text-brass-strong">
+    <div
+      class="flex items-center gap-3 border-b border-line py-5"
+      [class.px-5]="!collapsed()"
+      [class.lg:justify-center]="collapsed()"
+      [class.lg:px-2]="collapsed()"
+    >
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.4" class="h-8 w-8 shrink-0 text-brass-strong">
         <path stroke-linecap="round" d="M12 3v18M8.5 7.5h7" />
         <path stroke-linejoin="round" d="M4 21V12l8-6.5 8 6.5v9" />
       </svg>
-      <div>
-        <p class="font-serif text-lg leading-tight">St. Mathias Chapel</p>
-        <p class="text-[0.65rem] tracking-[0.25em] text-faint uppercase">Management</p>
+      <div class="min-w-0" [class.lg:hidden]="collapsed()">
+        <p class="truncate font-serif text-lg leading-tight">St. Mathias Chapel</p>
+        <p class="text-[0.65rem] tracking-[0.25em] text-faint uppercase">Usimamizi</p>
       </div>
     </div>
 
@@ -29,29 +38,61 @@
             [routerLink]="item.path"
             routerLinkActive="bg-brass-tint font-medium text-brass-strong"
             [routerLinkActiveOptions]="{ exact: item.exact !== false }"
-            class="flex items-center gap-3 rounded px-3 py-2 text-sm text-muted transition-colors hover:bg-sunken hover:text-ink"
+            class="flex items-center gap-3 rounded px-3 py-2 text-sm text-muted hover:bg-sunken hover:text-ink"
+            [class.lg:justify-center]="collapsed()"
+            [attr.title]="collapsed() ? item.label : null"
             (click)="closeSidebar()"
           >
-            <app-icon [name]="item.icon" />
-            {{ item.label }}
+            <app-icon [name]="item.icon" class="h-4.5 w-4.5 shrink-0" />
+            <span class="truncate" [class.lg:sr-only]="collapsed()">{{ item.label }}</span>
           </a>
         } @else {
-          <span class="flex items-center gap-3 rounded px-3 py-2 text-sm text-faint">
-            <app-icon [name]="item.icon" />
-            {{ item.label }}
+          <span
+            class="flex items-center gap-3 rounded px-3 py-2 text-sm text-faint"
+            [class.lg:justify-center]="collapsed()"
+            [attr.title]="item.label + ' (inakuja hivi karibuni)'"
+          >
+            <app-icon [name]="item.icon" class="h-4.5 w-4.5 shrink-0" />
+            <span class="truncate" [class.lg:sr-only]="collapsed()">{{ item.label }}</span>
           </span>
         }
       }
     </nav>
 
-    <div class="border-t border-line p-4">
+    <div class="border-t border-line p-4" [class.lg:hidden]="collapsed()">
       <div class="rounded border border-line bg-sunken p-3">
-        <p class="font-serif text-sm">Verse of the day</p>
+        <p class="font-serif text-sm">Neno la leo</p>
         <p class="mt-1 text-xs leading-relaxed text-muted">
-          &ldquo;Commit to the Lord whatever you do, and he will establish your plans.&rdquo;
+          &ldquo;Mkabidhi Bwana kazi zako, na mawazo yako yatathibitika.&rdquo;
         </p>
-        <p class="mt-2 text-[0.65rem] tracking-[0.2em] text-faint uppercase">Proverbs 16:3</p>
+        <p class="mt-2 text-[0.65rem] tracking-[0.2em] text-faint uppercase">Mithali 16:3</p>
       </div>
+    </div>
+
+    <div class="hidden border-t border-line p-3 lg:block">
+      <button
+        type="button"
+        class="flex w-full items-center gap-3 rounded px-3 py-2 text-sm text-muted hover:bg-sunken hover:text-ink"
+        [class.justify-center]="collapsed()"
+        [attr.aria-label]="collapsed() ? 'Panua upau wa pembeni' : 'Punguza upau wa pembeni'"
+        [attr.aria-expanded]="!collapsed()"
+        [title]="collapsed() ? 'Panua' : 'Punguza'"
+        (click)="toggleCollapsed()"
+      >
+        <svg
+          viewBox="0 0 24 24"
+          fill="none"
+          stroke="currentColor"
+          stroke-width="1.8"
+          class="h-4.5 w-4.5 shrink-0 transition-transform duration-300"
+          [class.rotate-180]="collapsed()"
+        >
+          <path stroke-linecap="round" stroke-linejoin="round" d="m15 6-6 6 6 6" />
+        </svg>
+        @if (!collapsed()) {
+          <span>Punguza</span>
+        }
+      </button>
     </div>
   </aside>
 
@@ -62,7 +103,7 @@
       <button
         type="button"
         class="rounded p-1.5 text-muted hover:bg-sunken hover:text-ink lg:hidden"
-        aria-label="Toggle navigation"
+        aria-label="Fungua menyu"
         (click)="toggleSidebar()"
       >
         <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" class="h-5 w-5">
@@ -78,8 +119,8 @@
 
       <div class="flex items-center gap-3 border-l border-line pl-3">
         <div class="hidden text-right sm:block">
-          <p class="text-sm leading-tight font-medium">{{ user()?.name ?? 'Guest' }}</p>
-          <p class="text-xs text-faint capitalize">{{ user()?.role ?? 'Visitor' }}</p>
+          <p class="text-sm leading-tight font-medium">{{ user()?.name ?? 'Mgeni' }}</p>
+          <p class="text-xs text-faint">{{ roleName() }}</p>
         </div>
         <span
           class="flex h-9 w-9 items-center justify-center rounded-full bg-brass-tint font-serif text-sm text-brass-strong"
@@ -89,8 +130,8 @@
         <button
           type="button"
           class="rounded p-1.5 text-muted hover:bg-sunken hover:text-ink"
-          aria-label="Sign out"
-          title="Sign out"
+          aria-label="Toka"
+          title="Toka"
           (click)="signOut()"
         >
           <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" class="h-5 w-5">

@@ -28,8 +28,11 @@ interface ChurchEvent {
 export class Overview {
   private readonly parish = inject(ParishService);
 
+  private readonly memberCount = signal<number | null>(null);
   private readonly jumuiyaCount = signal<number | null>(null);
   private readonly kandaCount = signal<number | null>(null);
+
+  protected readonly loading = computed(() => this.memberCount() === null);
 
   constructor() {
     afterNextRender(() => {
@@ -39,32 +42,32 @@ export class Overview {
 
   protected readonly metrics = computed<Metric[]>(() => [
     {
-      label: 'Active members',
-      value: '1,284',
-      change: '+32',
-      trend: 'up',
-      caption: 'new registrations this month',
+      label: 'Waumini hai',
+      value: this.memberCount()?.toLocaleString('sw-TZ') ?? '—',
+      change: '',
+      trend: 'flat',
+      caption: 'katika jumuiya zote',
     },
     {
       label: 'Sadaka',
       value: 'TSh 486,200',
       change: '-2.3%',
       trend: 'down',
-      caption: 'month to date',
+      caption: 'mwezi huu hadi leo',
     },
     {
       label: 'Jumuiya',
       value: this.jumuiyaCount()?.toString() ?? '—',
       change: '',
       trend: 'flat',
-      caption: 'registered communities',
+      caption: 'jumuiya zilizosajiliwa',
     },
     {
       label: 'Kanda',
       value: this.kandaCount()?.toString() ?? '—',
       change: '',
       trend: 'flat',
-      caption: 'parish zones',
+      caption: 'kanda za parokia',
     },
   ]);
 
@@ -73,9 +76,9 @@ export class Overview {
     { label: 'Jul 13', value: 688 },
     { label: 'Jul 20', value: 795 },
     { label: 'Jul 27', value: 810 },
-    { label: 'Aug 03', value: 768 },
-    { label: 'Aug 10', value: 828 },
-    { label: 'Aug 17', value: 862 },
+    { label: 'Ago 03', value: 768 },
+    { label: 'Ago 10', value: 828 },
+    { label: 'Ago 17', value: 862 },
   ];
 
   protected readonly peakAttendance = computed(() =>
@@ -84,28 +87,28 @@ export class Overview {
 
   protected readonly events: ChurchEvent[] = [
     {
-      title: 'Sunday Worship Service',
-      when: 'Sunday · 9:00 AM',
-      location: 'Main Sanctuary',
-      lead: 'Rev. Daniel Mwangi',
+      title: 'Ibada ya Jumapili',
+      when: 'Jumapili · Saa 3:00 asubuhi',
+      location: 'Kanisa kuu',
+      lead: 'Padre Daniel Mwangi',
     },
     {
-      title: 'Youth Bible Study',
-      when: 'Wednesday · 5:30 PM',
-      location: 'Fellowship Hall',
+      title: 'Mafundisho ya Biblia kwa Vijana',
+      when: 'Jumatano · Saa 11:30 jioni',
+      location: 'Ukumbi wa ushirika',
       lead: 'Sarah Njeri',
     },
     {
-      title: 'Choir Rehearsal',
-      when: 'Thursday · 6:00 PM',
-      location: 'Music Room',
+      title: 'Mazoezi ya Kwaya',
+      when: 'Alhamisi · Saa 12:00 jioni',
+      location: 'Chumba cha muziki',
       lead: 'Peter Otieno',
     },
     {
-      title: 'Baptism Class',
-      when: 'Saturday · 10:00 AM',
-      location: 'Chapel Annex',
-      lead: 'Deacon Mary Wanjiru',
+      title: 'Darasa la Ubatizo',
+      when: 'Jumamosi · Saa 4:00 asubuhi',
+      location: 'Kanisa dogo',
+      lead: 'Shemasi Mary Wanjiru',
     },
   ];
 
@@ -121,9 +124,13 @@ export class Overview {
         this.parish.listJumuiyas(),
         this.parish.listKandas(),
       ]);
+      this.memberCount.set(
+        jumuiyas.reduce((total, group) => total + (group.members_count ?? 0), 0),
+      );
       this.jumuiyaCount.set(jumuiyas.length);
       this.kandaCount.set(kandas.length);
     } catch {
+      this.memberCount.set(0);
       this.jumuiyaCount.set(0);
       this.kandaCount.set(0);
     }

@@ -21,13 +21,17 @@ export interface NewUser {
 }
 
 export const USER_ROLES = [
-  { value: 'admin', label: 'Administrator' },
-  { value: 'secretary', label: 'Secretary' },
-  { value: 'treasurer', label: 'Treasurer' },
-  { value: 'kanda_leader', label: 'Kanda leader' },
-  { value: 'jumuiya_leader', label: 'Jumuiya leader' },
-  { value: 'member', label: 'Member' },
+  { value: 'admin', label: 'Msimamizi' },
+  { value: 'secretary', label: 'Katibu' },
+  { value: 'treasurer', label: 'Mweka hazina' },
+  { value: 'kanda_leader', label: 'Kiongozi wa kanda' },
+  { value: 'jumuiya_leader', label: 'Kiongozi wa jumuiya' },
+  { value: 'member', label: 'Mwanachama' },
 ] as const;
+
+export function roleLabel(role: string): string {
+  return USER_ROLES.find((item) => item.value === role)?.label ?? role.replaceAll('_', ' ');
+}
 
 @Injectable({ providedIn: 'root' })
 export class UsersService {

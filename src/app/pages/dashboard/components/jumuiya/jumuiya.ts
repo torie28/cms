@@ -1,7 +1,13 @@
 import { afterNextRender, ChangeDetectionStrategy, Component, inject, signal } from '@angular/core';
 import { FormArray, FormBuilder, ReactiveFormsModule, Validators } from '@angular/forms';
-import { httpErrorMessage } from '../../core/http-error';
-import { Jumuiya, JumuiyaMember, JumuiyaMemberPayload, Kanda, ParishService } from '../../core/parish';
+import { httpErrorMessage } from '../../../../core/http-error';
+import {
+  Jumuiya,
+  JumuiyaMember,
+  JumuiyaMemberPayload,
+  Kanda,
+  ParishService,
+} from '../../../../core/parish';
 
 @Component({
   selector: 'app-jumuiya',
@@ -26,6 +32,7 @@ export class JumuiyaPage {
   protected readonly memberFormOpen = signal(false);
   protected readonly viewOpen = signal(false);
   protected readonly error = signal<string | null>(null);
+  protected readonly skeletonRows = [1, 2, 3, 4];
 
   protected readonly jumuiyaForm = this.fb.nonNullable.group({
     name: ['', Validators.required],
@@ -173,7 +180,7 @@ export class JumuiyaPage {
       this.kandas.set(kandas);
       this.syncSelected(jumuiyas);
     } catch (error) {
-      this.error.set(httpErrorMessage(error, 'Unable to load jumuiya.'));
+      this.error.set(httpErrorMessage(error, 'Imeshindwa kupakia jumuiya.'));
     } finally {
       this.loading.set(false);
     }
@@ -217,7 +224,9 @@ export class JumuiyaPage {
       this.error.set(
         httpErrorMessage(
           error,
-          this.editingJumuiya() ? 'Unable to update that jumuiya.' : 'Unable to add that jumuiya.',
+          this.editingJumuiya()
+            ? 'Imeshindwa kuhariri jumuiya hiyo.'
+            : 'Imeshindwa kuongeza jumuiya hiyo.',
         ),
       );
     } finally {
@@ -270,7 +279,9 @@ export class JumuiyaPage {
       this.error.set(
         httpErrorMessage(
           error,
-          editing ? 'Unable to update that member.' : 'Unable to add those members.',
+          editing
+            ? 'Imeshindwa kuhariri mwanajumuiya huyo.'
+            : 'Imeshindwa kuongeza wanajumuiya hao.',
         ),
       );
     } finally {
@@ -283,7 +294,7 @@ export class JumuiyaPage {
 
     if (
       this.saving() ||
-      !window.confirm(`Delete ${group.name}? Its members will be removed as well.`)
+      !window.confirm(`Futa ${group.name}? Wanajumuiya wake wote wataondolewa pia.`)
     ) {
       return;
     }
@@ -301,7 +312,7 @@ export class JumuiyaPage {
         this.viewOpen.set(false);
       }
     } catch (error) {
-      this.error.set(httpErrorMessage(error, 'Unable to delete that jumuiya.'));
+      this.error.set(httpErrorMessage(error, 'Imeshindwa kufuta jumuiya hiyo.'));
     } finally {
       this.saving.set(false);
     }
@@ -313,7 +324,7 @@ export class JumuiyaPage {
     if (
       !jumuiya ||
       this.saving() ||
-      !window.confirm(`Remove ${member.name} from ${jumuiya.name}?`)
+      !window.confirm(`Mwondoe ${member.name} kutoka ${jumuiya.name}?`)
     ) {
       return;
     }
@@ -326,7 +337,7 @@ export class JumuiyaPage {
       this.upsertJumuiya(updated);
       this.members.update((current) => current.filter((item) => item.id !== member.id));
     } catch (error) {
-      this.error.set(httpErrorMessage(error, 'Unable to remove that member.'));
+      this.error.set(httpErrorMessage(error, 'Imeshindwa kumwondoa mwanajumuiya huyo.'));
     } finally {
       this.saving.set(false);
     }
@@ -346,11 +357,11 @@ export class JumuiyaPage {
 
   protected genderLabel(gender: string | null): string {
     if (gender === 'male') {
-      return 'Male';
+      return 'Mwanaume';
     }
 
     if (gender === 'female') {
-      return 'Female';
+      return 'Mwanamke';
     }
 
     return '—';
@@ -403,7 +414,7 @@ export class JumuiyaPage {
     return Array.from({ length: targetCount }, (_, index) => {
       const current = prepared[index] ?? { name: '', phone: '', gender: '' };
       return {
-        name: current.name === '' ? `Member ${index + 1}` : current.name,
+        name: current.name === '' ? `Mwanajumuiya ${index + 1}` : current.name,
         phone: current.phone,
         gender: current.gender,
       };
@@ -438,7 +449,7 @@ export class JumuiyaPage {
       this.upsertJumuiya(detail);
       this.members.set(detail.members ?? []);
     } catch (error) {
-      this.error.set(httpErrorMessage(error, 'Unable to load members.'));
+      this.error.set(httpErrorMessage(error, 'Imeshindwa kupakia wanajumuiya.'));
     } finally {
       this.membersLoading.set(false);
     }

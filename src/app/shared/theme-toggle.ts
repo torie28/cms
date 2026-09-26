@@ -12,9 +12,9 @@ export class ThemeToggle {
   protected readonly preference = this.theme.preference;
 
   protected readonly options: { value: ThemePreference; label: string }[] = [
-    { value: 'light', label: 'Light' },
-    { value: 'dark', label: 'Dark' },
-    { value: 'system', label: 'System' },
+    { value: 'light', label: 'Mwanga' },
+    { value: 'dark', label: 'Giza' },
+    { value: 'system', label: 'Mfumo' },
   ];
 
   protected select(preference: ThemePreference): void {

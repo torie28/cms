@@ -1,0 +1,178 @@
+<div class="flex min-h-dvh bg-canvas text-ink">
+  <!-- Sidebar -->
+  @if (sidebarOpen()) {
+    <div
+      class="fixed inset-0 z-20 bg-black/40 lg:hidden"
+      (click)="toggleSidebar()"
+      aria-hidden="true"
+    ></div>
+  }
+
+  <aside
+    class="fixed inset-y-0 left-0 z-30 flex w-64 flex-col border-r border-line bg-surface transition-transform lg:sticky lg:top-0 lg:h-dvh lg:translate-x-0"
+    [class]="sidebarOpen() ? 'translate-x-0' : '-translate-x-full'"
+  >
+    <div class="flex items-center gap-3 border-b border-line px-5 py-5">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.4" class="h-8 w-8 text-brass-strong">
+        <path stroke-linecap="round" d="M12 3v18M8.5 7.5h7" />
+        <path stroke-linejoin="round" d="M4 21V12l8-6.5 8 6.5v9" />
+      </svg>
+      <div>
+        <p class="font-serif text-lg leading-tight">Grace Chapel</p>
+        <p class="text-[0.65rem] tracking-[0.25em] text-faint uppercase">Management</p>
+      </div>
+    </div>
+
+    <nav class="flex-1 space-y-1 overflow-y-auto px-3 py-4">
+      @for (item of navigation; track item.label) {
+        <a
+          href="#"
+          class="flex items-center gap-3 rounded px-3 py-2 text-sm transition-colors"
+          [class]="
+            item.active
+              ? 'bg-brass-tint font-medium text-brass-strong'
+              : 'text-muted hover:bg-sunken hover:text-ink'
+          "
+          [attr.aria-current]="item.active ? 'page' : null"
+        >
+          <app-icon [name]="item.icon" />
+          {{ item.label }}
+        </a>
+      }
+    </nav>
+
+    <div class="border-t border-line p-4">
+      <div class="rounded border border-line bg-sunken p-3">
+        <p class="font-serif text-sm">Verse of the day</p>
+        <p class="mt-1 text-xs leading-relaxed text-muted">
+          &ldquo;Commit to the Lord whatever you do, and he will establish your plans.&rdquo;
+        </p>
+        <p class="mt-2 text-[0.65rem] tracking-[0.2em] text-faint uppercase">Proverbs 16:3</p>
+      </div>
+    </div>
+  </aside>
+
+  <!-- Main column -->
+  <div class="flex min-w-0 flex-1 flex-col">
+    <header
+      class="sticky top-0 z-10 flex items-center gap-4 border-b border-line bg-surface/85 px-5 py-3 backdrop-blur"
+    >
+      <button
+        type="button"
+        class="rounded p-1.5 text-muted hover:bg-sunken hover:text-ink lg:hidden"
+        aria-label="Toggle navigation"
+        (click)="toggleSidebar()"
+      >
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" class="h-5 w-5">
+          <path stroke-linecap="round" d="M4 7h16M4 12h16M4 17h16" />
+        </svg>
+      </button>
+
+      <div class="min-w-0 flex-1">
+        <h1 class="truncate font-serif text-xl">Overview</h1>
+        <p class="truncate text-xs text-faint">{{ today }}</p>
+      </div>
+
+      <app-theme-toggle />
+
+      <div class="flex items-center gap-3 border-l border-line pl-3">
+        <div class="hidden text-right sm:block">
+          <p class="text-sm leading-tight font-medium">{{ user()?.name ?? 'Guest' }}</p>
+          <p class="text-xs text-faint">{{ user()?.role ?? 'Visitor' }}</p>
+        </div>
+        <span
+          class="flex h-9 w-9 items-center justify-center rounded-full bg-brass-tint font-serif text-sm text-brass-strong"
+        >
+          {{ initials() }}
+        </span>
+        <button
+          type="button"
+          class="rounded p-1.5 text-muted hover:bg-sunken hover:text-ink"
+          aria-label="Sign out"
+          title="Sign out"
+          (click)="signOut()"
+        >
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" class="h-5 w-5">
+            <path stroke-linecap="round" stroke-linejoin="round" d="M15 16.5V19a2 2 0 0 1-2 2H6a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h7a2 2 0 0 1 2 2v2.5M10 12h11m0 0-3-3m3 3-3 3" />
+          </svg>
+        </button>
+      </div>
+    </header>
+
+    <main class="flex-1 space-y-6 p-5 lg:p-7">
+      <!-- Metrics -->
+      <section class="grid gap-4 sm:grid-cols-2 xl:grid-cols-4">
+        @for (metric of metrics; track metric.label) {
+          <article class="rounded border border-line bg-surface p-4">
+            <p class="text-xs tracking-[0.15em] text-faint uppercase">{{ metric.label }}</p>
+            <p class="mt-2 font-serif text-2xl">{{ metric.value }}</p>
+            <p class="mt-1 flex items-center gap-1.5 text-xs">
+              <span [class]="metric.trend === 'down' ? 'text-negative' : 'text-positive'">
+                {{ metric.change }}
+              </span>
+              <span class="text-faint">{{ metric.caption }}</span>
+            </p>
+          </article>
+        }
+      </section>
+
+      <div class="grid gap-6 xl:grid-cols-3">
+        <!-- Attendance -->
+        <section class="rounded border border-line bg-surface p-5 xl:col-span-2">
+          <div class="flex items-baseline justify-between">
+            <h2 class="font-serif text-lg">Weekly attendance</h2>
+            <span class="text-xs text-faint">Last 7 services</span>
+          </div>
+
+          <div class="mt-6 flex items-end gap-3">
+            @for (week of attendance; track week.label) {
+              <div class="flex flex-1 flex-col items-center gap-2">
+                <span class="text-xs text-muted">{{ week.value }}</span>
+                <div class="flex h-40 w-full items-end">
+                  <div
+                    class="w-full rounded-t bg-brass/70 transition-[height]"
+                    [style.height.px]="barHeight(week.value)"
+                    [attr.title]="week.label + ': ' + week.value + ' in attendance'"
+                  ></div>
+                </div>
+                <span class="text-[0.65rem] text-faint">{{ week.label }}</span>
+              </div>
+            }
+          </div>
+        </section>
+
+        <!-- Upcoming events -->
+        <section class="rounded border border-line bg-surface p-5">
+          <h2 class="font-serif text-lg">Upcoming</h2>
+          <ul class="mt-4 space-y-4">
+            @for (event of events; track event.title) {
+              <li class="border-l-2 border-brass/60 pl-3">
+                <p class="text-sm font-medium">{{ event.title }}</p>
+                <p class="text-xs text-muted">{{ event.when }} · {{ event.location }}</p>
+                <p class="text-xs text-faint">Led by {{ event.lead }}</p>
+              </li>
+            }
+          </ul>
+        </section>
+      </div>
+
+      <!-- Activity -->
+      <section class="rounded border border-line bg-surface p-5">
+        <h2 class="font-serif text-lg">Recent activity</h2>
+        <ul class="mt-4 divide-y divide-line">
+          @for (entry of activity; track entry.at + entry.target) {
+            <li class="flex items-center gap-3 py-3 text-sm">
+              <span class="h-1.5 w-1.5 shrink-0 rounded-full bg-brass"></span>
+              <p class="min-w-0 flex-1 truncate">
+                <span class="font-medium">{{ entry.actor }}</span>
+                <span class="text-muted"> {{ entry.action }} </span>
+                <span>{{ entry.target }}</span>
+              </p>
+              <span class="shrink-0 text-xs text-faint">{{ entry.at }}</span>
+            </li>
+          }
+        </ul>
+      </section>
+    </main>
+  </div>
+</div>

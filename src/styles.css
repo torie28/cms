@@ -1,3 +1,100 @@
-/* You can add global styles to this file, and also import other style files */
-
 @import 'tailwindcss';
+
+/* Dark mode is driven by a class on <html> so the user can override the OS setting. */
+@custom-variant dark (&:where(.dark, .dark *));
+
+:root {
+  --canvas: oklch(96.8% 0.011 85);
+  --surface: oklch(99.2% 0.005 85);
+  --surface-sunken: oklch(93.5% 0.014 85);
+  --ink: oklch(24% 0.02 60);
+  --ink-muted: oklch(48% 0.02 60);
+  --ink-faint: oklch(63% 0.018 60);
+  --line: oklch(86% 0.015 75);
+  --line-strong: oklch(76% 0.02 75);
+  --brass: oklch(58% 0.1 75);
+  --brass-strong: oklch(48% 0.105 70);
+  --brass-tint: oklch(92% 0.04 80);
+  /* The scripture panel stays dark in both themes, like a stained-glass wall. */
+  --chancel: oklch(32% 0.05 265);
+  --chancel-ink: oklch(96% 0.01 85);
+  --positive: oklch(52% 0.11 155);
+  --negative: oklch(53% 0.16 27);
+  color-scheme: light;
+}
+
+.dark {
+  --canvas: oklch(19% 0.012 265);
+  --surface: oklch(23.5% 0.014 265);
+  --surface-sunken: oklch(16.5% 0.012 265);
+  --ink: oklch(94% 0.008 85);
+  --ink-muted: oklch(74% 0.012 85);
+  --ink-faint: oklch(60% 0.014 85);
+  --line: oklch(31% 0.014 265);
+  --line-strong: oklch(40% 0.018 265);
+  --brass: oklch(78% 0.1 82);
+  --brass-strong: oklch(85% 0.11 85);
+  --brass-tint: oklch(30% 0.04 80);
+  --chancel: oklch(24% 0.04 265);
+  --chancel-ink: oklch(92% 0.01 85);
+  --positive: oklch(75% 0.13 155);
+  --negative: oklch(72% 0.15 27);
+  color-scheme: dark;
+}
+
+@theme inline {
+  --color-canvas: var(--canvas);
+  --color-surface: var(--surface);
+  --color-sunken: var(--surface-sunken);
+  --color-ink: var(--ink);
+  --color-muted: var(--ink-muted);
+  --color-faint: var(--ink-faint);
+  --color-line: var(--line);
+  --color-line-strong: var(--line-strong);
+  --color-brass: var(--brass);
+  --color-brass-strong: var(--brass-strong);
+  --color-brass-tint: var(--brass-tint);
+  --color-chancel: var(--chancel);
+  --color-chancel-ink: var(--chancel-ink);
+  --color-positive: var(--positive);
+  --color-negative: var(--negative);
+
+  --font-serif: 'Iowan Old Style', 'Palatino Linotype', Palatino, 'Book Antiqua', Georgia, serif;
+  --font-sans: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif;
+}
+
+html,
+body {
+  height: 100%;
+}
+
+body {
+  background-color: var(--canvas);
+  color: var(--ink);
+  font-family: var(--font-sans);
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+}
+
+/* A hairline rule with a centred diamond, used to separate sections. */
+.rule-ornament {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+  color: var(--line-strong);
+}
+
+.rule-ornament::before,
+.rule-ornament::after {
+  content: '';
+  flex: 1;
+  height: 1px;
+  background: currentColor;
+}
+
+.rule-ornament > span {
+  font-size: 0.7rem;
+  letter-spacing: 0.25em;
+  text-transform: uppercase;
+  color: var(--ink-faint);
+}

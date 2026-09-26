@@ -39,6 +39,10 @@ testem.log
 /typings
 __screenshots__/
 
+# Local tooling (downloaded, not vendored)
+/tools/adminer.php
+/.shots
+
 # System files
 .DS_Store
 Thumbs.db

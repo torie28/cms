@@ -1,56 +1,73 @@
 <section class="overflow-hidden rounded border border-line bg-surface">
   <div class="flex items-center justify-between border-b border-line px-4 py-3">
     <div>
-      <h2 class="font-serif text-lg">Activity logs</h2>
-      <p class="text-xs text-muted">Logins, logouts, and create actions across the parish.</p>
+      <h2 class="font-serif text-lg">Kumbukumbu za shughuli</h2>
+      <p class="text-xs text-muted">Kuingia, kutoka, na mabadiliko yote yaliyofanyika parokiani.</p>
     </div>
     <button
       type="button"
-      class="rounded px-3 py-1.5 text-sm text-muted hover:bg-sunken"
+      class="flex items-center gap-1.5 rounded px-3 py-1.5 text-sm text-muted hover:bg-sunken"
+      [disabled]="loading()"
       (click)="refresh()"
     >
-      Refresh
+      <svg
+        viewBox="0 0 24 24"
+        fill="none"
+        stroke="currentColor"
+        stroke-width="1.8"
+        class="h-4 w-4"
+        [class.animate-spin]="loading()"
+      >
+        <path stroke-linecap="round" stroke-linejoin="round" d="M20 11a8 8 0 1 0-2.3 5.7M20 5v6h-6" />
+      </svg>
+      Onyesha upya
     </button>
   </div>
 
   @if (error()) {
-    <p class="px-4 py-3 text-sm text-negative" role="alert">{{ error() }}</p>
+    <p class="alert-in px-4 py-3 text-sm text-negative" role="alert">{{ error() }}</p>
   }
 
   <table class="w-full min-w-[44rem] text-left text-sm">
     <thead class="border-b border-line bg-sunken text-xs tracking-[0.12em] text-faint uppercase">
       <tr>
-        <th class="px-4 py-3 font-medium">Date & time</th>
-        <th class="px-4 py-3 font-medium">User</th>
-        <th class="px-4 py-3 font-medium">Action</th>
-        <th class="px-4 py-3 font-medium">Item</th>
-        <th class="px-4 py-3 font-medium">Type</th>
+        <th class="px-4 py-3 font-medium">Tarehe na saa</th>
+        <th class="px-4 py-3 font-medium">Mtumiaji</th>
+        <th class="px-4 py-3 font-medium">Kitendo</th>
+        <th class="px-4 py-3 font-medium">Kipengele</th>
+        <th class="px-4 py-3 font-medium">Aina</th>
       </tr>
     </thead>
     <tbody class="divide-y divide-line">
       @if (loading()) {
-        <tr>
-          <td colspan="5" class="px-4 py-8 text-center text-muted">Loading activity…</td>
-        </tr>
+        @for (row of skeletonRows; track row) {
+          <tr aria-hidden="true">
+            <td class="px-4 py-3.5"><span class="skeleton h-4 w-32"></span></td>
+            <td class="px-4 py-3.5"><span class="skeleton h-4 w-24"></span></td>
+            <td class="px-4 py-3.5"><span class="skeleton h-4 w-16"></span></td>
+            <td class="px-4 py-3.5"><span class="skeleton h-4 w-40"></span></td>
+            <td class="px-4 py-3.5"><span class="skeleton h-5 w-16"></span></td>
+          </tr>
+        }
       } @else if (logs().length === 0) {
         <tr>
           <td colspan="5" class="px-4 py-8 text-center text-muted">
-            No activity yet. Sign in, add a user, kanda, or jumuiya to start the log.
+            Bado hakuna shughuli. Ingia, au ongeza mtumiaji, kanda au jumuiya ili kuanza kumbukumbu.
           </td>
         </tr>
       } @else {
-        @for (entry of logs(); track entry.id) {
-          <tr>
+        @for (entry of logs(); track entry.id; let i = $index) {
+          <tr [style.animation-delay.ms]="i < 20 ? i * 30 : 0">
             <td class="px-4 py-3 whitespace-nowrap text-muted">
-              {{ entry.created_at | date: 'd MMM y, h:mm a' }}
+              {{ entry.created_at | date: 'd MMM y, HH:mm' }}
             </td>
             <td class="px-4 py-3 font-medium">{{ entry.actor }}</td>
-            <td class="px-4 py-3 capitalize">{{ entry.action }}</td>
-            <td class="px-4 py-3 text-muted">{{ entry.subject }}</td>
+            <td class="px-4 py-3">{{ actionLabel(entry.action) }}</td>
+            <td class="px-4 py-3 text-muted">{{ subjectLabel(entry.subject) }}</td>
             <td class="px-4 py-3">
               @if (entry.subject_type) {
                 <span class="rounded bg-brass-tint px-2 py-0.5 text-xs text-brass-strong">
-                  {{ entry.subject_type.replaceAll('_', ' ') | titlecase }}
+                  {{ typeLabel(entry.subject_type) }}
                 </span>
               } @else {
                 <span class="text-faint">—</span>

@@ -8,12 +8,12 @@ export interface NavItem {
 }
 
 export const APP_NAV: NavItem[] = [
-  { label: 'Overview', path: '/dashboard', icon: 'grid', exact: true },
-  { label: 'Users', path: '/users', icon: 'users', exact: true },
-  { label: 'Attendance', path: null, icon: 'check' },
-  { label: 'Giving', path: null, icon: 'coin' },
-  { label: 'Events', path: null, icon: 'calendar' },
+  { label: 'Muhtasari', path: '/dashboard', icon: 'grid', exact: true },
+  { label: 'Watumiaji', path: '/users', icon: 'users', exact: true },
+  { label: 'Mahudhurio', path: null, icon: 'check' },
+  { label: 'Sadaka', path: '/sadaka', icon: 'coin', exact: true },
+  { label: 'Matukio', path: null, icon: 'calendar' },
   { label: 'Jumuiya', path: '/jumuiya', icon: 'heart', exact: true },
   { label: 'Kanda', path: '/kanda', icon: 'map', exact: true },
-  { label: 'Settings', path: '/settings', icon: 'gear', exact: false },
+  { label: 'Mipangilio', path: '/settings', icon: 'gear', exact: false },
 ];

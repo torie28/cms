@@ -1,0 +1,105 @@
+<div class="flex min-h-dvh bg-canvas text-ink">
+  @if (sidebarOpen()) {
+    <div
+      class="fixed inset-0 z-20 bg-black/40 lg:hidden"
+      (click)="toggleSidebar()"
+      aria-hidden="true"
+    ></div>
+  }
+
+  <aside
+    class="fixed inset-y-0 left-0 z-30 flex w-64 flex-col border-r border-line bg-surface transition-transform lg:sticky lg:top-0 lg:h-dvh lg:translate-x-0"
+    [class]="sidebarOpen() ? 'translate-x-0' : '-translate-x-full'"
+  >
+    <div class="flex items-center gap-3 border-b border-line px-5 py-5">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.4" class="h-8 w-8 text-brass-strong">
+        <path stroke-linecap="round" d="M12 3v18M8.5 7.5h7" />
+        <path stroke-linejoin="round" d="M4 21V12l8-6.5 8 6.5v9" />
+      </svg>
+      <div>
+        <p class="font-serif text-lg leading-tight">St. Mathias Chapel</p>
+        <p class="text-[0.65rem] tracking-[0.25em] text-faint uppercase">Management</p>
+      </div>
+    </div>
+
+    <nav class="flex-1 space-y-1 overflow-y-auto px-3 py-4">
+      @for (item of navigation; track item.label) {
+        @if (item.path) {
+          <a
+            [routerLink]="item.path"
+            routerLinkActive="bg-brass-tint font-medium text-brass-strong"
+            [routerLinkActiveOptions]="{ exact: item.exact !== false }"
+            class="flex items-center gap-3 rounded px-3 py-2 text-sm text-muted transition-colors hover:bg-sunken hover:text-ink"
+            (click)="closeSidebar()"
+          >
+            <app-icon [name]="item.icon" />
+            {{ item.label }}
+          </a>
+        } @else {
+          <span class="flex items-center gap-3 rounded px-3 py-2 text-sm text-faint">
+            <app-icon [name]="item.icon" />
+            {{ item.label }}
+          </span>
+        }
+      }
+    </nav>
+
+    <div class="border-t border-line p-4">
+      <div class="rounded border border-line bg-sunken p-3">
+        <p class="font-serif text-sm">Verse of the day</p>
+        <p class="mt-1 text-xs leading-relaxed text-muted">
+          &ldquo;Commit to the Lord whatever you do, and he will establish your plans.&rdquo;
+        </p>
+        <p class="mt-2 text-[0.65rem] tracking-[0.2em] text-faint uppercase">Proverbs 16:3</p>
+      </div>
+    </div>
+  </aside>
+
+  <div class="flex min-w-0 flex-1 flex-col">
+    <header
+      class="sticky top-0 z-10 flex items-center gap-4 border-b border-line bg-surface/85 px-5 py-3 backdrop-blur"
+    >
+      <button
+        type="button"
+        class="rounded p-1.5 text-muted hover:bg-sunken hover:text-ink lg:hidden"
+        aria-label="Toggle navigation"
+        (click)="toggleSidebar()"
+      >
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" class="h-5 w-5">
+          <path stroke-linecap="round" d="M4 7h16M4 12h16M4 17h16" />
+        </svg>
+      </button>
+
+      <div class="min-w-0 flex-1">
+        <p class="truncate text-xs text-faint">{{ today }}</p>
+      </div>
+
+      <app-theme-toggle />
+
+      <div class="flex items-center gap-3 border-l border-line pl-3">
+        <div class="hidden text-right sm:block">
+          <p class="text-sm leading-tight font-medium">{{ user()?.name ?? 'Guest' }}</p>
+          <p class="text-xs text-faint capitalize">{{ user()?.role ?? 'Visitor' }}</p>
+        </div>
+        <span
+          class="flex h-9 w-9 items-center justify-center rounded-full bg-brass-tint font-serif text-sm text-brass-strong"
+        >
+          {{ initials() }}
+        </span>
+        <button
+          type="button"
+          class="rounded p-1.5 text-muted hover:bg-sunken hover:text-ink"
+          aria-label="Sign out"
+          title="Sign out"
+          (click)="signOut()"
+        >
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" class="h-5 w-5">
+            <path stroke-linecap="round" stroke-linejoin="round" d="M15 16.5V19a2 2 0 0 1-2 2H6a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h7a2 2 0 0 1 2 2v2.5M10 12h11m0 0-3-3m3 3-3 3" />
+          </svg>
+        </button>
+      </div>
+    </header>
+
+    <router-outlet />
+  </div>
+</div>

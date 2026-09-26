@@ -3,6 +3,7 @@
 namespace App\Http\Controllers;
 
 use App\Models\User;
+use App\Support\ActivityLogger;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Hash;
@@ -25,7 +26,13 @@ class AuthController extends Controller
             ]);
         }
 
-        $user->tokens()->delete();
+        app(ActivityLogger::class)->record(
+            $user,
+            'logged in',
+            'the system',
+            'session',
+            $request,
+        );
 
         return response()->json([
             'token' => $user->createToken('cms')->plainTextToken,
@@ -35,7 +42,17 @@ class AuthController extends Controller
 
     public function logout(Request $request): JsonResponse
     {
-        $request->user()?->currentAccessToken()?->delete();
+        $user = $request->user();
+
+        app(ActivityLogger::class)->record(
+            $user,
+            'logged out',
+            'the system',
+            'session',
+            $request,
+        );
+
+        $user?->currentAccessToken()?->delete();
 
         return response()->json(['message' => 'Signed out.']);
     }

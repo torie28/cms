@@ -1,0 +1,599 @@
+<main class="flex-1 space-y-6 p-5 lg:p-7">
+  <div class="flex flex-wrap items-end justify-between gap-4">
+    <div>
+      <h1 class="font-serif text-2xl">Jumuiya</h1>
+      <p class="mt-1 text-sm text-muted">Small Christian communities, each belonging to a kanda.</p>
+    </div>
+    <button
+      type="button"
+      class="rounded bg-brass-strong px-4 py-2 text-sm font-medium text-canvas hover:opacity-90 disabled:opacity-50"
+      [disabled]="kandas().length === 0"
+      [title]="kandas().length === 0 ? 'Add a kanda first' : 'Add jumuiya'"
+      (click)="openJumuiyaForm()"
+    >
+      Add jumuiya
+    </button>
+  </div>
+
+  @if (kandas().length === 0 && !loading()) {
+    <p class="rounded border border-line bg-surface px-4 py-3 text-sm text-muted">
+      Create a kanda first, then you can attach jumuiya to it.
+    </p>
+  }
+
+  @if (error() && !jumuiyaFormOpen() && !memberFormOpen() && !viewOpen()) {
+    <p class="rounded border border-negative/40 bg-negative/10 px-3 py-2 text-sm text-negative" role="alert">
+      {{ error() }}
+    </p>
+  }
+
+  @if (jumuiyas().length > 0) {
+    <div class="flex flex-wrap items-center justify-between gap-3 rounded border border-line bg-surface px-4 py-3">
+      <p class="text-sm">
+        @if (selected(); as group) {
+          Selected:
+          <span class="font-medium">{{ group.name }}</span>
+          <span class="text-muted"> · {{ group.members_count ?? 0 }} members</span>
+        } @else {
+          <span class="text-muted">Select a jumuiya to view, edit, or manage members.</span>
+        }
+      </p>
+      <div class="flex flex-wrap gap-2">
+        <button
+          type="button"
+          class="rounded border border-line px-3 py-1.5 text-sm hover:bg-sunken disabled:opacity-50"
+          [disabled]="!selected()"
+          (click)="selected() && openView(selected()!)"
+        >
+          View
+        </button>
+        <button
+          type="button"
+          class="rounded border border-line px-3 py-1.5 text-sm hover:bg-sunken disabled:opacity-50"
+          [disabled]="!selected()"
+          (click)="selected() && openEditJumuiya(selected()!)"
+        >
+          Edit
+        </button>
+        <button
+          type="button"
+          class="rounded border border-line px-3 py-1.5 text-sm text-negative hover:bg-sunken disabled:opacity-50"
+          [disabled]="!selected() || saving()"
+          (click)="selected() && removeJumuiya(selected()!)"
+        >
+          Delete
+        </button>
+        <button
+          type="button"
+          class="rounded bg-brass-strong px-3 py-1.5 text-sm font-medium text-canvas hover:opacity-90 disabled:opacity-50"
+          [disabled]="!selected()"
+          (click)="openMemberForm()"
+        >
+          Add members
+        </button>
+      </div>
+    </div>
+  }
+
+  @if (loading()) {
+    <p class="text-sm text-muted">Loading jumuiya…</p>
+  } @else if (jumuiyas().length === 0) {
+    <p class="rounded border border-dashed border-line bg-surface px-4 py-8 text-center text-sm text-muted">
+      No jumuiya yet.
+    </p>
+  } @else {
+    <section class="overflow-hidden rounded border border-line bg-surface">
+      <table class="w-full min-w-[48rem] text-left text-sm">
+        <thead class="border-b border-line bg-sunken text-xs tracking-[0.12em] text-faint uppercase">
+          <tr>
+            <th class="px-4 py-3 font-medium">Name</th>
+            <th class="px-4 py-3 font-medium">Kanda</th>
+            <th class="px-4 py-3 font-medium">Chairman</th>
+            <th class="px-4 py-3 font-medium">Members</th>
+            <th class="px-4 py-3 font-medium">Action</th>
+          </tr>
+        </thead>
+        <tbody class="divide-y divide-line">
+          @for (group of jumuiyas(); track group.id) {
+            <tr
+              class="cursor-pointer"
+              [class.bg-brass-tint]="selected()?.id === group.id"
+              (click)="select(group)"
+            >
+              <td class="px-4 py-3 font-medium">{{ group.name }}</td>
+              <td class="px-4 py-3 text-muted">{{ group.kanda?.name }}</td>
+              <td class="px-4 py-3 text-muted">{{ group.chairperson || '—' }}</td>
+              <td class="px-4 py-3 text-muted">{{ group.members_count ?? 0 }}</td>
+              <td class="px-4 py-3">
+                <div class="flex flex-wrap gap-x-3 gap-y-1">
+                  <button
+                    type="button"
+                    class="text-sm text-brass-strong hover:underline"
+                    (click)="openView(group, $event)"
+                  >
+                    View
+                  </button>
+                  <button
+                    type="button"
+                    class="text-sm text-brass-strong hover:underline"
+                    (click)="openEditJumuiya(group, $event)"
+                  >
+                    Edit
+                  </button>
+                  <button
+                    type="button"
+                    class="text-sm text-negative hover:underline"
+                    [disabled]="saving()"
+                    (click)="removeJumuiya(group, $event)"
+                  >
+                    Delete
+                  </button>
+                  <button
+                    type="button"
+                    class="text-sm text-brass-strong hover:underline"
+                    (click)="openMemberForm(group, $event)"
+                  >
+                    Add members
+                  </button>
+                </div>
+              </td>
+            </tr>
+          }
+        </tbody>
+      </table>
+    </section>
+  }
+</main>
+
+@if (viewOpen() && selected(); as group) {
+  <div class="fixed inset-0 z-40 flex items-center justify-center bg-black/40 p-4" (click)="closeView()">
+    <section
+      class="max-h-[90vh] w-full max-w-2xl overflow-y-auto rounded border border-line bg-surface p-5"
+      (click)="$event.stopPropagation()"
+    >
+      <div class="flex flex-wrap items-start justify-between gap-3">
+        <div>
+          <h2 class="font-serif text-xl">{{ group.name }}</h2>
+          <p class="mt-1 text-sm text-muted">
+            {{ group.kanda?.name || 'No kanda' }} · Chairman {{ group.chairperson || '—' }}
+          </p>
+        </div>
+        <div class="flex flex-wrap gap-2">
+          <button
+            type="button"
+            class="rounded border border-line px-3 py-1.5 text-sm hover:bg-sunken"
+            (click)="openEditJumuiya(group)"
+          >
+            Edit
+          </button>
+          <button
+            type="button"
+            class="rounded bg-brass-strong px-3 py-1.5 text-sm font-medium text-canvas hover:opacity-90"
+            (click)="openMemberForm(group)"
+          >
+            Add members
+          </button>
+        </div>
+      </div>
+
+      @if (group.notes) {
+        <p class="mt-3 text-sm text-muted">{{ group.notes }}</p>
+      }
+
+      @if (error()) {
+        <p class="mt-4 rounded border border-negative/40 bg-negative/10 px-3 py-2 text-sm text-negative" role="alert">
+          {{ error() }}
+        </p>
+      }
+
+      <h3 class="mt-6 text-xs tracking-[0.12em] text-faint uppercase">
+        Members · {{ members().length }}
+      </h3>
+
+      @if (membersLoading()) {
+        <p class="mt-3 text-sm text-muted">Loading members…</p>
+      } @else if (members().length === 0) {
+        <p class="mt-3 rounded border border-dashed border-line px-4 py-6 text-center text-sm text-muted">
+          No members in this jumuiya yet.
+        </p>
+      } @else {
+        <table class="mt-3 w-full text-left text-sm">
+          <thead class="border-b border-line text-xs tracking-[0.12em] text-faint uppercase">
+            <tr>
+              <th class="py-2 pr-3 font-medium">Name</th>
+              <th class="py-2 pr-3 font-medium">Phone</th>
+              <th class="py-2 pr-3 font-medium">Gender</th>
+              <th class="py-2 font-medium">Action</th>
+            </tr>
+          </thead>
+          <tbody class="divide-y divide-line">
+            @for (member of members(); track member.id) {
+              <tr>
+                <td class="py-2 pr-3 font-medium">{{ member.name }}</td>
+                <td class="py-2 pr-3 text-muted">{{ member.phone || '—' }}</td>
+                <td class="py-2 pr-3 text-muted">{{ genderLabel(member.gender) }}</td>
+                <td class="py-2">
+                  <div class="flex flex-wrap gap-x-3">
+                    <button
+                      type="button"
+                      class="text-sm text-brass-strong hover:underline"
+                      (click)="openEditMember(member)"
+                    >
+                      Edit
+                    </button>
+                    <button
+                      type="button"
+                      class="text-sm text-negative hover:underline"
+                      [disabled]="saving()"
+                      (click)="removeMember(member)"
+                    >
+                      Delete
+                    </button>
+                  </div>
+                </td>
+              </tr>
+            }
+          </tbody>
+        </table>
+      }
+
+      <div class="mt-5 flex justify-end">
+        <button type="button" class="rounded px-3 py-2 text-sm text-muted hover:bg-sunken" (click)="closeView()">
+          Close
+        </button>
+      </div>
+    </section>
+  </div>
+}
+
+@if (jumuiyaFormOpen()) {
+  <div class="fixed inset-0 z-50 flex items-center justify-center bg-black/40 p-4" (click)="closeForms()">
+    <section
+      class="max-h-[90vh] w-full max-w-2xl overflow-y-auto rounded border border-line bg-surface p-5"
+      (click)="$event.stopPropagation()"
+    >
+      <h2 class="font-serif text-xl">{{ editingJumuiya() ? 'Edit jumuiya' : 'Add jumuiya' }}</h2>
+
+      @if (error()) {
+        <p class="mt-4 rounded border border-negative/40 bg-negative/10 px-3 py-2 text-sm text-negative" role="alert">
+          {{ error() }}
+        </p>
+      }
+
+      <form [formGroup]="jumuiyaForm" (ngSubmit)="submitJumuiya()" class="mt-5 space-y-4">
+        <div>
+          <label for="jumuiya-name" class="mb-1 block text-xs tracking-[0.12em] text-muted uppercase">Name</label>
+          <input
+            id="jumuiya-name"
+            type="text"
+            formControlName="name"
+            placeholder="St. Joseph Jumuiya"
+            class="w-full rounded border border-line bg-canvas px-3 py-2 focus:border-brass focus:ring-1 focus:ring-brass focus:outline-none"
+          />
+        </div>
+        <div>
+          <label for="jumuiya-kanda" class="mb-1 block text-xs tracking-[0.12em] text-muted uppercase">Kanda</label>
+          <select
+            id="jumuiya-kanda"
+            formControlName="kanda_id"
+            class="w-full rounded border border-line bg-canvas px-3 py-2 focus:border-brass focus:ring-1 focus:ring-brass focus:outline-none"
+          >
+            <option value="0" disabled>Select a kanda</option>
+            @for (kanda of kandas(); track kanda.id) {
+              <option [value]="kanda.id">{{ kanda.name }}</option>
+            }
+          </select>
+        </div>
+        <div>
+          <label for="jumuiya-chair" class="mb-1 block text-xs tracking-[0.12em] text-muted uppercase">Chairman</label>
+          <input
+            id="jumuiya-chair"
+            type="text"
+            formControlName="chairperson"
+            class="w-full rounded border border-line bg-canvas px-3 py-2 focus:border-brass focus:ring-1 focus:ring-brass focus:outline-none"
+          />
+        </div>
+        @if (!editingJumuiya()) {
+          <div>
+            <label for="jumuiya-notes" class="mb-1 block text-xs tracking-[0.12em] text-muted uppercase">Notes</label>
+            <textarea
+              id="jumuiya-notes"
+              formControlName="notes"
+              rows="3"
+              class="w-full rounded border border-line bg-canvas px-3 py-2 focus:border-brass focus:ring-1 focus:ring-brass focus:outline-none"
+            ></textarea>
+          </div>
+        }
+
+        <div class="space-y-3 border-t border-line pt-4">
+          <div>
+            <h3 class="text-xs tracking-[0.12em] text-faint uppercase">Members</h3>
+            @if (editingJumuiya()) {
+              <p class="mt-1 text-sm text-muted">
+                Current members are listed below. Add more by preparing extra rows.
+              </p>
+            } @else {
+              <p class="mt-1 text-sm text-muted">
+                Enter how many members to add, then fill them all in at once.
+              </p>
+            }
+          </div>
+
+          @if (editingJumuiya()) {
+            @if (membersLoading()) {
+              <p class="text-sm text-muted">Loading members…</p>
+            } @else if (members().length === 0) {
+              <p class="rounded border border-dashed border-line px-3 py-4 text-sm text-muted">
+                No members in this jumuiya yet.
+              </p>
+            } @else {
+              <div class="overflow-x-auto">
+                <table class="w-full min-w-[32rem] text-left text-sm">
+                  <thead class="border-b border-line text-xs tracking-[0.12em] text-faint uppercase">
+                    <tr>
+                      <th class="py-2 pr-3 font-medium">#</th>
+                      <th class="py-2 pr-3 font-medium">Full name</th>
+                      <th class="py-2 pr-3 font-medium">Phone</th>
+                      <th class="py-2 font-medium">Gender</th>
+                    </tr>
+                  </thead>
+                  <tbody class="divide-y divide-line">
+                    @for (member of members(); track member.id) {
+                      <tr>
+                        <td class="py-2 pr-3 text-muted">{{ $index + 1 }}</td>
+                        <td class="py-2 pr-3 font-medium">{{ member.name }}</td>
+                        <td class="py-2 pr-3 text-muted">{{ member.phone || '—' }}</td>
+                        <td class="py-2 text-muted">{{ genderLabel(member.gender) }}</td>
+                      </tr>
+                    }
+                  </tbody>
+                </table>
+              </div>
+            }
+          }
+
+          <div class="flex flex-wrap items-end gap-2">
+            <div>
+              <label for="jumuiya-member-count" class="mb-1 block text-xs tracking-[0.12em] text-muted uppercase">
+                {{ editingJumuiya() ? 'Add members' : 'Number of members' }}
+              </label>
+              <input
+                id="jumuiya-member-count"
+                type="number"
+                min="0"
+                max="200"
+                [formControl]="jumuiyaMemberCount"
+                class="w-32 rounded border border-line bg-canvas px-3 py-2 focus:border-brass focus:ring-1 focus:ring-brass focus:outline-none"
+              />
+            </div>
+            <button
+              type="button"
+              class="rounded border border-line px-3 py-2 text-sm hover:bg-sunken"
+              (click)="prepareJumuiyaMembers()"
+            >
+              Prepare rows
+            </button>
+          </div>
+
+          @if (draftMembers.length > 0) {
+            <div class="overflow-x-auto" formArrayName="members">
+              <table class="w-full min-w-[32rem] text-left text-sm">
+                <thead class="border-b border-line text-xs tracking-[0.12em] text-faint uppercase">
+                  <tr>
+                    <th class="py-2 pr-3 font-medium">#</th>
+                    <th class="py-2 pr-3 font-medium">Full name</th>
+                    <th class="py-2 pr-3 font-medium">Phone</th>
+                    <th class="py-2 font-medium">Gender</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  @for (member of draftMembers.controls; track $index) {
+                    <tr [formGroupName]="$index">
+                      <td class="py-1.5 pr-3 text-muted">{{ $index + 1 }}</td>
+                      <td class="py-1.5 pr-3">
+                        <input
+                          type="text"
+                          formControlName="name"
+                          [attr.aria-label]="'Member ' + ($index + 1) + ' name'"
+                          class="w-full rounded border border-line bg-canvas px-2 py-1.5 focus:border-brass focus:ring-1 focus:ring-brass focus:outline-none"
+                        />
+                      </td>
+                      <td class="py-1.5 pr-3">
+                        <input
+                          type="tel"
+                          formControlName="phone"
+                          [attr.aria-label]="'Member ' + ($index + 1) + ' phone'"
+                          class="w-full rounded border border-line bg-canvas px-2 py-1.5 focus:border-brass focus:ring-1 focus:ring-brass focus:outline-none"
+                        />
+                      </td>
+                      <td class="py-1.5">
+                        <select
+                          formControlName="gender"
+                          [attr.aria-label]="'Member ' + ($index + 1) + ' gender'"
+                          class="w-full rounded border border-line bg-canvas px-2 py-1.5 focus:border-brass focus:ring-1 focus:ring-brass focus:outline-none"
+                        >
+                          <option value="">—</option>
+                          <option value="male">Male</option>
+                          <option value="female">Female</option>
+                        </select>
+                      </td>
+                    </tr>
+                  }
+                </tbody>
+              </table>
+            </div>
+          }
+        </div>
+
+        <div class="flex justify-end gap-2 pt-2">
+          <button type="button" class="rounded px-3 py-2 text-sm text-muted hover:bg-sunken" (click)="closeForms()">
+            Cancel
+          </button>
+          <button
+            type="submit"
+            class="rounded bg-brass-strong px-4 py-2 text-sm font-medium text-canvas disabled:opacity-60"
+            [disabled]="saving()"
+          >
+            {{ saving() ? 'Saving…' : editingJumuiya() ? 'Save changes' : 'Save jumuiya' }}
+          </button>
+        </div>
+      </form>
+    </section>
+  </div>
+}
+
+@if (memberFormOpen() && selected(); as group) {
+  <div class="fixed inset-0 z-50 flex items-center justify-center bg-black/40 p-4" (click)="closeForms()">
+    <section
+      class="max-h-[90vh] w-full overflow-y-auto rounded border border-line bg-surface p-5"
+      [class.max-w-md]="editingMember()"
+      [class.max-w-2xl]="!editingMember()"
+      (click)="$event.stopPropagation()"
+    >
+      <h2 class="font-serif text-xl">{{ editingMember() ? 'Edit member' : 'Add members' }}</h2>
+      <p class="mt-1 text-sm text-muted">
+        {{ editingMember() ? 'Updating' : 'Adding to' }} {{ group.name }}.
+      </p>
+
+      @if (error()) {
+        <p class="mt-4 rounded border border-negative/40 bg-negative/10 px-3 py-2 text-sm text-negative" role="alert">
+          {{ error() }}
+        </p>
+      }
+
+      @if (editingMember()) {
+        <form [formGroup]="memberForm" (ngSubmit)="submitMember()" class="mt-5 space-y-4">
+          <div>
+            <label for="member-name" class="mb-1 block text-xs tracking-[0.12em] text-muted uppercase">Full name</label>
+            <input
+              id="member-name"
+              type="text"
+              formControlName="name"
+              class="w-full rounded border border-line bg-canvas px-3 py-2 focus:border-brass focus:ring-1 focus:ring-brass focus:outline-none"
+            />
+          </div>
+          <div>
+            <label for="member-phone" class="mb-1 block text-xs tracking-[0.12em] text-muted uppercase">Phone</label>
+            <input
+              id="member-phone"
+              type="tel"
+              formControlName="phone"
+              class="w-full rounded border border-line bg-canvas px-3 py-2 focus:border-brass focus:ring-1 focus:ring-brass focus:outline-none"
+            />
+          </div>
+          <div>
+            <label for="member-gender" class="mb-1 block text-xs tracking-[0.12em] text-muted uppercase">Gender</label>
+            <select
+              id="member-gender"
+              formControlName="gender"
+              class="w-full rounded border border-line bg-canvas px-3 py-2 focus:border-brass focus:ring-1 focus:ring-brass focus:outline-none"
+            >
+              <option value="">Prefer not to say</option>
+              <option value="male">Male</option>
+              <option value="female">Female</option>
+            </select>
+          </div>
+          <div class="flex justify-end gap-2 pt-2">
+            <button type="button" class="rounded px-3 py-2 text-sm text-muted hover:bg-sunken" (click)="closeForms()">
+              Cancel
+            </button>
+            <button
+              type="submit"
+              class="rounded bg-brass-strong px-4 py-2 text-sm font-medium text-canvas disabled:opacity-60"
+              [disabled]="saving()"
+            >
+              {{ saving() ? 'Saving…' : 'Save changes' }}
+            </button>
+          </div>
+        </form>
+      } @else {
+        <form [formGroup]="bulkMemberForm" (ngSubmit)="submitMember()" class="mt-5 space-y-4">
+          <div class="flex flex-wrap items-end gap-2">
+            <div>
+              <label for="bulk-member-count" class="mb-1 block text-xs tracking-[0.12em] text-muted uppercase">
+                Number of members
+              </label>
+              <input
+                id="bulk-member-count"
+                type="number"
+                min="1"
+                max="200"
+                [formControl]="bulkMemberCount"
+                class="w-32 rounded border border-line bg-canvas px-3 py-2 focus:border-brass focus:ring-1 focus:ring-brass focus:outline-none"
+              />
+            </div>
+            <button
+              type="button"
+              class="rounded border border-line px-3 py-2 text-sm hover:bg-sunken"
+              (click)="prepareBulkMembers()"
+            >
+              Prepare rows
+            </button>
+          </div>
+
+          @if (bulkMembers.length > 0) {
+            <div class="overflow-x-auto" formArrayName="members">
+              <table class="w-full min-w-[32rem] text-left text-sm">
+                <thead class="border-b border-line text-xs tracking-[0.12em] text-faint uppercase">
+                  <tr>
+                    <th class="py-2 pr-3 font-medium">#</th>
+                    <th class="py-2 pr-3 font-medium">Full name</th>
+                    <th class="py-2 pr-3 font-medium">Phone</th>
+                    <th class="py-2 font-medium">Gender</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  @for (member of bulkMembers.controls; track $index) {
+                    <tr [formGroupName]="$index">
+                      <td class="py-1.5 pr-3 text-muted">{{ $index + 1 }}</td>
+                      <td class="py-1.5 pr-3">
+                        <input
+                          type="text"
+                          formControlName="name"
+                          [attr.aria-label]="'Member ' + ($index + 1) + ' name'"
+                          class="w-full rounded border border-line bg-canvas px-2 py-1.5 focus:border-brass focus:ring-1 focus:ring-brass focus:outline-none"
+                        />
+                      </td>
+                      <td class="py-1.5 pr-3">
+                        <input
+                          type="tel"
+                          formControlName="phone"
+                          [attr.aria-label]="'Member ' + ($index + 1) + ' phone'"
+                          class="w-full rounded border border-line bg-canvas px-2 py-1.5 focus:border-brass focus:ring-1 focus:ring-brass focus:outline-none"
+                        />
+                      </td>
+                      <td class="py-1.5">
+                        <select
+                          formControlName="gender"
+                          [attr.aria-label]="'Member ' + ($index + 1) + ' gender'"
+                          class="w-full rounded border border-line bg-canvas px-2 py-1.5 focus:border-brass focus:ring-1 focus:ring-brass focus:outline-none"
+                        >
+                          <option value="">—</option>
+                          <option value="male">Male</option>
+                          <option value="female">Female</option>
+                        </select>
+                      </td>
+                    </tr>
+                  }
+                </tbody>
+              </table>
+            </div>
+          }
+
+          <div class="flex justify-end gap-2 pt-2">
+            <button type="button" class="rounded px-3 py-2 text-sm text-muted hover:bg-sunken" (click)="closeForms()">
+              Cancel
+            </button>
+            <button
+              type="submit"
+              class="rounded bg-brass-strong px-4 py-2 text-sm font-medium text-canvas disabled:opacity-60"
+              [disabled]="saving()"
+            >
+              {{ saving() ? 'Saving…' : 'Save members' }}
+            </button>
+          </div>
+        </form>
+      }
+    </section>
+  </div>
+}

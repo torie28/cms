@@ -1,0 +1,104 @@
+<main class="flex-1 space-y-6 p-5 lg:p-7">
+  <div class="flex flex-wrap items-end justify-between gap-4">
+    <div>
+      <h1 class="font-serif text-2xl">Kanda</h1>
+      <p class="mt-1 text-sm text-muted">Parish zones. Each kanda groups one or more jumuiya.</p>
+    </div>
+    <button
+      type="button"
+      class="rounded bg-brass-strong px-4 py-2 text-sm font-medium text-canvas hover:opacity-90"
+      (click)="openForm()"
+    >
+      Add kanda
+    </button>
+  </div>
+
+  @if (error() && !formOpen()) {
+    <p class="rounded border border-negative/40 bg-negative/10 px-3 py-2 text-sm text-negative" role="alert">
+      {{ error() }}
+    </p>
+  }
+
+  @if (loading()) {
+    <p class="text-sm text-muted">Loading kandas…</p>
+  } @else if (kandas().length === 0) {
+    <p class="rounded border border-dashed border-line bg-surface px-4 py-8 text-center text-sm text-muted">
+      No kanda yet. Add the first zone for the parish.
+    </p>
+  } @else {
+    <section class="grid gap-4 md:grid-cols-2 xl:grid-cols-3">
+      @for (kanda of kandas(); track kanda.id) {
+        <article class="rounded border border-line bg-surface p-4">
+          <h2 class="font-serif text-lg">{{ kanda.name }}</h2>
+          <p class="mt-1 text-sm text-muted">{{ kanda.leader || 'No leader assigned' }}</p>
+          <p class="mt-3 text-xs tracking-[0.12em] text-faint uppercase">
+            {{ kanda.jumuiyas_count }} jumuiya
+          </p>
+          @if (kanda.notes) {
+            <p class="mt-2 text-sm text-muted">{{ kanda.notes }}</p>
+          }
+        </article>
+      }
+    </section>
+  }
+</main>
+
+@if (formOpen()) {
+  <div class="fixed inset-0 z-40 flex items-center justify-center bg-black/40 p-4" (click)="closeForm()">
+    <section
+      class="w-full max-w-md rounded border border-line bg-surface p-5"
+      (click)="$event.stopPropagation()"
+    >
+      <h2 class="font-serif text-xl">Add kanda</h2>
+
+      @if (error()) {
+        <p class="mt-4 rounded border border-negative/40 bg-negative/10 px-3 py-2 text-sm text-negative" role="alert">
+          {{ error() }}
+        </p>
+      }
+
+      <form [formGroup]="form" (ngSubmit)="submit()" class="mt-5 space-y-4">
+        <div>
+          <label for="kanda-name" class="mb-1 block text-xs tracking-[0.12em] text-muted uppercase">Name</label>
+          <input
+            id="kanda-name"
+            type="text"
+            formControlName="name"
+            placeholder="Kanda A"
+            class="w-full rounded border border-line bg-canvas px-3 py-2 focus:border-brass focus:ring-1 focus:ring-brass focus:outline-none"
+          />
+        </div>
+        <div>
+          <label for="kanda-leader" class="mb-1 block text-xs tracking-[0.12em] text-muted uppercase">Leader</label>
+          <input
+            id="kanda-leader"
+            type="text"
+            formControlName="leader"
+            class="w-full rounded border border-line bg-canvas px-3 py-2 focus:border-brass focus:ring-1 focus:ring-brass focus:outline-none"
+          />
+        </div>
+        <div>
+          <label for="kanda-notes" class="mb-1 block text-xs tracking-[0.12em] text-muted uppercase">Notes</label>
+          <textarea
+            id="kanda-notes"
+            formControlName="notes"
+            rows="3"
+            class="w-full rounded border border-line bg-canvas px-3 py-2 focus:border-brass focus:ring-1 focus:ring-brass focus:outline-none"
+          ></textarea>
+        </div>
+        <div class="flex justify-end gap-2 pt-2">
+          <button type="button" class="rounded px-3 py-2 text-sm text-muted hover:bg-sunken" (click)="closeForm()">
+            Cancel
+          </button>
+          <button
+            type="submit"
+            class="rounded bg-brass-strong px-4 py-2 text-sm font-medium text-canvas disabled:opacity-60"
+            [disabled]="saving()"
+          >
+            {{ saving() ? 'Saving…' : 'Save kanda' }}
+          </button>
+        </div>
+      </form>
+    </section>
+  </div>
+}

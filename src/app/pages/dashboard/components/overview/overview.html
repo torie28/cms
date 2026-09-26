@@ -1,0 +1,62 @@
+<main class="flex-1 space-y-6 p-5 lg:p-7">
+  <div>
+    <h1 class="font-serif text-2xl">Overview</h1>
+    <p class="mt-1 text-sm text-muted">Parish activity at a glance.</p>
+  </div>
+
+  <section class="grid gap-4 sm:grid-cols-2 xl:grid-cols-4">
+    @for (metric of metrics(); track metric.label) {
+      <article class="rounded border border-line bg-surface p-4">
+        <p class="text-xs tracking-[0.15em] text-faint uppercase">{{ metric.label }}</p>
+        <p class="mt-2 font-serif text-2xl">{{ metric.value }}</p>
+        <p class="mt-1 flex items-center gap-1.5 text-xs">
+          @if (metric.change) {
+            <span [class]="metric.trend === 'down' ? 'text-negative' : 'text-positive'">
+              {{ metric.change }}
+            </span>
+          }
+          <span class="text-faint">{{ metric.caption }}</span>
+        </p>
+      </article>
+    }
+  </section>
+
+  <div class="grid gap-6 xl:grid-cols-3">
+    <section class="rounded border border-line bg-surface p-5 xl:col-span-2">
+      <div class="flex items-baseline justify-between">
+        <h2 class="font-serif text-lg">Weekly attendance</h2>
+        <span class="text-xs text-faint">Last 7 services</span>
+      </div>
+
+      <div class="mt-6 flex items-end gap-3">
+        @for (week of attendance; track week.label) {
+          <div class="flex flex-1 flex-col items-center gap-2">
+            <span class="text-xs text-muted">{{ week.value }}</span>
+            <div class="flex h-40 w-full items-end">
+              <div
+                class="w-full rounded-t bg-brass/70 transition-[height]"
+                [style.height.px]="barHeight(week.value)"
+                [attr.title]="week.label + ': ' + week.value + ' in attendance'"
+              ></div>
+            </div>
+            <span class="text-[0.65rem] text-faint">{{ week.label }}</span>
+          </div>
+        }
+      </div>
+    </section>
+
+    <section class="rounded border border-line bg-surface p-5">
+      <h2 class="font-serif text-lg">Upcoming</h2>
+      <ul class="mt-4 space-y-4">
+        @for (event of events; track event.title) {
+          <li class="border-l-2 border-brass/60 pl-3">
+            <p class="text-sm font-medium">{{ event.title }}</p>
+            <p class="text-xs text-muted">{{ event.when }} · {{ event.location }}</p>
+            <p class="text-xs text-faint">Led by {{ event.lead }}</p>
+          </li>
+        }
+      </ul>
+    </section>
+  </div>
+
+</main>

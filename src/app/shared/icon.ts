@@ -8,6 +8,7 @@ export type IconName =
   | 'calendar'
   | 'heart'
   | 'book'
+  | 'map'
   | 'gear';
 
 @Component({
@@ -51,6 +52,10 @@ export type IconName =
         @case ('book') {
           <path d="M4 5.5A2 2 0 0 1 6 3.5h13v14H6a2 2 0 0 0-2 2z" />
           <path d="M4 17.5v1a2 2 0 0 0 2 2h13" />
+        }
+        @case ('map') {
+          <path d="M9 4.5 3.5 6.5v13L9 17.5 15 19.5l5.5-2v-13L15 6.5 9 4.5z" />
+          <path d="M9 4.5v13M15 6.5v13" />
         }
         @default {
           <circle cx="12" cy="12" r="3" />

@@ -4,6 +4,7 @@ namespace App\Http\Controllers;
 
 use App\Models\Jumuiya;
 use App\Support\ActivityLogger;
+use App\Support\Recycle;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
@@ -84,6 +85,12 @@ class JumuiyaController extends Controller
         ]);
 
         $jumuiya->update($data);
+        $changes = ActivityLogger::changes($jumuiya, [
+            'name' => 'Jina',
+            'kanda_id' => 'Kanda (namba)',
+            'chairperson' => 'Mwenyekiti',
+            'notes' => 'Maelezo',
+        ]);
         $jumuiya->load('kanda:id,name');
         $jumuiya->loadCount('members');
 
@@ -93,6 +100,8 @@ class JumuiyaController extends Controller
             $jumuiya->name,
             'jumuiya',
             $request,
+            $jumuiya,
+            $changes ? ['changes' => $changes] : null,
         );
 
         return response()->json($jumuiya);
@@ -100,15 +109,17 @@ class JumuiyaController extends Controller
 
     public function destroy(Request $request, Jumuiya $jumuiya): JsonResponse
     {
-        $name = $jumuiya->name;
+        $snapshot = Recycle::snapshot($jumuiya);
         $jumuiya->delete();
 
         app(ActivityLogger::class)->record(
             $request->user(),
             'deleted',
-            $name,
+            $jumuiya->name,
             'jumuiya',
             $request,
+            $jumuiya,
+            ['snapshot' => $snapshot],
         );
 
         return response()->json(['message' => 'Jumuiya removed.']);

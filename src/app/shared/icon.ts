@@ -9,6 +9,7 @@ export type IconName =
   | 'heart'
   | 'book'
   | 'map'
+  | 'bell'
   | 'gear';
 
 @Component({
@@ -56,6 +57,10 @@ export type IconName =
         @case ('map') {
           <path d="M9 4.5 3.5 6.5v13L9 17.5 15 19.5l5.5-2v-13L15 6.5 9 4.5z" />
           <path d="M9 4.5v13M15 6.5v13" />
+        }
+        @case ('bell') {
+          <path d="M6 16.5V11a6 6 0 1 1 12 0v5.5l1.5 2h-15z" />
+          <path d="M10 20.5a2 2 0 0 0 4 0" />
         }
         @default {
           <circle cx="12" cy="12" r="3" />

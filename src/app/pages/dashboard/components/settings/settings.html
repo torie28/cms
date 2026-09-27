@@ -1,18 +1,21 @@
 <main class="flex-1 space-y-6 p-5 lg:p-7">
   <div>
-    <h1 class="font-serif text-2xl">Mipangilio</h1>
-    <p class="mt-1 text-sm text-muted">Mipangilio ya parokia na kumbukumbu za mfumo.</p>
+    <h1 class="font-serif text-2xl">{{ 'Mipangilio' | t }}</h1>
+    <p class="mt-1 text-sm text-muted">{{ 'Mipangilio ya parokia, moduli za mfumo, API na kumbukumbu za shughuli.' | t }}</p>
   </div>
 
   <div class="flex flex-col gap-6 lg:flex-row">
-    <nav class="w-full shrink-0 space-y-1 lg:w-52">
-      <a
-        routerLink="/settings/activity-logs"
-        routerLinkActive="bg-brass-tint font-medium text-brass-strong"
-        class="block rounded px-3 py-2 text-sm text-muted hover:bg-sunken hover:text-ink"
-      >
-        Kumbukumbu za shughuli
-      </a>
+    <nav class="w-full shrink-0 space-y-1 lg:w-56">
+      @for (section of sections(); track section.path) {
+        <a
+          [routerLink]="['/settings', section.path]"
+          routerLinkActive="bg-brass-tint text-brass-strong"
+          class="block rounded px-3 py-2 text-sm text-muted hover:bg-sunken hover:text-ink"
+        >
+          <span class="block font-medium">{{ section.label | t }}</span>
+          <span class="block text-xs text-faint">{{ section.description | t }}</span>
+        </a>
+      }
     </nav>
 
     <div class="min-w-0 flex-1">

@@ -20,20 +20,19 @@
       </svg>
       <div>
         <p class="font-serif text-xl leading-tight">St. Mathias Chapel</p>
-        <p class="text-xs tracking-[0.3em] uppercase opacity-70">Parish Registry</p>
+        <p class="text-xs tracking-[0.3em] uppercase opacity-70">{{ 'Usajili wa Parokia' | t }}</p>
       </div>
     </div>
 
     <div class="relative max-w-md">
       <p class="font-serif text-3xl leading-snug">
-        &ldquo;And let us consider how we may spur one another on toward love and good
-        deeds.&rdquo;
+        {{ '“Tuangaliane sisi kwa sisi, ili kuhimizana katika upendo na matendo mema.”' | t }}
       </p>
-      <p class="mt-4 text-sm tracking-[0.2em] uppercase opacity-70">Hebrews 10:24</p>
+      <p class="mt-4 text-sm tracking-[0.2em] uppercase opacity-70">{{ 'Waebrania 10:24' | t }}</p>
     </div>
 
     <p class="relative text-xs text-chancel-ink/60">
-      Serving the congregation since 1908
+      {{ 'Tukiihudumia jumuiya ya waamini tangu 1908' | t }}
     </p>
   </aside>
 
@@ -45,33 +44,36 @@
           <path stroke-linecap="round" d="M12 3v18M8.5 7.5h7" />
           <path stroke-linejoin="round" d="M4 21V12l8-6.5 8 6.5v9" />
         </svg>
-        <span class="font-serif text-lg">Grace Chapel</span>
+        <span class="font-serif text-lg">St. Mathias Chapel</span>
       </div>
-      <app-theme-toggle />
+      <div class="flex items-center gap-3">
+        <app-language-toggle />
+        <app-theme-toggle />
+      </div>
     </header>
 
     <div class="flex flex-1 items-center justify-center py-10">
       <div class="w-full max-w-sm">
         <div class="text-center">
-          <h1 class="font-serif text-3xl text-ink">Welcome back</h1>
-          <p class="mt-2 text-sm text-muted">Sign in to the church management system.</p>
+          <h1 class="font-serif text-3xl text-ink">{{ 'Karibu tena' | t }}</h1>
+          <p class="mt-2 text-sm text-muted">{{ 'Ingia kwenye mfumo wa usimamizi wa kanisa.' | t }}</p>
         </div>
 
-        <div class="rule-ornament my-8"><span>Members Only</span></div>
+        <div class="rule-ornament my-8"><span>{{ 'Wanachama pekee' | t }}</span></div>
 
         @if (error()) {
           <p
             class="mb-5 rounded border border-negative/40 bg-negative/10 px-3 py-2 text-sm text-negative"
             role="alert"
           >
-            {{ error() }}
+            {{ error() | t }}
           </p>
         }
 
         <form [formGroup]="form" (ngSubmit)="submit()" novalidate class="space-y-5">
           <div>
             <label for="username" class="mb-1.5 block text-xs font-medium tracking-[0.15em] text-muted uppercase">
-              Username
+              {{ 'Jina la mtumiaji' | t }}
             </label>
             <input
               id="username"
@@ -82,17 +84,17 @@
               class="w-full rounded border border-line bg-surface px-3 py-2.5 text-ink placeholder:text-faint focus:border-brass focus:ring-1 focus:ring-brass focus:outline-none"
             />
             @if (form.controls.username.touched && form.controls.username.invalid) {
-              <p class="mt-1.5 text-xs text-negative">Enter your username.</p>
+              <p class="mt-1.5 text-xs text-negative">{{ 'Andika jina lako la mtumiaji.' | t }}</p>
             }
           </div>
 
           <div>
             <div class="mb-1.5 flex items-baseline justify-between">
               <label for="password" class="text-xs font-medium tracking-[0.15em] text-muted uppercase">
-                Password
+                {{ 'Nenosiri' | t }}
               </label>
               <button type="button" class="text-xs text-brass-strong hover:underline">
-                Forgot?
+                {{ 'Umesahau?' | t }}
               </button>
             </div>
             <div class="relative">
@@ -107,7 +109,7 @@
               <button
                 type="button"
                 class="absolute inset-y-0 right-0 flex w-11 items-center justify-center text-faint hover:text-ink"
-                [attr.aria-label]="passwordVisible() ? 'Hide password' : 'Show password'"
+                [attr.aria-label]="(passwordVisible() ? 'Ficha nenosiri' : 'Onyesha nenosiri') | t"
                 (click)="togglePasswordVisibility()"
               >
                 @if (passwordVisible()) {
@@ -124,18 +126,9 @@
               </button>
             </div>
             @if (form.controls.password.touched && form.controls.password.invalid) {
-              <p class="mt-1.5 text-xs text-negative">Enter your password.</p>
+              <p class="mt-1.5 text-xs text-negative">{{ 'Andika nenosiri lako.' | t }}</p>
             }
           </div>
-
-          <label class="flex items-center gap-2 text-sm text-muted">
-            <input
-              type="checkbox"
-              formControlName="remember"
-              class="h-4 w-4 rounded border-line-strong accent-[var(--brass)]"
-            />
-            Keep me signed in on this device
-          </label>
 
           <button
             type="submit"
@@ -147,26 +140,26 @@
                 <circle cx="12" cy="12" r="9" class="opacity-25" />
                 <path stroke-linecap="round" d="M21 12a9 9 0 0 0-9-9" />
               </svg>
-              Signing in…
+              {{ 'Inaingia…' | t }}
             } @else {
-              Sign in
+              {{ 'Ingia' | t }}
             }
           </button>
         </form>
 
         <p class="mt-6 text-center text-sm text-muted">
-          Need an account?
-          <a routerLink="/login" class="text-brass-strong hover:underline">Ask the parish administrator</a>
+          {{ 'Unahitaji akaunti?' | t }}
+          <a routerLink="/login" class="text-brass-strong hover:underline">{{ 'Muulize msimamizi wa parokia' | t }}</a>
         </p>
 
         <p class="mt-8 rounded border border-dashed border-line bg-sunken px-3 py-2 text-center text-xs text-faint">
-          Demo access — admin / admin
+          {{ 'Majaribio — admin / admin' | t }}
         </p>
       </div>
     </div>
 
     <footer class="text-center text-xs text-faint">
-      &copy; {{ year }} Grace Chapel. All rights reserved.
+      {{ '© {year} St. Mathias Chapel. Haki zote zimehifadhiwa.' | t: { year } }}
     </footer>
   </main>
 </div>

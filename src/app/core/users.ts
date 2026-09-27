@@ -3,34 +3,38 @@ import { inject, Injectable } from '@angular/core';
 import { firstValueFrom } from 'rxjs';
 import { API_BASE } from './api';
 
+export type Gender = 'male' | 'female';
+
 export interface ManagedUser {
   id: number;
   name: string;
   username: string;
-  email: string;
+  email: string | null;
+  phone: string | null;
+  gender: Gender | null;
   role: string;
+  modules: string[];
   created_at: string;
 }
 
-export interface NewUser {
+export interface UserPayload {
   name: string;
   username: string;
-  email: string;
+  email: string | null;
+  phone: string | null;
+  gender: Gender | null;
   password: string;
   role: string;
+  modules: string[];
 }
 
-export const USER_ROLES = [
-  { value: 'admin', label: 'Msimamizi' },
-  { value: 'secretary', label: 'Katibu' },
-  { value: 'treasurer', label: 'Mweka hazina' },
-  { value: 'kanda_leader', label: 'Kiongozi wa kanda' },
-  { value: 'jumuiya_leader', label: 'Kiongozi wa jumuiya' },
-  { value: 'member', label: 'Mwanachama' },
-] as const;
+export const GENDERS: readonly { value: Gender; label: string }[] = [
+  { value: 'male', label: 'Mwanaume' },
+  { value: 'female', label: 'Mwanamke' },
+];
 
-export function roleLabel(role: string): string {
-  return USER_ROLES.find((item) => item.value === role)?.label ?? role.replaceAll('_', ' ');
+export function genderLabel(gender: string | null): string {
+  return GENDERS.find((item) => item.value === gender)?.label ?? '—';
 }
 
 @Injectable({ providedIn: 'root' })
@@ -41,7 +45,15 @@ export class UsersService {
     return firstValueFrom(this.http.get<ManagedUser[]>(`${API_BASE}/users`));
   }
 
-  create(payload: NewUser): Promise<ManagedUser> {
+  create(payload: UserPayload): Promise<ManagedUser> {
     return firstValueFrom(this.http.post<ManagedUser>(`${API_BASE}/users`, payload));
+  }
+
+  update(id: number, payload: UserPayload): Promise<ManagedUser> {
+    return firstValueFrom(this.http.put<ManagedUser>(`${API_BASE}/users/${id}`, payload));
+  }
+
+  remove(id: number): Promise<void> {
+    return firstValueFrom(this.http.delete<void>(`${API_BASE}/users/${id}`));
   }
 }

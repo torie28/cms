@@ -1,0 +1,825 @@
+<main class="flex-1 space-y-6 p-5 lg:p-7">
+  <div class="flex flex-wrap items-end justify-between gap-4">
+    <div>
+      <h1 class="font-serif text-2xl">{{ 'Arifa na SMS' | t }}</h1>
+      <p class="mt-1 text-sm text-muted">
+        {{ 'Tuma ujumbe kwa waumini wote, kanda, jumuiya, watumiaji wa mfumo au watu maalum.' | t }}
+      </p>
+    </div>
+    @if (contacts()?.gateway; as gateway) {
+      <p
+        class="flex items-center gap-2 rounded border px-3 py-1.5 text-xs"
+        [class.border-brass]="gateway.driver === 'log'"
+        [class.bg-brass-tint]="gateway.driver === 'log'"
+        [class.text-brass-strong]="gateway.driver === 'log'"
+        [class.border-line]="gateway.driver !== 'log'"
+        [class.text-muted]="gateway.driver !== 'log'"
+        [title]="gateway.driver === 'log' ? ('Weka SMS_DRIVER=beem kwenye API/.env ili kutuma kwa kweli' | t) : ''"
+      >
+        <span
+          class="h-2 w-2 rounded-full"
+          [class.bg-brass-strong]="gateway.driver === 'log'"
+          [class.bg-positive]="gateway.driver !== 'log'"
+        ></span>
+        @if (gateway.driver === 'log') {
+          {{ 'Hali ya majaribio · SMS haziendi kwenye simu' | t }}
+        } @else {
+          {{ 'Mtoa huduma: {driver} · Mtumaji {sender}' | t: { driver: gateway.driver, sender: gateway.sender_id } }}
+        }
+      </p>
+    }
+  </div>
+
+  <section class="grid gap-4 sm:grid-cols-2 xl:grid-cols-4" [attr.aria-label]="'Takwimu za ujumbe' | t">
+    @for (stat of stats(); track stat.label) {
+      <div class="rounded border border-line bg-surface px-4 py-3">
+        <p class="text-xs tracking-[0.12em] text-faint uppercase">{{ stat.label | t }}</p>
+        @if (historyLoading()) {
+          <span class="skeleton mt-2 h-7 w-16"></span>
+        } @else {
+          <p class="mt-1 font-serif text-2xl tabular-nums" [class]="stat.tone">{{ stat.value }}</p>
+        }
+      </div>
+    }
+  </section>
+
+  <nav class="flex gap-1 border-b border-line" role="tablist" [attr.aria-label]="'Sehemu za arifa' | t">
+    <button
+      type="button"
+      role="tab"
+      class="-mb-px border-b-2 px-4 py-2 text-sm"
+      [class.border-brass-strong]="tab() === 'compose'"
+      [class.font-medium]="tab() === 'compose'"
+      [class.text-brass-strong]="tab() === 'compose'"
+      [class.border-transparent]="tab() !== 'compose'"
+      [class.text-muted]="tab() !== 'compose'"
+      [attr.aria-selected]="tab() === 'compose'"
+      (click)="setTab('compose')"
+    >
+      {{ 'Tuma ujumbe' | t }}
+    </button>
+    <button
+      type="button"
+      role="tab"
+      class="-mb-px flex items-center gap-2 border-b-2 px-4 py-2 text-sm"
+      [class.border-brass-strong]="tab() === 'history'"
+      [class.font-medium]="tab() === 'history'"
+      [class.text-brass-strong]="tab() === 'history'"
+      [class.border-transparent]="tab() !== 'history'"
+      [class.text-muted]="tab() !== 'history'"
+      [attr.aria-selected]="tab() === 'history'"
+      (click)="setTab('history')"
+    >
+      {{ 'Historia' | t }}
+      <span class="rounded-full bg-sunken px-1.5 text-xs tabular-nums text-faint">{{ history().length }}</span>
+    </button>
+  </nav>
+
+  @if (notice()) {
+    <div
+      class="alert-in flex items-start justify-between gap-3 rounded border border-positive/40 bg-positive/10 px-3 py-2 text-sm text-positive"
+      role="status"
+    >
+      <span>{{ notice() }}</span>
+      <div class="flex shrink-0 gap-3">
+        <button type="button" class="hover:underline" (click)="setTab('history'); notice.set(null)">{{ 'Historia' | t }}</button>
+        <button type="button" class="text-muted hover:underline" (click)="notice.set(null)">{{ 'Funga' | t }}</button>
+      </div>
+    </div>
+  }
+
+  @if (tab() === 'compose') {
+    <div class="grid items-start gap-6 lg:grid-cols-[minmax(0,1fr)_22rem]">
+      <section class="divide-y divide-line rounded border border-line bg-surface">
+        <!-- 1. Channel -->
+        <div class="p-5">
+          <h2 class="flex items-center gap-2 font-serif text-lg">
+            <span class="flex h-6 w-6 items-center justify-center rounded-full bg-brass-tint text-xs text-brass-strong">1</span>
+            {{ 'Njia ya kutuma' | t }}
+          </h2>
+          <div class="mt-3 grid gap-2 sm:grid-cols-3" role="radiogroup" [attr.aria-label]="'Njia ya kutuma' | t">
+            @for (option of channels; track option.value) {
+              <button
+                type="button"
+                role="radio"
+                class="rounded border px-3 py-2.5 text-left hover:bg-sunken"
+                [class.border-brass]="channel() === option.value"
+                [class.bg-brass-tint]="channel() === option.value"
+                [class.border-line]="channel() !== option.value"
+                [attr.aria-checked]="channel() === option.value"
+                (click)="channel.set(option.value)"
+              >
+                <span class="block text-sm font-medium" [class.text-brass-strong]="channel() === option.value">
+                  {{ option.label | t }}
+                </span>
+                <span class="mt-0.5 block text-xs text-muted">{{ option.hint | t }}</span>
+              </button>
+            }
+          </div>
+        </div>
+
+        <!-- 2. Audience -->
+        <div class="p-5">
+          <h2 class="flex items-center gap-2 font-serif text-lg">
+            <span class="flex h-6 w-6 items-center justify-center rounded-full bg-brass-tint text-xs text-brass-strong">2</span>
+            {{ 'Wapokeaji' | t }}
+          </h2>
+          <div class="mt-3 grid gap-2 sm:grid-cols-2 xl:grid-cols-5" role="radiogroup" [attr.aria-label]="'Wapokeaji' | t">
+            @for (option of audiences; track option.value) {
+              <button
+                type="button"
+                role="radio"
+                class="rounded border px-3 py-2.5 text-left hover:bg-sunken"
+                [class.border-brass]="audience() === option.value"
+                [class.bg-brass-tint]="audience() === option.value"
+                [class.border-line]="audience() !== option.value"
+                [attr.aria-checked]="audience() === option.value"
+                (click)="setAudience(option.value)"
+              >
+                <span class="block text-sm font-medium" [class.text-brass-strong]="audience() === option.value">
+                  {{ option.label | t }}
+                </span>
+                <span class="mt-0.5 block text-xs text-muted">{{ option.hint | t }}</span>
+              </button>
+            }
+          </div>
+
+          @if (contactsLoading()) {
+            <div class="mt-4 space-y-2" aria-busy="true" [attr.aria-label]="'Inapakia wapokeaji' | t">
+              @for (row of skeletonRows; track row) {
+                <span class="skeleton h-9 w-full"></span>
+              }
+            </div>
+          } @else {
+            @switch (audience()) {
+              @case ('all') {
+                <p class="alert-in mt-4 rounded border border-line bg-sunken px-4 py-3 text-sm text-muted">
+                  {{
+                    'Ujumbe utaenda kwa wanajumuiya wote {members} na watumiaji wa mfumo {users}.'
+                      | t: { members: contacts()?.members?.length ?? 0, users: contacts()?.users?.length ?? 0 }
+                  }}
+                  {{ 'Namba zinazojirudia zitatumiwa mara moja tu.' | t }}
+                </p>
+              }
+
+              @case ('kanda') {
+                <div class="alert-in mt-4 rounded border border-line">
+                  <div class="flex flex-wrap items-center justify-between gap-3 border-b border-line px-3 py-2.5">
+                    <app-search-box class="w-full sm:w-72" [placeholder]="'Tafuta kanda…' | t" [(value)]="pickerSearch" />
+                    <div class="flex items-center gap-3 text-sm">
+                      <span class="text-muted">{{ 'Zimechaguliwa {count}' | t: { count: selectedKandas().size } }}</span>
+                      <button type="button" class="text-brass-strong hover:underline" (click)="toggleAllVisible('kanda')">
+                        {{ (allVisibleSelected('kanda') ? 'Ondoa zote' : 'Chagua zote') | t }}
+                      </button>
+                    </div>
+                  </div>
+                  <ul class="max-h-80 divide-y divide-line overflow-y-auto">
+                    @for (kanda of kandaRows(); track kanda.id) {
+                      <li>
+                        <label class="flex cursor-pointer items-center gap-3 px-3 py-2.5 text-sm hover:bg-sunken"
+                               [class.bg-brass-tint]="selectedKandas().has(kanda.id)">
+                          <input type="checkbox" class="accent-brass-strong" [checked]="selectedKandas().has(kanda.id)"
+                                 (change)="toggle('kanda', kanda.id)" />
+                          <span class="flex-1 font-medium">{{ kanda.name }}</span>
+                          <span class="text-xs text-muted">
+                            {{ 'jumuiya {jumuiyas} · wanajumuiya {members}' | t: { jumuiyas: kanda.jumuiyas, members: kanda.members } }}
+                          </span>
+                        </label>
+                      </li>
+                    } @empty {
+                      <li class="px-3 py-6 text-center text-sm text-muted">{{ 'Hakuna kanda inayolingana.' | t }}</li>
+                    }
+                  </ul>
+                </div>
+              }
+
+              @case ('jumuiya') {
+                <div class="alert-in mt-4 rounded border border-line">
+                  <div class="flex flex-wrap items-center justify-between gap-3 border-b border-line px-3 py-2.5">
+                    <div class="flex w-full flex-wrap gap-2 sm:w-auto">
+                      <app-search-box class="w-full sm:w-64" [placeholder]="'Tafuta jumuiya au kanda…' | t" [(value)]="pickerSearch" />
+                      <select class="filter-input sm:w-44" [attr.aria-label]="'Chuja kwa kanda' | t" [value]="jumuiyaKandaFilter()"
+                              (change)="setJumuiyaKandaFilter($any($event.target).value)">
+                        <option value="0">{{ 'Kanda zote' | t }}</option>
+                        @for (kanda of contacts()?.kandas ?? []; track kanda.id) {
+                          <option [value]="kanda.id">{{ kanda.name }}</option>
+                        }
+                      </select>
+                    </div>
+                    <div class="flex items-center gap-3 text-sm">
+                      <span class="text-muted">{{ 'Zimechaguliwa {count}' | t: { count: selectedJumuiyas().size } }}</span>
+                      <button type="button" class="text-brass-strong hover:underline" (click)="toggleAllVisible('jumuiya')">
+                        {{ (allVisibleSelected('jumuiya') ? 'Ondoa zote' : 'Chagua zote') | t }}
+                      </button>
+                    </div>
+                  </div>
+                  <ul class="max-h-80 divide-y divide-line overflow-y-auto">
+                    @for (group of jumuiyaRows(); track group.id) {
+                      <li>
+                        <label class="flex cursor-pointer items-center gap-3 px-3 py-2.5 text-sm hover:bg-sunken"
+                               [class.bg-brass-tint]="selectedJumuiyas().has(group.id)">
+                          <input type="checkbox" class="accent-brass-strong" [checked]="selectedJumuiyas().has(group.id)"
+                                 (change)="toggle('jumuiya', group.id)" />
+                          <span class="flex-1">
+                            <span class="font-medium">{{ group.name }}</span>
+                            <span class="ml-2 rounded bg-sunken px-1.5 py-0.5 text-[0.65rem] tracking-[0.08em] text-faint uppercase">
+                              {{ group.kanda?.name }}
+                            </span>
+                          </span>
+                          <span class="text-xs text-muted">{{ 'wanajumuiya {count}' | t: { count: group.members } }}</span>
+                        </label>
+                      </li>
+                    } @empty {
+                      <li class="px-3 py-6 text-center text-sm text-muted">{{ 'Hakuna jumuiya inayolingana.' | t }}</li>
+                    }
+                  </ul>
+                </div>
+              }
+
+              @case ('users') {
+                <div class="alert-in mt-4 rounded border border-line">
+                  <div class="flex flex-wrap items-center justify-between gap-3 border-b border-line px-3 py-2.5">
+                    <app-search-box class="w-full sm:w-72" [placeholder]="'Tafuta jina, simu au wadhifa…' | t" [(value)]="pickerSearch" />
+                    <div class="flex items-center gap-3 text-sm">
+                      <span class="text-muted">
+                        {{
+                          selectedUsers().size === 0
+                            ? ('Wote watapokea' | t)
+                            : ('Wamechaguliwa {count}' | t: { count: selectedUsers().size })
+                        }}
+                      </span>
+                      <button type="button" class="text-brass-strong hover:underline" (click)="toggleAllVisible('user')">
+                        {{ (allVisibleSelected('user') ? 'Ondoa wote' : 'Chagua wote') | t }}
+                      </button>
+                    </div>
+                  </div>
+                  <ul class="max-h-80 divide-y divide-line overflow-y-auto">
+                    @for (person of userRows(); track person.id) {
+                      <li>
+                        <label class="flex cursor-pointer items-center gap-3 px-3 py-2.5 text-sm hover:bg-sunken"
+                               [class.bg-brass-tint]="selectedUsers().has(person.id)">
+                          <input type="checkbox" class="accent-brass-strong" [checked]="selectedUsers().has(person.id)"
+                                 (change)="toggle('user', person.id)" />
+                          <span class="flex-1 font-medium">{{ person.name }}</span>
+                          <span class="text-xs text-muted capitalize">{{ person.role.replaceAll('_', ' ') }}</span>
+                          <span class="w-36 text-right text-xs tabular-nums" [class.text-muted]="person.phone" [class.text-negative]="!person.phone">
+                            {{ person.phone || ('Hana simu' | t) }}
+                          </span>
+                        </label>
+                      </li>
+                    } @empty {
+                      <li class="px-3 py-6 text-center text-sm text-muted">{{ 'Hakuna mtumiaji anayelingana.' | t }}</li>
+                    }
+                  </ul>
+                  <p class="border-t border-line bg-sunken px-3 py-2 text-xs text-muted">
+                    {{ 'Usipochagua yeyote, ujumbe utaenda kwa watumiaji wote wa mfumo.' | t }}
+                  </p>
+                </div>
+              }
+
+              @case ('custom') {
+                <div class="alert-in mt-4 space-y-4">
+                  @if (chosenPeople().length > 0) {
+                    <div class="flex flex-wrap gap-2" [attr.aria-label]="'Waliochaguliwa' | t">
+                      @for (person of chosenPeople(); track person.key) {
+                        <span class="flex items-center gap-1.5 rounded-full border border-brass bg-brass-tint py-1 pr-1.5 pl-3 text-xs text-brass-strong">
+                          {{ person.name }}
+                          <button type="button" class="rounded-full px-1 text-base leading-none hover:bg-surface"
+                                  [attr.aria-label]="'Mwondoe {name}' | t: { name: person.name }" (click)="togglePerson(person.key)">
+                            ×
+                          </button>
+                        </span>
+                      }
+                    </div>
+                  }
+
+                  <div class="rounded border border-line">
+                    <div class="flex flex-wrap items-center justify-between gap-3 border-b border-line px-3 py-2.5">
+                      <app-search-box class="w-full sm:w-80"
+                                      [placeholder]="'Tafuta mwanajumuiya au mtumiaji kwa jina au simu…' | t"
+                                      [(value)]="pickerSearch" />
+                      <span class="text-sm text-muted">{{ 'Wamechaguliwa {count}' | t: { count: selectedPeople().size } }}</span>
+                    </div>
+                    <ul class="max-h-72 divide-y divide-line overflow-y-auto">
+                      @for (person of personRows(); track person.key) {
+                        <li>
+                          <label class="flex cursor-pointer items-center gap-3 px-3 py-2 text-sm hover:bg-sunken"
+                                 [class.bg-brass-tint]="selectedPeople().has(person.key)">
+                            <input type="checkbox" class="accent-brass-strong" [checked]="selectedPeople().has(person.key)"
+                                   (change)="togglePerson(person.key)" />
+                            <span class="flex-1">
+                              <span class="font-medium">{{ person.name }}</span>
+                              <span class="block text-xs text-faint">{{ person.group }}</span>
+                            </span>
+                            <span class="text-xs tabular-nums" [class.text-muted]="person.phone" [class.text-negative]="!person.phone">
+                              {{ person.phone || ('Hana simu' | t) }}
+                            </span>
+                          </label>
+                        </li>
+                      } @empty {
+                        <li class="px-3 py-6 text-center text-sm text-muted">{{ 'Hakuna mtu anayelingana na utafutaji wako.' | t }}</li>
+                      }
+                    </ul>
+                    @if (hiddenPeople() > 0) {
+                      <p class="border-t border-line bg-sunken px-3 py-2 text-xs text-muted">
+                        {{ 'Wengine {count} hawajaonyeshwa — tafuta kwa jina au namba ili kuwapata.' | t: { count: hiddenPeople() } }}
+                      </p>
+                    }
+                  </div>
+
+                  <div>
+                    <label for="extra-phones" class="filter-label">{{ 'Namba nyingine (hiari)' | t }}</label>
+                    <textarea
+                      id="extra-phones"
+                      rows="2"
+                      placeholder="0712 345 678, 0754 000 111…"
+                      class="w-full rounded border border-line bg-canvas px-3 py-2 text-sm focus:border-brass focus:ring-1 focus:ring-brass focus:outline-none"
+                      [value]="extraPhones()"
+                      (input)="extraPhones.set($any($event.target).value)"
+                    ></textarea>
+                    <p class="mt-1 text-xs text-muted">
+                      {{ 'Tenganisha kwa koma au mstari mpya. Namba sahihi: {count}' | t: { count: parsedPhones().valid.length } }}
+                      @if (parsedPhones().invalid.length) {
+                        · <span class="text-negative">{{ 'zisizo sahihi: {list}' | t: { list: parsedPhones().invalid.join(', ') } }}</span>
+                      }
+                    </p>
+                  </div>
+                </div>
+              }
+            }
+          }
+        </div>
+
+        <!-- 3. Message -->
+        <div class="p-5">
+          <h2 class="flex items-center gap-2 font-serif text-lg">
+            <span class="flex h-6 w-6 items-center justify-center rounded-full bg-brass-tint text-xs text-brass-strong">3</span>
+            {{ 'Ujumbe' | t }}
+          </h2>
+
+          <div class="mt-3 flex flex-wrap items-center gap-2">
+            <span class="text-xs text-faint">{{ 'Violezo:' | t }}</span>
+            @for (template of templates; track template.label) {
+              <button
+                type="button"
+                class="rounded-full border border-line px-3 py-1 text-xs text-muted hover:border-brass hover:text-brass-strong"
+                (click)="useTemplate(template.body)"
+              >
+                {{ template.label | t }}
+              </button>
+            }
+          </div>
+
+          @if (channel() !== 'sms') {
+            <div class="mt-4">
+              <label for="message-title" class="filter-label">{{ 'Kichwa cha arifa (hiari)' | t }}</label>
+              <input
+                id="message-title"
+                type="text"
+                maxlength="120"
+                [placeholder]="'Mf. Tangazo la wiki' | t"
+                class="w-full rounded border border-line bg-canvas px-3 py-2 text-sm focus:border-brass focus:ring-1 focus:ring-brass focus:outline-none"
+                [value]="title()"
+                (input)="title.set($any($event.target).value)"
+              />
+            </div>
+          }
+
+          <div class="mt-4">
+            <div class="mb-1 flex items-center justify-between gap-2">
+              <label for="message-body" class="text-xs tracking-[0.12em] text-muted uppercase">{{ 'Maandishi' | t }}</label>
+              <button
+                type="button"
+                class="rounded border border-line px-2 py-0.5 text-xs text-brass-strong hover:bg-brass-tint"
+                [title]="'Kila mpokeaji ataona jina lake mahali hapa' | t"
+                (click)="insertPlaceholder(bodyInput)"
+              >
+                {{ '+ Weka {token}' | t: { token: placeholder } }}
+              </button>
+            </div>
+            <textarea
+              #bodyInput
+              id="message-body"
+              rows="6"
+              maxlength="1600"
+              [placeholder]="'Andika ujumbe wako hapa…' | t"
+              class="w-full rounded border border-line bg-canvas px-3 py-2 text-sm leading-relaxed focus:border-brass focus:ring-1 focus:ring-brass focus:outline-none"
+              [value]="body()"
+              (input)="body.set($any($event.target).value)"
+            ></textarea>
+            <div class="mt-1 flex flex-wrap items-center justify-between gap-2 text-xs text-muted">
+              <span>
+                {{
+                  'Herufi {characters} · SMS {segments} ({perSegment} kwa kila kipande) · zimebaki {remaining}'
+                    | t
+                      : {
+                          characters: length().characters,
+                          segments: length().segments || 0,
+                          perSegment: length().perSegment,
+                          remaining: length().remaining,
+                        }
+                }}
+              </span>
+              @if (length().unicode) {
+                <span class="text-brass-strong" [title]="'Alama kama emoji hupunguza herufi kwa kila SMS hadi 70' | t">
+                  {{ 'Kuna alama maalum: SMS moja = herufi 70' | t }}
+                </span>
+              }
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <aside class="space-y-4 lg:sticky lg:top-20">
+        <section class="rounded border border-line bg-surface">
+          <h2 class="border-b border-line px-4 py-3 font-serif text-lg">{{ 'Muhtasari' | t }}</h2>
+          <dl class="divide-y divide-line text-sm">
+            <div class="flex justify-between gap-3 px-4 py-2.5">
+              <dt class="text-muted">{{ 'Njia' | t }}</dt>
+              <dd class="font-medium">{{ channelLabels[channel()] | t }}</dd>
+            </div>
+            @if (channel() !== 'app') {
+              <div class="flex justify-between gap-3 px-4 py-2.5">
+                <dt class="text-muted">{{ 'Namba za simu' | t }}</dt>
+                <dd class="font-medium tabular-nums">{{ recipients().sms.length }}</dd>
+              </div>
+              <div class="flex justify-between gap-3 px-4 py-2.5">
+                <dt class="text-muted">{{ 'Vipande vya SMS (makadirio)' | t }}</dt>
+                <dd class="font-medium tabular-nums">{{ estimatedParts() }}</dd>
+              </div>
+              @if (recipients().skipped > 0) {
+                <div class="flex justify-between gap-3 px-4 py-2.5">
+                  <dt class="text-muted">{{ 'Hawana namba sahihi' | t }}</dt>
+                  <dd class="font-medium text-negative tabular-nums">{{ recipients().skipped }}</dd>
+                </div>
+              }
+            }
+            @if (channel() !== 'sms') {
+              <div class="flex justify-between gap-3 px-4 py-2.5">
+                <dt class="text-muted">{{ 'Arifa za mfumo' | t }}</dt>
+                <dd class="font-medium tabular-nums">{{ recipients().app.length }}</dd>
+              </div>
+            }
+          </dl>
+
+          @if (channel() !== 'sms' && audience() !== 'all' && audience() !== 'users' && audience() !== 'custom') {
+            <p class="border-t border-line bg-sunken px-4 py-2.5 text-xs text-muted">
+              {{ 'Arifa za mfumo hufika kwa watumiaji wa mfumo pekee; wanajumuiya watapata SMS.' | t }}
+            </p>
+          }
+
+          <div class="border-t border-line p-4">
+            @if (error()) {
+              <p class="alert-in mb-3 rounded border border-negative/40 bg-negative/10 px-3 py-2 text-sm text-negative" role="alert">
+                {{ error() }}
+              </p>
+            } @else if (blocker(); as reason) {
+              <p class="mb-3 text-xs text-muted">{{ reason }}</p>
+            }
+            <button
+              type="button"
+              class="w-full rounded bg-brass-strong px-4 py-2.5 text-sm font-medium text-canvas hover:opacity-90 disabled:opacity-50"
+              [disabled]="sending() || contactsLoading() || !!blocker()"
+              (click)="send()"
+            >
+              {{ (sending() ? 'Inatuma…' : 'Tuma ujumbe') | t }}
+            </button>
+            <button type="button" class="mt-2 w-full rounded px-4 py-2 text-sm text-muted hover:bg-sunken" (click)="resetCompose()">
+              {{ 'Futa fomu' | t }}
+            </button>
+          </div>
+        </section>
+
+        <section class="rounded border border-line bg-surface p-4">
+          <p class="text-xs tracking-[0.12em] text-faint uppercase">{{ 'Onyesho la ujumbe' | t }}</p>
+          <div class="mx-auto mt-3 max-w-[16rem] rounded-[1.75rem] border-4 border-line-strong bg-canvas p-3">
+            <p class="text-center text-[0.65rem] text-faint">{{ contacts()?.gateway?.sender_id ?? 'PAROKIA' }}</p>
+            <div class="mt-2 min-h-24">
+              @if (channel() !== 'sms' && title()) {
+                <p class="mb-1 text-xs font-medium">{{ title() }}</p>
+              }
+              @if (previewText()) {
+                <p class="rounded-2xl rounded-tl-sm bg-sunken px-3 py-2 text-xs leading-relaxed break-words whitespace-pre-wrap">{{ previewText() }}</p>
+              } @else {
+                <p class="px-2 py-6 text-center text-xs text-faint">{{ 'Ujumbe wako utaonekana hapa.' | t }}</p>
+              }
+            </div>
+          </div>
+          @if (body().includes(placeholder)) {
+            <p class="mt-3 text-center text-xs text-muted">
+              {{ 'Mfano kwa {name} — kila mmoja ataona jina lake.' | t: { name: previewName() || ('mpokeaji' | t) } }}
+            </p>
+          }
+        </section>
+      </aside>
+    </div>
+  } @else {
+    <section class="overflow-hidden rounded border border-line bg-surface">
+      <app-filter-panel
+        class="border-b border-line px-4 py-3"
+        [activeCount]="activeFilters()"
+        [summary]="filterSummary()"
+        (clear)="clearFilters()"
+      >
+        <app-search-box
+          filterSearch
+          class="w-full sm:w-80"
+          [placeholder]="'Tafuta ujumbe, mtumaji, wapokeaji au tarehe…' | t"
+          [(value)]="search"
+        />
+        <div>
+          <label for="msg-channel-filter" class="filter-label">{{ 'Njia' | t }}</label>
+          <select id="msg-channel-filter" class="filter-input" [value]="channelFilter()"
+                  (change)="setChannelFilter($any($event.target).value)">
+            <option value="">{{ 'Njia zote' | t }}</option>
+            <option value="sms">{{ channelLabels.sms | t }}</option>
+            <option value="app">{{ channelLabels.app | t }}</option>
+            <option value="both">{{ channelLabels.both | t }}</option>
+          </select>
+        </div>
+        <div>
+          <label for="msg-status-filter" class="filter-label">{{ 'Hali' | t }}</label>
+          <select id="msg-status-filter" class="filter-input" [value]="statusFilter()"
+                  (change)="setStatusFilter($any($event.target).value)">
+            <option value="">{{ 'Hali zote' | t }}</option>
+            <option value="sent">{{ statusLabels.sent | t }}</option>
+            <option value="partial">{{ statusLabels.partial | t }}</option>
+            <option value="failed">{{ statusLabels.failed | t }}</option>
+          </select>
+        </div>
+        <div>
+          <label for="msg-sender-filter" class="filter-label">{{ 'Mtumaji' | t }}</label>
+          <select id="msg-sender-filter" class="filter-input" [value]="senderFilter()"
+                  (change)="senderFilter.set($any($event.target).value)">
+            <option value="">{{ 'Watumaji wote' | t }}</option>
+            @for (sender of senders(); track sender) {
+              <option [value]="sender">{{ sender }}</option>
+            }
+          </select>
+        </div>
+        <div>
+          <label for="msg-order" class="filter-label">{{ 'Mpangilio' | t }}</label>
+          <select id="msg-order" class="filter-input" [value]="oldestFirst() ? 'oldest' : 'newest'"
+                  (change)="oldestFirst.set($any($event.target).value === 'oldest')">
+            <option value="newest">{{ 'Mpya kwanza' | t }}</option>
+            <option value="oldest">{{ 'Za zamani kwanza' | t }}</option>
+          </select>
+        </div>
+        <div>
+          <label for="msg-from-filter" class="filter-label">{{ 'Kuanzia tarehe' | t }}</label>
+          <input id="msg-from-filter" type="date" class="filter-input" [value]="dateFrom()"
+                 (input)="dateFrom.set($any($event.target).value)" />
+        </div>
+        <div>
+          <label for="msg-to-filter" class="filter-label">{{ 'Hadi tarehe' | t }}</label>
+          <input id="msg-to-filter" type="date" class="filter-input" [value]="dateTo()"
+                 (input)="dateTo.set($any($event.target).value)" />
+        </div>
+      </app-filter-panel>
+
+      @if (historyError()) {
+        <p class="alert-in px-4 py-3 text-sm text-negative" role="alert">{{ historyError() }}</p>
+      }
+
+      <div class="overflow-x-auto">
+        <table class="w-full min-w-[56rem] text-left text-sm">
+          <thead class="border-b border-line bg-sunken text-xs tracking-[0.12em] text-faint uppercase">
+            <tr>
+              <th class="px-4 py-3 font-medium">{{ 'Tarehe' | t }}</th>
+              <th class="px-4 py-3 font-medium">{{ 'Ujumbe' | t }}</th>
+              <th class="px-4 py-3 font-medium">{{ 'Wapokeaji' | t }}</th>
+              <th class="px-4 py-3 font-medium">{{ 'Njia' | t }}</th>
+              <th class="px-4 py-3 font-medium">{{ 'Hali' | t }}</th>
+              <th class="px-4 py-3"><span class="sr-only">{{ 'Vitendo' | t }}</span></th>
+            </tr>
+          </thead>
+          <tbody class="divide-y divide-line">
+            @if (historyLoading()) {
+              @for (row of skeletonRows; track row) {
+                <tr aria-hidden="true">
+                  <td class="px-4 py-3.5"><span class="skeleton h-4 w-24"></span></td>
+                  <td class="px-4 py-3.5"><span class="skeleton h-4 w-56"></span></td>
+                  <td class="px-4 py-3.5"><span class="skeleton h-4 w-32"></span></td>
+                  <td class="px-4 py-3.5"><span class="skeleton h-4 w-16"></span></td>
+                  <td class="px-4 py-3.5"><span class="skeleton h-4 w-20"></span></td>
+                  <td></td>
+                </tr>
+              }
+            } @else if (history().length === 0) {
+              <tr>
+                <td colspan="6" class="px-4 py-8 text-center text-muted">
+                  {{ 'Bado hujatuma ujumbe wowote.' | t }}
+                  <button type="button" class="text-brass-strong hover:underline" (click)="setTab('compose')">{{ 'Tuma wa kwanza' | t }}</button>
+                </td>
+              </tr>
+            } @else {
+              @for (item of filteredHistory(); track item.id; let i = $index) {
+                <tr class="row-slide cursor-pointer hover:bg-sunken/60" [style.animation-delay.ms]="i < 20 ? i * 30 : 0"
+                    (click)="openView(item)">
+                  <td class="px-4 py-3 whitespace-nowrap">
+                    <span class="block">{{ item.created_at | date: 'd MMM y' : undefined : i18n.dateLocale() }}</span>
+                    <span class="text-xs text-faint tabular-nums">
+                      {{ item.created_at | date: 'HH:mm' : undefined : i18n.dateLocale() }} · {{ item.sender }}
+                    </span>
+                  </td>
+                  <td class="max-w-md px-4 py-3">
+                    @if (item.title) {
+                      <span class="block font-medium">{{ item.title }}</span>
+                    }
+                    <span class="line-clamp-2 text-muted">{{ item.body }}</span>
+                  </td>
+                  <td class="px-4 py-3">
+                    <span class="block">{{ audienceLabel(item.audience_label) }}</span>
+                    <span class="text-xs text-faint">
+                      @if (item.sms_count) { {{ 'namba {count}' | t: { count: item.sms_count } }} }
+                      @if (item.sms_count && item.app_count) { · }
+                      @if (item.app_count) { {{ 'watumiaji {count}' | t: { count: item.app_count } }} }
+                    </span>
+                  </td>
+                  <td class="px-4 py-3 whitespace-nowrap text-muted">{{ channelLabels[item.channel] | t }}</td>
+                  <td class="px-4 py-3 whitespace-nowrap">
+                    <span class="rounded px-2 py-0.5 text-xs font-medium" [class]="statusClass(item.status)">
+                      {{ statusLabels[item.status] | t }}
+                    </span>
+                    @if (item.sms_count) {
+                      <span class="mt-1 block text-xs text-faint tabular-nums">{{ item.sms_sent }}/{{ item.sms_count }} SMS</span>
+                    }
+                  </td>
+                  <td class="px-4 py-3 text-right whitespace-nowrap">
+                    <button type="button" class="rounded px-2 py-1 text-xs text-brass-strong hover:bg-brass-tint"
+                            (click)="$event.stopPropagation(); openView(item)">
+                      {{ 'Angalia' | t }}
+                    </button>
+                  </td>
+                </tr>
+              } @empty {
+                <tr>
+                  <td colspan="6" class="px-4 py-8 text-center text-muted">{{ 'Hakuna ujumbe unaolingana na vichujio hivi.' | t }}</td>
+                </tr>
+              }
+            }
+          </tbody>
+        </table>
+      </div>
+    </section>
+  }
+</main>
+
+@if (viewing(); as message) {
+  <div
+    class="fixed inset-0 z-40 flex items-start justify-center bg-black/40 p-4 pt-10 sm:pt-16"
+    animate.enter="backdrop-in"
+    animate.leave="backdrop-out"
+    (click)="closeView()"
+  >
+    <section
+      class="flex max-h-[calc(100dvh-5rem)] w-full max-w-3xl flex-col rounded border border-line bg-surface shadow-lg sm:max-h-[calc(100dvh-8rem)]"
+      role="dialog"
+      aria-modal="true"
+      aria-labelledby="message-details-title"
+      (click)="$event.stopPropagation()"
+    >
+      <header class="border-b border-line px-5 py-4">
+        <p class="text-xs tracking-[0.12em] text-faint uppercase">
+          {{ channelLabels[message.channel] | t }} ·
+          {{ message.created_at | date: 'EEE, d MMM y, HH:mm' : undefined : i18n.dateLocale() }}
+        </p>
+        <h2 id="message-details-title" class="mt-1 font-serif text-xl">{{ message.title || audienceLabel(message.audience_label) }}</h2>
+        <p class="mt-1 text-sm text-muted">
+          {{ 'Imetumwa na {sender} kwa {audience}' | t: { sender: message.sender, audience: audienceLabel(message.audience_label) } }}
+        </p>
+      </header>
+
+      <div class="min-h-0 flex-1 space-y-4 overflow-y-auto px-5 py-4">
+        <p class="rounded border border-line bg-sunken px-3 py-2.5 text-sm leading-relaxed whitespace-pre-wrap">{{ message.body }}</p>
+
+        <dl class="grid gap-3 text-sm sm:grid-cols-4">
+          <div class="rounded border border-line px-3 py-2">
+            <dt class="text-xs text-faint">{{ 'SMS zilizotumwa' | t }}</dt>
+            <dd class="font-serif text-lg text-positive tabular-nums">{{ message.sms_sent }}</dd>
+          </div>
+          <div class="rounded border border-line px-3 py-2">
+            <dt class="text-xs text-faint">{{ 'Zilizoshindwa' | t }}</dt>
+            <dd class="font-serif text-lg tabular-nums" [class.text-negative]="message.sms_failed">{{ message.sms_failed }}</dd>
+          </div>
+          <div class="rounded border border-line px-3 py-2">
+            <dt class="text-xs text-faint">{{ 'Vipande vya SMS' | t }}</dt>
+            <dd class="font-serif text-lg tabular-nums">{{ message.sms_segments }}</dd>
+          </div>
+          <div class="rounded border border-line px-3 py-2">
+            <dt class="text-xs text-faint">{{ 'Arifa za mfumo' | t }}</dt>
+            <dd class="font-serif text-lg tabular-nums">{{ message.app_count }}</dd>
+          </div>
+        </dl>
+
+        @if (message.skipped_count) {
+          <p class="text-xs text-muted">
+            {{ 'Watu {count} waliachwa kwa kuwa hawana namba sahihi ya simu.' | t: { count: message.skipped_count } }}
+          </p>
+        }
+
+        @if (viewError()) {
+          <p class="alert-in rounded border border-negative/40 bg-negative/10 px-3 py-2 text-sm text-negative" role="alert">
+            {{ viewError() }}
+          </p>
+        }
+
+        <div class="flex flex-wrap items-center justify-between gap-3">
+          <h3 class="text-xs tracking-[0.12em] text-faint uppercase">
+            {{ 'Wapokeaji' | t }} · {{ filteredRecipients().length }}
+            @if (filteredRecipients().length !== (message.recipients?.length ?? 0)) {
+              {{ 'kati ya {total}' | t: { total: message.recipients?.length ?? 0 } }}
+            }
+          </h3>
+          <div class="flex w-full flex-wrap gap-2 sm:w-auto">
+            <app-search-box class="w-full sm:w-56" [placeholder]="'Tafuta jina au simu…' | t" [(value)]="recipientSearch" />
+            <select class="filter-input sm:w-40" [attr.aria-label]="'Chuja wapokeaji' | t" [value]="recipientFilter()"
+                    (change)="recipientFilter.set($any($event.target).value)">
+              <option value="">{{ 'Wote' | t }}</option>
+              <option value="sms">{{ channelLabels.sms | t }}</option>
+              <option value="app">{{ channelLabels.app | t }}</option>
+              <option value="failed">{{ 'Zilizoshindwa' | t }}</option>
+            </select>
+          </div>
+        </div>
+
+        @if (viewLoading()) {
+          <div class="divide-y divide-line" aria-busy="true" [attr.aria-label]="'Inapakia wapokeaji' | t">
+            @for (row of skeletonRows; track row) {
+              <div class="grid grid-cols-4 gap-4 py-3">
+                <span class="skeleton h-4 w-32"></span>
+                <span class="skeleton h-4 w-24"></span>
+                <span class="skeleton h-4 w-16"></span>
+                <span class="skeleton h-4 w-20"></span>
+              </div>
+            }
+          </div>
+        } @else {
+          <table class="w-full text-left text-sm">
+            <thead class="border-b border-line text-xs tracking-[0.12em] text-faint uppercase">
+              <tr>
+                <th class="py-2 pr-3 font-medium">{{ 'Jina' | t }}</th>
+                <th class="py-2 pr-3 font-medium">{{ 'Simu' | t }}</th>
+                <th class="py-2 pr-3 font-medium">{{ 'Njia' | t }}</th>
+                <th class="py-2 font-medium">{{ 'Hali' | t }}</th>
+              </tr>
+            </thead>
+            <tbody class="divide-y divide-line">
+              @for (recipient of filteredRecipients(); track recipient.id) {
+                <tr>
+                  <td class="py-2 pr-3">
+                    <span class="font-medium">{{ recipient.name || '—' }}</span>
+                    <span class="block text-xs text-faint">
+                      {{ recipient.group_name ? (recipient.group_name | t) : recipientTypeLabel(recipient.recipient_type) }}
+                    </span>
+                  </td>
+                  <td class="py-2 pr-3 whitespace-nowrap text-muted tabular-nums">{{ displayPhone(recipient.phone) }}</td>
+                  <td class="py-2 pr-3 text-muted">{{ (recipient.channel === 'sms' ? 'SMS' : 'Arifa') | t }}</td>
+                  <td class="py-2">
+                    @if (recipient.status === 'failed') {
+                      <span class="text-negative" [title]="recipient.error ?? ''">{{ 'Imeshindwa' | t }}</span>
+                      @if (recipient.error) {
+                        <span class="block max-w-xs truncate text-xs text-faint" [title]="recipient.error">{{ recipient.error }}</span>
+                      }
+                    } @else if (recipient.channel === 'app') {
+                      <span [class.text-positive]="recipient.read_at" [class.text-muted]="!recipient.read_at">
+                        {{ (recipient.read_at ? 'Imesomwa' : 'Haijasomwa') | t }}
+                      </span>
+                    } @else {
+                      <span class="text-positive">{{ 'Imetumwa' | t }}</span>
+                    }
+                  </td>
+                </tr>
+              } @empty {
+                <tr>
+                  <td colspan="4" class="py-6 text-center text-muted">{{ 'Hakuna mpokeaji anayelingana.' | t }}</td>
+                </tr>
+              }
+            </tbody>
+          </table>
+        }
+      </div>
+
+      <footer class="flex flex-wrap justify-end gap-2 border-t border-line px-5 py-3">
+        <button type="button" class="rounded border border-line px-3 py-2 text-sm hover:bg-sunken" (click)="sendAgain(message)">
+          {{ 'Tumia tena ujumbe huu' | t }}
+        </button>
+        @if (message.sms_failed > 0) {
+          <button
+            type="button"
+            class="rounded bg-brass-strong px-4 py-2 text-sm font-medium text-canvas hover:opacity-90 disabled:opacity-50"
+            [disabled]="retrying()"
+            (click)="retry(message)"
+          >
+            {{
+              retrying()
+                ? ('Inatuma tena…' | t)
+                : ('Tuma tena zilizoshindwa ({count})' | t: { count: message.sms_failed })
+            }}
+          </button>
+        }
+        <button type="button" class="rounded px-3 py-2 text-sm text-muted hover:bg-sunken" (click)="closeView()">{{ 'Funga' | t }}</button>
+      </footer>
+    </section>
+  </div>
+}

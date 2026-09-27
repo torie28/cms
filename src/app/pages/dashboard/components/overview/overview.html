@@ -1,70 +1,350 @@
 <main class="flex-1 space-y-6 p-5 lg:p-7">
   <div>
-    <h1 class="font-serif text-2xl">Muhtasari</h1>
-    <p class="mt-1 text-sm text-muted">Shughuli za parokia kwa muhtasari.</p>
+    <h1 class="font-serif text-2xl">{{ 'Muhtasari' | t }}</h1>
+    <p class="mt-1 text-sm text-muted">{{ 'Shughuli za parokia kwa muhtasari.' | t }}</p>
   </div>
 
-  <section class="grid gap-4 sm:grid-cols-2 xl:grid-cols-4">
-    @for (metric of metrics(); track metric.label; let i = $index) {
-      <article
-        class="rounded border border-line bg-surface p-4 transition-shadow hover:shadow-md"
-        [style.animation-delay.ms]="i * 70"
-      >
-        <p class="text-xs tracking-[0.15em] text-faint uppercase">{{ metric.label }}</p>
-        @if (loading()) {
-          <span class="skeleton mt-3 h-7 w-24"></span>
-          <span class="skeleton mt-2.5 h-3 w-32"></span>
-        } @else {
-          <p class="mt-2 font-serif text-2xl">{{ metric.value }}</p>
-          <p class="mt-1 flex items-center gap-1.5 text-xs">
-            @if (metric.change) {
-              <span [class]="metric.trend === 'down' ? 'text-negative' : 'text-positive'">
-                {{ metric.change }}
-              </span>
-            }
-            <span class="text-faint">{{ metric.caption }}</span>
-          </p>
-        }
-      </article>
-    }
-  </section>
+  @if (can.kanda || can.jumuiya) {
+    <app-filter-panel [activeCount]="activeFilters()" (clear)="clearFilters()">
+      <app-search-box
+        filterSearch
+        class="w-full sm:w-96"
+        [placeholder]="'Tafuta kanda au jumuiya…' | t"
+        [(value)]="search"
+      />
+      <div>
+        <label for="overview-kanda-filter" class="filter-label">{{ 'Kanda' | t }}</label>
+        <select
+          id="overview-kanda-filter"
+          class="filter-input"
+          [value]="kandaFilter()"
+          (change)="setKandaFilter($any($event.target).value)"
+        >
+          <option value="0">{{ 'Kanda zote' | t }}</option>
+          @for (kanda of kandas(); track kanda.id) {
+            <option [value]="kanda.id">{{ kanda.name }}</option>
+          }
+        </select>
+      </div>
+      <fieldset class="sm:col-span-2 lg:col-span-3">
+        <legend class="filter-label">{{ 'Onyesha' | t }}</legend>
+        <div class="flex flex-wrap gap-x-5 gap-y-2 pt-1.5 text-sm">
+          @if (can.kanda) {
+            <label class="flex items-center gap-2">
+              <input
+                type="checkbox"
+                class="h-4 w-4 accent-[var(--brass)]"
+                [checked]="showKandas()"
+                (change)="showKandas.set($any($event.target).checked)"
+              />
+              {{ 'Kanda' | t }}
+            </label>
+          }
+          @if (can.jumuiya) {
+            <label class="flex items-center gap-2">
+              <input
+                type="checkbox"
+                class="h-4 w-4 accent-[var(--brass)]"
+                [checked]="showJumuiyas()"
+                (change)="showJumuiyas.set($any($event.target).checked)"
+              />
+              {{ 'Jumuiya' | t }}
+            </label>
+          }
+        </div>
+      </fieldset>
+    </app-filter-panel>
+  }
 
-  <div class="grid gap-6 xl:grid-cols-3">
-    <section class="rounded border border-line bg-surface p-5 xl:col-span-2">
-      <div class="flex items-baseline justify-between">
-        <h2 class="font-serif text-lg">Mahudhurio ya kila wiki</h2>
-        <span class="text-xs text-faint">Ibada 7 zilizopita</span>
+  @if (searchResults(); as results) {
+    <section class="alert-in rounded border border-line bg-surface p-5" aria-live="polite">
+      <div class="flex items-baseline justify-between gap-3">
+        <h2 class="font-serif text-lg">{{ 'Matokeo ya utafutaji' | t }}</h2>
+        <span class="text-xs text-faint">{{ '{count} yamepatikana' | t: { count: results.total } }}</span>
       </div>
 
-      <div class="mt-6 flex items-end gap-3">
-        @for (week of attendance; track week.label; let i = $index) {
-          <div class="flex flex-1 flex-col items-center gap-2">
-            <span class="text-xs text-muted">{{ week.value }}</span>
-            <div class="flex h-40 w-full items-end">
-              <div
-                class="bar-grow w-full rounded-t bg-brass/70 transition-[height,background-color] hover:bg-brass"
-                [style.height.px]="barHeight(week.value)"
-                [style.animation-delay.ms]="i * 60"
-                [attr.title]="week.label + ': ' + week.value + ' walihudhuria'"
-              ></div>
+      @if (results.total === 0) {
+        <p class="mt-3 text-sm text-muted">{{ 'Hakuna kinacholingana na utafutaji na vichujio hivi.' | t }}</p>
+      } @else {
+        <div class="mt-4 grid gap-6 md:grid-cols-2">
+          @if (results.kandas.length > 0) {
+            <div>
+              <h3 class="text-xs tracking-[0.12em] text-faint uppercase">{{ 'Kanda' | t }} · {{ results.kandaTotal }}</h3>
+              <ul class="mt-2 divide-y divide-line">
+                @for (kanda of results.kandas; track kanda.id) {
+                  <li>
+                    <a class="block py-2 hover:text-brass-strong" routerLink="/kanda" [queryParams]="{ q: kanda.name }">
+                      <span class="text-sm font-medium">{{ kanda.name }}</span>
+                      <span class="block text-xs text-muted">
+                        {{ kanda.leader || ('Hakuna kiongozi' | t) }} ·
+                        {{ 'jumuiya {count}' | t: { count: kanda.jumuiyas_count } }}
+                      </span>
+                    </a>
+                  </li>
+                }
+              </ul>
+              @if (results.kandaTotal > results.kandas.length) {
+                <a class="mt-1 inline-block text-xs text-brass-strong hover:underline" routerLink="/kanda" [queryParams]="{ q: search() }">
+                  {{ 'Ona zote {count}' | t: { count: results.kandaTotal } }}
+                </a>
+              }
             </div>
-            <span class="text-[0.65rem] text-faint">{{ week.label }}</span>
-          </div>
-        }
-      </div>
-    </section>
+          }
 
-    <section class="rounded border border-line bg-surface p-5">
-      <h2 class="font-serif text-lg">Yanayokuja</h2>
-      <ul class="mt-4 space-y-4">
-        @for (event of events; track event.title; let i = $index) {
-          <li class="row-slide border-l-2 border-brass/60 pl-3" [style.animation-delay.ms]="i * 80">
-            <p class="text-sm font-medium">{{ event.title }}</p>
-            <p class="text-xs text-muted">{{ event.when }} · {{ event.location }}</p>
-            <p class="text-xs text-faint">Anaongozwa na {{ event.lead }}</p>
-          </li>
-        }
-      </ul>
+          @if (results.jumuiyas.length > 0) {
+            <div>
+              <h3 class="text-xs tracking-[0.12em] text-faint uppercase">{{ 'Jumuiya' | t }} · {{ results.jumuiyaTotal }}</h3>
+              <ul class="mt-2 divide-y divide-line">
+                @for (group of results.jumuiyas; track group.id) {
+                  <li>
+                    <a class="block py-2 hover:text-brass-strong" routerLink="/jumuiya" [queryParams]="{ q: group.name }">
+                      <span class="text-sm font-medium">{{ group.name }}</span>
+                      <span class="block text-xs text-muted">
+                        {{ group.kanda?.name || ('Hakuna kanda' | t) }} ·
+                        {{ 'wanajumuiya {count}' | t: { count: group.members_count ?? 0 } }}
+                      </span>
+                    </a>
+                  </li>
+                }
+              </ul>
+              @if (results.jumuiyaTotal > results.jumuiyas.length) {
+                <a class="mt-1 inline-block text-xs text-brass-strong hover:underline" routerLink="/jumuiya" [queryParams]="{ q: search() }">
+                  {{ 'Ona zote {count}' | t: { count: results.jumuiyaTotal } }}
+                </a>
+              }
+            </div>
+          }
+        </div>
+      }
     </section>
+  }
+
+  @if (metrics().length > 0) {
+    <section class="grid gap-4 sm:grid-cols-2 xl:grid-cols-3">
+      @for (metric of metrics(); track metric.label; let i = $index) {
+        <a
+          class="group block rounded border border-line bg-surface p-4 transition-shadow hover:border-brass hover:shadow-md focus-visible:border-brass"
+          [routerLink]="metric.link"
+          [style.animation-delay.ms]="i * 70"
+          [attr.aria-label]="'{label}: {value}. Fungua moduli' | t: { label: metric.label, value: metric.value }"
+        >
+          <div class="flex items-start justify-between gap-2">
+            <p class="text-xs tracking-[0.15em] text-faint uppercase">{{ metric.label }}</p>
+            <span class="text-faint transition-transform group-hover:translate-x-0.5 group-hover:text-brass-strong" aria-hidden="true">→</span>
+          </div>
+          @if (metric.value === '—' && (loading() || offeringsLoading())) {
+            <span class="skeleton mt-3 h-7 w-24"></span>
+            <span class="skeleton mt-2.5 h-3 w-32"></span>
+          } @else {
+            <p class="mt-2 font-serif text-2xl tabular-nums">{{ metric.value }}</p>
+            <p class="mt-1 flex items-center gap-1.5 text-xs">
+              @if (metric.change) {
+                <span [class]="metric.trend === 'down' ? 'text-negative' : 'text-positive'">{{ metric.change }}</span>
+              }
+              <span class="text-faint">{{ metric.caption }}</span>
+            </p>
+          }
+        </a>
+      }
+    </section>
+  }
+
+  @if (can.sadaka) {
+    <div class="grid gap-6 xl:grid-cols-3">
+      <section class="rounded border border-line bg-surface p-5 xl:col-span-2">
+        <div class="flex items-baseline justify-between gap-3">
+          <h2 class="font-serif text-lg">{{ 'Makusanyo ya kila mwezi' | t }}</h2>
+          <a class="text-xs text-brass-strong hover:underline" routerLink="/sadaka">{{ 'Fungua sadaka →' | t }}</a>
+        </div>
+        <p class="mt-1 text-xs text-faint">{{ 'Miezi {count} iliyopita · bofya mwezi kuona michango yake' | t: { count: months().length } }}</p>
+
+        <div class="mt-6 flex items-end gap-3">
+          @for (bar of months(); track bar.key; let i = $index) {
+            <a
+              class="group flex flex-1 flex-col items-center gap-2"
+              routerLink="/sadaka"
+              [queryParams]="{ from: bar.from, to: bar.to }"
+              [attr.title]="'{month}: {amount}' | t: { month: bar.label, amount: money(bar.total) }"
+            >
+              <span class="text-[0.7rem] whitespace-nowrap text-muted tabular-nums">
+                @if (offeringsLoading()) {
+                  <span class="skeleton h-3 w-10"></span>
+                } @else {
+                  {{ bar.total > 0 ? money(bar.total) : '—' }}
+                }
+              </span>
+              <div class="flex h-40 w-full items-end">
+                <div
+                  class="bar-grow w-full rounded-t bg-brass/70 transition-[height,background-color] group-hover:bg-brass"
+                  [style.height.px]="offeringsLoading() ? 2 : barHeight(bar.total)"
+                  [style.animation-delay.ms]="i * 60"
+                ></div>
+              </div>
+              <span class="text-[0.7rem] text-faint group-hover:text-brass-strong">{{ bar.label }}</span>
+            </a>
+          }
+        </div>
+      </section>
+
+      <section class="rounded border border-line bg-surface p-5">
+        <div class="flex items-baseline justify-between gap-3">
+          <h2 class="font-serif text-lg">{{ 'Mwezi huu kwa aina' | t }}</h2>
+          <span class="text-xs text-faint tabular-nums">{{ money(monthTotal()) }}</span>
+        </div>
+        <ul class="mt-4 space-y-3">
+          @for (category of monthByCategory(); track category.value) {
+            <li>
+              <a class="group block" routerLink="/sadaka" [queryParams]="{ category: category.value }">
+                <div class="flex items-baseline justify-between gap-3 text-sm">
+                  <span class="group-hover:text-brass-strong">{{ category.label | t }}</span>
+                  @if (offeringsLoading()) {
+                    <span class="skeleton h-3.5 w-16"></span>
+                  } @else {
+                    <span class="font-medium tabular-nums">{{ money(category.total) }}</span>
+                  }
+                </div>
+                <div class="mt-1 h-1.5 overflow-hidden rounded-full bg-sunken">
+                  <div class="h-full rounded-full bg-brass/70 transition-[width]" [style.width.%]="category.share"></div>
+                </div>
+              </a>
+            </li>
+          }
+        </ul>
+      </section>
+    </div>
+  }
+
+  <div class="grid gap-6 lg:grid-cols-2 xl:grid-cols-3">
+    @if (can.sadaka) {
+      <section class="rounded border border-line bg-surface p-5">
+        <div class="flex items-baseline justify-between gap-3">
+          <h2 class="font-serif text-lg">{{ 'Michango ya hivi karibuni' | t }}</h2>
+          <a class="text-xs text-brass-strong hover:underline" routerLink="/sadaka">{{ 'Ona zote' | t }}</a>
+        </div>
+        @if (offeringsLoading()) {
+          <div class="mt-4 space-y-3">
+            @for (row of skeletonRows; track row) {
+              <span class="skeleton h-4 w-full"></span>
+            }
+          </div>
+        } @else if (recentOfferings().length === 0) {
+          <a
+            class="mt-4 block rounded border border-dashed border-line px-3 py-5 text-center text-sm text-muted hover:border-brass hover:text-brass-strong"
+            routerLink="/sadaka"
+          >
+            {{ 'Bado hakuna michango. Rekodi mchango wa kwanza →' | t }}
+          </a>
+        } @else {
+          <ul class="mt-3 divide-y divide-line">
+            @for (item of recentOfferings(); track item.id; let i = $index) {
+              <li class="row-slide" [style.animation-delay.ms]="i * 40">
+                <a
+                  class="flex items-baseline justify-between gap-3 py-2 hover:text-brass-strong"
+                  routerLink="/sadaka"
+                  [queryParams]="{ category: item.category }"
+                >
+                  <span class="min-w-0">
+                    <span class="block truncate text-sm font-medium">{{ categoryLabel(item.category) | t }}</span>
+                    <span class="block truncate text-xs text-muted">
+                      {{ item.received_on | date: 'd MMM' : undefined : i18n.dateLocale() }}
+                      @if (item.contributor || item.jumuiya) {
+                        · {{ item.contributor || item.jumuiya?.name }}
+                      }
+                    </span>
+                  </span>
+                  <span class="text-sm whitespace-nowrap tabular-nums">{{ money(item.amount) }}</span>
+                </a>
+              </li>
+            }
+          </ul>
+        }
+      </section>
+    }
+
+    @if (can.jumuiya) {
+      <section class="rounded border border-line bg-surface p-5">
+        <div class="flex items-baseline justify-between gap-3">
+          <h2 class="font-serif text-lg">{{ 'Jumuiya kubwa zaidi' | t }}</h2>
+          <a class="text-xs text-brass-strong hover:underline" routerLink="/jumuiya">{{ 'Ona zote' | t }}</a>
+        </div>
+        @if (loading()) {
+          <div class="mt-4 space-y-3">
+            @for (row of skeletonRows; track row) {
+              <span class="skeleton h-4 w-full"></span>
+            }
+          </div>
+        } @else if (topJumuiyas().length === 0) {
+          <a
+            class="mt-4 block rounded border border-dashed border-line px-3 py-5 text-center text-sm text-muted hover:border-brass hover:text-brass-strong"
+            routerLink="/jumuiya"
+          >
+            {{ 'Bado hakuna jumuiya. Ongeza jumuiya →' | t }}
+          </a>
+        } @else {
+          <ul class="mt-3 divide-y divide-line">
+            @for (group of topJumuiyas(); track group.id; let i = $index) {
+              <li class="row-slide" [style.animation-delay.ms]="i * 40">
+                <a
+                  class="flex items-baseline justify-between gap-3 py-2 hover:text-brass-strong"
+                  routerLink="/jumuiya"
+                  [queryParams]="{ q: group.name }"
+                >
+                  <span class="min-w-0">
+                    <span class="block truncate text-sm font-medium">{{ group.name }}</span>
+                    <span class="block truncate text-xs text-muted">{{ group.kanda?.name || ('Hakuna kanda' | t) }}</span>
+                  </span>
+                  <span class="text-xs whitespace-nowrap text-muted">
+                    {{ 'wanajumuiya {count}' | t: { count: group.members_count ?? 0 } }}
+                  </span>
+                </a>
+              </li>
+            }
+          </ul>
+        }
+      </section>
+    }
+
+    @if (can.kanda) {
+      <section class="rounded border border-line bg-surface p-5">
+        <div class="flex items-baseline justify-between gap-3">
+          <h2 class="font-serif text-lg">{{ 'Kanda' | t }}</h2>
+          <a class="text-xs text-brass-strong hover:underline" routerLink="/kanda">{{ 'Ona zote' | t }}</a>
+        </div>
+        @if (loading()) {
+          <div class="mt-4 space-y-3">
+            @for (row of skeletonRows; track row) {
+              <span class="skeleton h-4 w-full"></span>
+            }
+          </div>
+        } @else if (topKandas().length === 0) {
+          <a
+            class="mt-4 block rounded border border-dashed border-line px-3 py-5 text-center text-sm text-muted hover:border-brass hover:text-brass-strong"
+            routerLink="/kanda"
+          >
+            {{ 'Bado hakuna kanda. Ongeza kanda →' | t }}
+          </a>
+        } @else {
+          <ul class="mt-3 divide-y divide-line">
+            @for (kanda of topKandas(); track kanda.id; let i = $index) {
+              <li class="row-slide" [style.animation-delay.ms]="i * 40">
+                <a
+                  class="flex items-baseline justify-between gap-3 py-2 hover:text-brass-strong"
+                  routerLink="/kanda"
+                  [queryParams]="{ q: kanda.name }"
+                >
+                  <span class="min-w-0">
+                    <span class="block truncate text-sm font-medium">{{ kanda.name }}</span>
+                    <span class="block truncate text-xs text-muted">{{ kanda.leader || ('Hakuna kiongozi' | t) }}</span>
+                  </span>
+                  <span class="text-xs whitespace-nowrap text-muted">
+                    {{ 'jumuiya {count}' | t: { count: kanda.jumuiyas_count } }}
+                  </span>
+                </a>
+              </li>
+            }
+          </ul>
+        }
+      </section>
+    }
   </div>
 </main>

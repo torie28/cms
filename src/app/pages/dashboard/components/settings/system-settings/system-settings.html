@@ -1,0 +1,80 @@
+<section class="space-y-4">
+  <div class="flex flex-wrap items-end justify-between gap-3">
+    <div>
+      <h2 class="font-serif text-xl">{{ 'Moduli za mfumo' | t }}</h2>
+      <p class="mt-1 text-sm text-muted">
+        {{ 'Moduli iliyozimwa haionekani kwa mtumiaji yeyote, hata kama amepewa ruhusa.' | t }}
+        {{ 'Moduli za msingi haziwezi kuzimwa.' | t }}
+      </p>
+    </div>
+    @if (!loading()) {
+      <p class="text-xs text-faint">
+        {{ 'Zimewashwa {enabled} kati ya {total}' | t: { enabled: enabledCount(), total: modules().length } }}
+      </p>
+    }
+  </div>
+
+  @if (error()) {
+    <p class="alert-in rounded border border-negative/40 bg-negative/10 px-3 py-2 text-sm text-negative" role="alert">
+      {{ error() }}
+    </p>
+  }
+
+  @if (!isAdmin()) {
+    <p class="rounded border border-line bg-sunken px-3 py-2 text-xs text-muted">
+      {{ 'Ni msimamizi pekee anayeweza kubadilisha moduli.' | t }}
+    </p>
+  }
+
+  <ul class="divide-y divide-line overflow-hidden rounded border border-line bg-surface">
+    @if (loading()) {
+      @for (row of skeletonRows; track row) {
+        <li class="flex items-center gap-4 px-4 py-4" aria-hidden="true">
+          <div class="flex-1 space-y-2">
+            <span class="skeleton h-4 w-32"></span>
+            <span class="skeleton h-3 w-64"></span>
+          </div>
+          <span class="skeleton h-6 w-11"></span>
+        </li>
+      }
+    } @else {
+      @for (module of modules(); track module.id) {
+        <li class="flex items-center gap-4 px-4 py-4" [class.opacity-60]="!module.enabled">
+          <div class="min-w-0 flex-1">
+            <div class="flex flex-wrap items-center gap-2">
+              <p class="font-medium">{{ module.label | t }}</p>
+              @if (module.is_core) {
+                <span class="rounded border border-line px-1.5 py-0.5 text-[0.65rem] tracking-[0.12em] text-faint uppercase">
+                  {{ 'Msingi' | t }}
+                </span>
+              }
+            </div>
+            <p class="mt-0.5 text-sm text-muted">{{ module.description | t }}</p>
+            <p class="mt-1 text-xs text-faint">
+              <span class="font-mono">{{ module.key }}</span>
+              · {{ 'watumiaji {count} wamepewa' | t: { count: module.users_count } }}
+            </p>
+          </div>
+
+          <button
+            type="button"
+            role="switch"
+            class="relative h-6 w-11 shrink-0 rounded-full transition-colors disabled:cursor-not-allowed"
+            [class.bg-brass-strong]="module.enabled"
+            [class.bg-line-strong]="!module.enabled"
+            [class.opacity-50]="module.is_core || !isAdmin()"
+            [attr.aria-checked]="module.enabled"
+            [attr.aria-label]="(module.enabled ? 'Zima {label}' : 'Washa {label}') | t: { label: (module.label | t) }"
+            [disabled]="module.is_core || !isAdmin() || isPending(module)"
+            (click)="toggle(module)"
+          >
+            <span
+              class="absolute top-0.5 left-0.5 h-5 w-5 rounded-full bg-canvas shadow transition-transform"
+              [class.translate-x-5]="module.enabled"
+            ></span>
+          </button>
+        </li>
+      }
+    }
+  </ul>
+</section>

@@ -2,8 +2,10 @@
 
 namespace App\Http\Controllers;
 
+use App\Models\Role;
 use App\Models\User;
 use App\Support\ActivityLogger;
+use App\Support\Modules;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Hash;
@@ -22,7 +24,7 @@ class AuthController extends Controller
 
         if (! $user || ! Hash::check($credentials['password'], $user->password)) {
             throw ValidationException::withMessages([
-                'username' => ['Those credentials do not match our records.'],
+                'username' => ['Taarifa hizo hazilingani na kumbukumbu zetu.'],
             ]);
         }
 
@@ -62,6 +64,17 @@ class AuthController extends Controller
         return response()->json($this->present($request->user()));
     }
 
+    public function preferences(Request $request): JsonResponse
+    {
+        $data = $request->validate([
+            'locale' => ['required', 'string', 'in:sw,en'],
+        ]);
+
+        $request->user()->update($data);
+
+        return response()->json($this->present($request->user()));
+    }
+
     private function present(User $user): array
     {
         return [
@@ -69,7 +82,12 @@ class AuthController extends Controller
             'name' => $user->name,
             'username' => $user->username,
             'email' => $user->email,
+            'phone' => $user->phone,
+            'gender' => $user->gender,
+            'locale' => $user->locale,
             'role' => $user->role,
+            'role_label' => Role::query()->where('name', $user->role)->value('label'),
+            'modules' => Modules::accessibleBy($user),
         ];
     }
 }

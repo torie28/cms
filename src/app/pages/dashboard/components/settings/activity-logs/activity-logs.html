@@ -1,81 +1,489 @@
 <section class="overflow-hidden rounded border border-line bg-surface">
-  <div class="flex items-center justify-between border-b border-line px-4 py-3">
+  <div class="flex flex-wrap items-center justify-between gap-3 border-b border-line px-4 py-3">
     <div>
-      <h2 class="font-serif text-lg">Kumbukumbu za shughuli</h2>
-      <p class="text-xs text-muted">Kuingia, kutoka, na mabadiliko yote yaliyofanyika parokiani.</p>
+      <h2 class="font-serif text-lg">{{ 'Kumbukumbu za shughuli' | t }}</h2>
+      <p class="text-xs text-muted">
+        {{ 'Kuingia, kutoka, mabadiliko, uingizaji na upakuaji wote uliofanyika parokiani.' | t }}
+      </p>
     </div>
+    <div class="flex items-center gap-2">
+      <button
+        type="button"
+        class="flex items-center gap-2 rounded border px-3 py-1.5 text-sm hover:bg-sunken"
+        [class.border-positive]="live()"
+        [class.border-line]="!live()"
+        [attr.aria-pressed]="live()"
+        [title]="(live() ? 'Sitisha masasisho ya moja kwa moja' : 'Washa masasisho ya moja kwa moja') | t"
+        (click)="toggleLive()"
+      >
+        <span class="relative flex h-2.5 w-2.5">
+          @if (live()) {
+            <span class="absolute inline-flex h-full w-full animate-ping rounded-full bg-positive opacity-60"></span>
+          }
+          <span class="relative inline-flex h-2.5 w-2.5 rounded-full" [class.bg-positive]="live()" [class.bg-faint]="!live()"></span>
+        </span>
+        {{ (live() ? 'Moja kwa moja' : 'Imesitishwa') | t }}
+      </button>
+      <button
+        type="button"
+        class="flex items-center gap-1.5 rounded px-3 py-1.5 text-sm text-muted hover:bg-sunken"
+        [disabled]="loading()"
+        (click)="refresh()"
+      >
+        <svg
+          viewBox="0 0 24 24"
+          fill="none"
+          stroke="currentColor"
+          stroke-width="1.8"
+          class="h-4 w-4"
+          [class.animate-spin]="loading()"
+        >
+          <path stroke-linecap="round" stroke-linejoin="round" d="M20 11a8 8 0 1 0-2.3 5.7M20 5v6h-6" />
+        </svg>
+        {{ 'Onyesha upya' | t }}
+      </button>
+    </div>
+  </div>
+
+  <div class="flex gap-1 border-b border-line px-4" role="tablist" [attr.aria-label]="'Aina ya kumbukumbu' | t">
     <button
       type="button"
-      class="flex items-center gap-1.5 rounded px-3 py-1.5 text-sm text-muted hover:bg-sunken"
-      [disabled]="loading()"
-      (click)="refresh()"
+      role="tab"
+      class="-mb-px border-b-2 px-3 py-2 text-sm"
+      [class.border-brass-strong]="view() === 'all'"
+      [class.font-medium]="view() === 'all'"
+      [class.text-brass-strong]="view() === 'all'"
+      [class.border-transparent]="view() !== 'all'"
+      [class.text-muted]="view() !== 'all'"
+      [attr.aria-selected]="view() === 'all'"
+      (click)="setView('all')"
     >
-      <svg
-        viewBox="0 0 24 24"
-        fill="none"
-        stroke="currentColor"
-        stroke-width="1.8"
-        class="h-4 w-4"
-        [class.animate-spin]="loading()"
-      >
-        <path stroke-linecap="round" stroke-linejoin="round" d="M20 11a8 8 0 1 0-2.3 5.7M20 5v6h-6" />
-      </svg>
-      Onyesha upya
+      {{ 'Shughuli zote' | t }}
+    </button>
+    <button
+      type="button"
+      role="tab"
+      class="-mb-px flex items-center gap-2 border-b-2 px-3 py-2 text-sm"
+      [class.border-brass-strong]="view() === 'deleted'"
+      [class.font-medium]="view() === 'deleted'"
+      [class.text-brass-strong]="view() === 'deleted'"
+      [class.border-transparent]="view() !== 'deleted'"
+      [class.text-muted]="view() !== 'deleted'"
+      [attr.aria-selected]="view() === 'deleted'"
+      (click)="setView('deleted')"
+    >
+      {{ 'Vilivyofutwa' | t }}
+      @if (pendingCount()) {
+        <span class="rounded-full bg-negative/15 px-1.5 text-xs font-medium text-negative" [title]="'Vinavyoweza kurejeshwa' | t">{{ pendingCount() }}</span>
+      }
     </button>
   </div>
+
+  @if (view() === 'deleted') {
+    <p class="border-b border-line bg-sunken px-4 py-2.5 text-xs text-muted">
+      {{ 'Kitu kilichofutwa kinaweza kurejeshwa ndani ya' | t }}
+      <strong>{{ 'siku {days}' | t: { days: retentionDays } }}</strong>.
+      {{ 'Baada ya hapo mfumo hukifuta kabisa, lakini maelezo yake hubaki hapa ili yaangaliwe (hakiwezi kurejeshwa tena).' | t }}
+      @if (!isAdmin()) {
+        {{ 'Msimamizi pekee ndiye anayeweza kurejesha au kufuta kabisa.' | t }}
+      }
+    </p>
+  }
+
+  @if (latest(); as current) {
+    <div class="flex flex-wrap items-center justify-between gap-2 border-b border-line bg-brass-tint px-4 py-2.5 text-sm" aria-live="polite">
+      <p>
+        <span class="text-xs tracking-[0.12em] text-faint uppercase">{{ 'Shughuli ya karibuni' | t }}</span>
+        <span class="ml-2 font-medium">{{ current.actor }}</span>
+        {{ actionLabel(current.action).toLowerCase() }}
+        <span class="text-muted">{{ subjectLabel(current.subject) }}</span>
+      </p>
+      <p class="text-xs text-muted">
+        {{ current.created_at | date: 'HH:mm:ss' : undefined : i18n.dateLocale() }} · {{ timeAgo(current.created_at) }}
+        @if (lastSync(); as synced) {
+          · {{ 'imesasishwa {time}' | t: { time: timeAgo(synced) } }}
+        }
+      </p>
+    </div>
+  }
+
+  <app-filter-panel
+    class="border-b border-line px-4 py-3"
+    [activeCount]="activeFilters()"
+    [summary]="filterSummary()"
+    (clear)="clearFilters()"
+  >
+    <app-search-box
+      filterSearch
+      class="w-full sm:w-80"
+      [placeholder]="'Tafuta mtumiaji, kitendo, kipengele au tarehe…' | t"
+      [(value)]="search"
+    />
+    <div>
+      <label for="log-action-filter" class="filter-label">{{ 'Kitendo' | t }}</label>
+      <select
+        id="log-action-filter"
+        class="filter-input"
+        [value]="actionFilter()"
+        (change)="actionFilter.set($any($event.target).value)"
+      >
+        <option value="">{{ 'Vitendo vyote' | t }}</option>
+        @for (action of actions(); track action) {
+          <option [value]="action">{{ actionLabel(action) }}</option>
+        }
+      </select>
+    </div>
+    <div>
+      <label for="log-actor-filter" class="filter-label">{{ 'Mtumiaji' | t }}</label>
+      <select
+        id="log-actor-filter"
+        class="filter-input"
+        [value]="actorFilter()"
+        (change)="actorFilter.set($any($event.target).value)"
+      >
+        <option value="">{{ 'Watumiaji wote' | t }}</option>
+        @for (actor of actors(); track actor) {
+          <option [value]="actor">{{ actor }}</option>
+        }
+      </select>
+    </div>
+    <div>
+      <label for="log-type-filter" class="filter-label">{{ 'Aina ya kipengele' | t }}</label>
+      <select
+        id="log-type-filter"
+        class="filter-input"
+        [value]="typeFilter()"
+        (change)="typeFilter.set($any($event.target).value)"
+      >
+        <option value="">{{ 'Aina zote' | t }}</option>
+        @for (type of types(); track type) {
+          <option [value]="type">{{ typeLabel(type) }}</option>
+        }
+      </select>
+    </div>
+    <div>
+      <label for="log-order" class="filter-label">{{ 'Mpangilio' | t }}</label>
+      <select
+        id="log-order"
+        class="filter-input"
+        [value]="oldestFirst() ? 'oldest' : 'newest'"
+        (change)="oldestFirst.set($any($event.target).value === 'oldest')"
+      >
+        <option value="newest">{{ 'Mpya kwanza' | t }}</option>
+        <option value="oldest">{{ 'Za zamani kwanza' | t }}</option>
+      </select>
+    </div>
+    <div>
+      <label for="log-from-filter" class="filter-label">{{ 'Kuanzia tarehe' | t }}</label>
+      <input
+        id="log-from-filter"
+        type="date"
+        class="filter-input"
+        [value]="dateFrom()"
+        (input)="dateFrom.set($any($event.target).value)"
+      />
+    </div>
+    <div>
+      <label for="log-to-filter" class="filter-label">{{ 'Hadi tarehe' | t }}</label>
+      <input
+        id="log-to-filter"
+        type="date"
+        class="filter-input"
+        [value]="dateTo()"
+        (input)="dateTo.set($any($event.target).value)"
+      />
+    </div>
+    <div class="sm:col-span-2 lg:col-span-4">
+      <span class="filter-label">{{ 'Kipindi cha haraka' | t }}</span>
+      <div class="flex flex-wrap gap-2">
+        @for (preset of datePresets; track preset.days) {
+          <button
+            type="button"
+            class="rounded-full border px-3 py-1 text-xs"
+            [class.border-brass]="isDatePreset(preset.days)"
+            [class.bg-brass-tint]="isDatePreset(preset.days)"
+            [class.text-brass-strong]="isDatePreset(preset.days)"
+            [class.border-line]="!isDatePreset(preset.days)"
+            [class.text-muted]="!isDatePreset(preset.days)"
+            [attr.aria-pressed]="isDatePreset(preset.days)"
+            (click)="setDatePreset(preset.days)"
+          >
+            {{ preset.label | t: { days: preset.days + 1 } }}
+          </button>
+        }
+      </div>
+    </div>
+  </app-filter-panel>
+
+  @if (view() === 'deleted') {
+    <div class="flex flex-wrap gap-2 border-b border-line px-4 py-3" role="group" [attr.aria-label]="'Hali ya vilivyofutwa' | t">
+      @for (option of statusOptions; track option.value) {
+        <button
+          type="button"
+          class="flex items-center gap-1.5 rounded-full border px-3 py-1 text-xs"
+          [class.border-brass]="statusFilter() === option.value"
+          [class.bg-brass-tint]="statusFilter() === option.value"
+          [class.text-brass-strong]="statusFilter() === option.value"
+          [class.font-medium]="statusFilter() === option.value"
+          [class.border-line]="statusFilter() !== option.value"
+          [class.text-muted]="statusFilter() !== option.value"
+          [attr.aria-pressed]="statusFilter() === option.value"
+          (click)="statusFilter.set(option.value)"
+        >
+          {{ option.label | t }}
+          <span class="tabular-nums text-faint">{{ statusCounts()[option.value] ?? 0 }}</span>
+        </button>
+      }
+    </div>
+  }
 
   @if (error()) {
     <p class="alert-in px-4 py-3 text-sm text-negative" role="alert">{{ error() }}</p>
   }
+  @if (notice()) {
+    <p class="alert-in border-b border-line bg-positive/10 px-4 py-2.5 text-sm text-positive" role="status">{{ notice() }}</p>
+  }
 
-  <table class="w-full min-w-[44rem] text-left text-sm">
-    <thead class="border-b border-line bg-sunken text-xs tracking-[0.12em] text-faint uppercase">
-      <tr>
-        <th class="px-4 py-3 font-medium">Tarehe na saa</th>
-        <th class="px-4 py-3 font-medium">Mtumiaji</th>
-        <th class="px-4 py-3 font-medium">Kitendo</th>
-        <th class="px-4 py-3 font-medium">Kipengele</th>
-        <th class="px-4 py-3 font-medium">Aina</th>
-      </tr>
-    </thead>
-    <tbody class="divide-y divide-line">
-      @if (loading()) {
-        @for (row of skeletonRows; track row) {
-          <tr aria-hidden="true">
-            <td class="px-4 py-3.5"><span class="skeleton h-4 w-32"></span></td>
-            <td class="px-4 py-3.5"><span class="skeleton h-4 w-24"></span></td>
-            <td class="px-4 py-3.5"><span class="skeleton h-4 w-16"></span></td>
-            <td class="px-4 py-3.5"><span class="skeleton h-4 w-40"></span></td>
-            <td class="px-4 py-3.5"><span class="skeleton h-5 w-16"></span></td>
-          </tr>
-        }
-      } @else if (logs().length === 0) {
+  <div class="overflow-x-auto">
+    <table class="w-full min-w-[48rem] text-left text-sm">
+      <thead class="border-b border-line bg-sunken text-xs tracking-[0.12em] text-faint uppercase">
         <tr>
-          <td colspan="5" class="px-4 py-8 text-center text-muted">
-            Bado hakuna shughuli. Ingia, au ongeza mtumiaji, kanda au jumuiya ili kuanza kumbukumbu.
-          </td>
+          <th class="px-4 py-3 font-medium">{{ 'Tarehe' | t }}</th>
+          <th class="px-4 py-3 font-medium">{{ 'Muda' | t }}</th>
+          <th class="px-4 py-3 font-medium">{{ 'Mtumiaji' | t }}</th>
+          <th class="px-4 py-3 font-medium">{{ 'Kitendo' | t }}</th>
+          <th class="px-4 py-3 font-medium">{{ 'Kipengele' | t }}</th>
+          <th class="px-4 py-3"><span class="sr-only">{{ 'Vitendo' | t }}</span></th>
         </tr>
-      } @else {
-        @for (entry of logs(); track entry.id; let i = $index) {
-          <tr [style.animation-delay.ms]="i < 20 ? i * 30 : 0">
-            <td class="px-4 py-3 whitespace-nowrap text-muted">
-              {{ entry.created_at | date: 'd MMM y, HH:mm' }}
-            </td>
-            <td class="px-4 py-3 font-medium">{{ entry.actor }}</td>
-            <td class="px-4 py-3">{{ actionLabel(entry.action) }}</td>
-            <td class="px-4 py-3 text-muted">{{ subjectLabel(entry.subject) }}</td>
-            <td class="px-4 py-3">
-              @if (entry.subject_type) {
-                <span class="rounded bg-brass-tint px-2 py-0.5 text-xs text-brass-strong">
-                  {{ typeLabel(entry.subject_type) }}
-                </span>
-              } @else {
-                <span class="text-faint">—</span>
-              }
+      </thead>
+      <tbody class="divide-y divide-line">
+        @if (loading()) {
+          @for (row of skeletonRows; track row) {
+            <tr aria-hidden="true">
+              <td class="px-4 py-3.5"><span class="skeleton h-4 w-24"></span></td>
+              <td class="px-4 py-3.5"><span class="skeleton h-4 w-20"></span></td>
+              <td class="px-4 py-3.5"><span class="skeleton h-4 w-24"></span></td>
+              <td class="px-4 py-3.5"><span class="skeleton h-4 w-16"></span></td>
+              <td class="px-4 py-3.5"><span class="skeleton h-4 w-40"></span></td>
+              <td></td>
+            </tr>
+          }
+        } @else if (view() === 'deleted' && deletedLogs().length === 0) {
+          <tr>
+            <td colspan="6" class="px-4 py-8 text-center text-muted">{{ 'Bado hakuna kitu kilichofutwa.' | t }}</td>
+          </tr>
+        } @else if (logs().length === 0) {
+          <tr>
+            <td colspan="6" class="px-4 py-8 text-center text-muted">
+              {{ 'Bado hakuna shughuli. Ingia, au ongeza mtumiaji, kanda au jumuiya ili kuanza kumbukumbu.' | t }}
             </td>
           </tr>
+        } @else if (filteredLogs().length === 0) {
+          <tr>
+            <td colspan="6" class="px-4 py-8 text-center text-muted">
+              {{ 'Hakuna kumbukumbu inayolingana na vichujio hivi.' | t }}
+            </td>
+          </tr>
+        } @else {
+          @for (entry of filteredLogs(); track entry.id; let i = $index) {
+            <tr
+              class="transition-colors duration-1000"
+              [class.bg-brass-tint]="freshIds().has(entry.id)"
+              [class.row-slide]="freshIds().has(entry.id)"
+              [style.animation-delay.ms]="i < 20 ? i * 30 : 0"
+            >
+              <td class="px-4 py-3 whitespace-nowrap text-muted">
+                {{ entry.created_at | date: 'EEE, d MMM y' : undefined : i18n.dateLocale() }}
+              </td>
+              <td class="px-4 py-3 whitespace-nowrap">
+                <span class="font-medium tabular-nums">{{ entry.created_at | date: 'HH:mm:ss' : undefined : i18n.dateLocale() }}</span>
+                <span class="block text-xs text-faint">{{ timeAgo(entry.created_at) }}</span>
+              </td>
+              <td class="px-4 py-3 font-medium">{{ entry.actor }}</td>
+              <td class="px-4 py-3">
+                <span [class.text-negative]="entry.action === 'deleted' || entry.action === 'purged'"
+                      [class.text-positive]="entry.action === 'restored'">
+                  {{ actionLabel(entry.action) }}
+                </span>
+                @if (freshIds().has(entry.id)) {
+                  <span class="ml-1 rounded bg-positive/15 px-1.5 py-0.5 text-[0.65rem] font-medium text-positive uppercase">{{ 'Mpya' | t }}</span>
+                }
+              </td>
+              <td class="px-4 py-3 text-muted">
+                @if (typeLabel(entry.subject_type); as type) {
+                  <span class="mr-1 rounded bg-sunken px-1.5 py-0.5 text-[0.65rem] tracking-[0.08em] text-faint uppercase">{{ type }}</span>
+                }
+                {{ subjectLabel(entry.subject) }}
+                @switch (deletionStatus(entry)) {
+                  @case ('pending') {
+                    <span class="mt-0.5 block text-xs font-medium text-brass-strong">{{ statusText(entry) }}</span>
+                  }
+                  @case ('restored') {
+                    <span class="mt-0.5 block text-xs text-positive">{{ statusText(entry) }}</span>
+                  }
+                  @case ('purged') {
+                    <span class="mt-0.5 block text-xs text-negative">{{ statusText(entry) }}</span>
+                  }
+                  @case ('expired') {
+                    <span class="mt-0.5 block text-xs text-negative">{{ statusText(entry) }}</span>
+                  }
+                }
+              </td>
+              <td class="px-4 py-3 text-right whitespace-nowrap">
+                @if (hasDetails(entry)) {
+                  <button
+                    type="button"
+                    class="rounded px-2 py-1 text-xs text-brass-strong hover:bg-brass-tint"
+                    (click)="openDetails(entry)"
+                  >
+                    {{ 'Angalia' | t }}
+                  </button>
+                }
+                @if (isAdmin() && isPendingDeletion(entry)) {
+                  <button
+                    type="button"
+                    class="rounded px-2 py-1 text-xs font-medium text-positive hover:bg-positive/10 disabled:opacity-50"
+                    [disabled]="busyId() === entry.id"
+                    (click)="restore(entry)"
+                  >
+                    {{ 'Rejesha' | t }}
+                  </button>
+                  <button
+                    type="button"
+                    class="rounded px-2 py-1 text-xs text-negative hover:bg-negative/10 disabled:opacity-50"
+                    [disabled]="busyId() === entry.id"
+                    (click)="purge(entry)"
+                  >
+                    {{ 'Futa kabisa' | t }}
+                  </button>
+                }
+              </td>
+            </tr>
+          }
         }
-      }
-    </tbody>
-  </table>
+      </tbody>
+    </table>
+  </div>
 </section>
+
+@if (selected(); as entry) {
+  <div
+    class="fixed inset-0 z-40 flex items-start justify-center bg-black/40 p-4 pt-10 sm:pt-16"
+    animate.enter="backdrop-in"
+    animate.leave="backdrop-out"
+    (click)="closeDetails()"
+  >
+    <section
+      class="flex max-h-[calc(100dvh-5rem)] w-full max-w-xl flex-col rounded border border-line bg-surface shadow-lg sm:max-h-[calc(100dvh-8rem)]"
+      role="dialog"
+      aria-modal="true"
+      aria-labelledby="log-details-title"
+      (click)="$event.stopPropagation()"
+    >
+      <header class="border-b border-line px-5 py-4">
+        <p class="text-xs tracking-[0.12em] text-faint uppercase">
+          {{ typeLabel(entry.subject_type) }} · {{ actionLabel(entry.action) }}
+        </p>
+        <h2 id="log-details-title" class="mt-1 font-serif text-xl">{{ subjectLabel(entry.subject) }}</h2>
+        <p class="mt-1 text-sm text-muted">
+          {{ entry.actor }} · {{ entry.created_at | date: 'EEE, d MMM y, HH:mm:ss' : undefined : i18n.dateLocale() }}
+          @if (entry.ip_address) {
+            · {{ entry.ip_address }}
+          }
+        </p>
+      </header>
+
+      <div class="min-h-0 flex-1 space-y-4 overflow-y-auto px-5 py-4">
+        @switch (deletionStatus(entry)) {
+          @case ('pending') {
+            <p class="rounded border border-brass/40 bg-brass-tint px-3 py-2 text-sm text-brass-strong">
+              {{ statusText(entry) }} —
+              {{ 'hadi {date}.' | t: { date: (entry.restore_deadline | date: 'd MMM y, HH:mm' : undefined : i18n.dateLocale()) } }}
+              {{ 'Baada ya hapo kitafutwa kabisa na kitaweza kuangaliwa tu.' | t }}
+            </p>
+          }
+          @case ('restored') {
+            <p class="rounded border border-positive/40 bg-positive/10 px-3 py-2 text-sm text-positive">
+              {{ statusText(entry) }} · {{ entry.restored_at | date: 'd MMM y, HH:mm' : undefined : i18n.dateLocale() }}
+            </p>
+          }
+          @case ('purged') {
+            <p class="rounded border border-negative/40 bg-negative/10 px-3 py-2 text-sm text-negative">
+              {{ statusText(entry) }} · {{ entry.purged_at | date: 'd MMM y, HH:mm' : undefined : i18n.dateLocale() }}.
+              {{ 'Maelezo yaliyo hapa chini ndiyo kumbukumbu pekee iliyobaki; hakiwezi kurejeshwa.' | t }}
+            </p>
+          }
+          @case ('expired') {
+            <p class="rounded border border-negative/40 bg-negative/10 px-3 py-2 text-sm text-negative">
+              {{ statusText(entry) }}.
+              {{ 'Muda wa kurejesha uliisha {date}.' | t: { date: (entry.restore_deadline | date: 'd MMM y, HH:mm' : undefined : i18n.dateLocale()) } }}
+            </p>
+          }
+        }
+
+        @if (entry.details?.snapshot; as snapshot) {
+          <div>
+            <h3 class="filter-label">{{ 'Kilichofutwa' | t }}</h3>
+            <dl class="divide-y divide-line rounded border border-line">
+              @for (row of entries(snapshot); track row.key) {
+                <div class="grid grid-cols-[10rem_1fr] gap-3 px-3 py-2 text-sm">
+                  <dt class="text-muted">{{ row.key | t }}</dt>
+                  <dd class="break-words">{{ display(row.value) }}</dd>
+                </div>
+              }
+            </dl>
+          </div>
+        }
+
+        @if (entry.details?.changes; as changes) {
+          <div>
+            <h3 class="filter-label">{{ 'Mabadiliko' | t }}</h3>
+            <table class="w-full rounded border border-line text-sm">
+              <thead class="bg-sunken text-xs text-faint">
+                <tr>
+                  <th class="px-3 py-2 text-left font-medium">{{ 'Sehemu' | t }}</th>
+                  <th class="px-3 py-2 text-left font-medium">{{ 'Kabla' | t }}</th>
+                  <th class="px-3 py-2 text-left font-medium">{{ 'Baada' | t }}</th>
+                </tr>
+              </thead>
+              <tbody class="divide-y divide-line">
+                @for (row of entries(changes); track row.key) {
+                  @let change = $any(row.value);
+                  <tr>
+                    <td class="px-3 py-2 text-muted">{{ row.key | t }}</td>
+                    <td class="px-3 py-2 break-words text-negative line-through decoration-negative/40">{{ display(change.from) }}</td>
+                    <td class="px-3 py-2 break-words text-positive">{{ display(change.to) }}</td>
+                  </tr>
+                }
+              </tbody>
+            </table>
+          </div>
+        }
+      </div>
+
+      <footer class="flex flex-wrap justify-end gap-2 border-t border-line px-5 py-3">
+        @if (isAdmin() && isPendingDeletion(entry)) {
+          <button
+            type="button"
+            class="rounded px-3 py-2 text-sm text-negative hover:bg-negative/10 disabled:opacity-50"
+            [disabled]="busyId() === entry.id"
+            (click)="purge(entry)"
+          >
+            {{ 'Futa kabisa' | t }}
+          </button>
+          <button
+            type="button"
+            class="rounded bg-positive px-4 py-2 text-sm font-medium text-canvas hover:opacity-90 disabled:opacity-50"
+            [disabled]="busyId() === entry.id"
+            (click)="restore(entry)"
+          >
+            {{ (busyId() === entry.id ? 'Inarejesha…' : 'Rejesha') | t }}
+          </button>
+        }
+        <button type="button" class="rounded px-3 py-2 text-sm text-muted hover:bg-sunken" (click)="closeDetails()">
+          {{ 'Funga' | t }}
+        </button>
+      </footer>
+    </section>
+  </div>
+}

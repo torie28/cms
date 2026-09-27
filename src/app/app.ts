@@ -1,10 +1,11 @@
 import { ChangeDetectionStrategy, Component, inject } from '@angular/core';
 import { RouterOutlet } from '@angular/router';
 import { ThemeService } from './core/theme';
+import { OfflineScreen } from './shared/offline-screen';
 
 @Component({
   changeDetection: ChangeDetectionStrategy.OnPush,
-  imports: [RouterOutlet],
+  imports: [RouterOutlet, OfflineScreen],
   selector: 'app-root',
   styleUrl: './app.css',
   templateUrl: './app.html',

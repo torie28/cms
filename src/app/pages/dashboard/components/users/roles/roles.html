@@ -1,0 +1,173 @@
+<div class="space-y-6">
+  <div class="flex flex-wrap items-center justify-between gap-4">
+    <app-search-box class="w-full sm:w-80" [placeholder]="'Tafuta wadhifa…' | t" [(value)]="search" />
+    @if (isAdmin()) {
+      <button
+        type="button"
+        class="rounded bg-brass-strong px-4 py-2 text-sm font-medium text-canvas hover:opacity-90"
+        (click)="openCreateRole()"
+      >
+        {{ 'Ongeza wadhifa' | t }}
+      </button>
+    }
+  </div>
+
+  @if (error()) {
+    <p class="alert-in rounded border border-negative/40 bg-negative/10 px-3 py-2 text-sm text-negative" role="alert">
+      {{ error() }}
+    </p>
+  }
+
+  <div class="grid gap-4 md:grid-cols-2 xl:grid-cols-3">
+    @if (loading()) {
+      @for (card of skeletonCards; track card) {
+        <div class="space-y-3 rounded border border-line bg-surface p-5" aria-hidden="true">
+          <span class="skeleton h-5 w-32"></span>
+          <span class="skeleton h-4 w-full"></span>
+          <span class="skeleton h-4 w-2/3"></span>
+        </div>
+      }
+    } @else if (filteredRoles().length === 0) {
+      <p class="col-span-full rounded border border-line bg-surface px-4 py-8 text-center text-sm text-muted">
+        {{ 'Hakuna wadhifa unaolingana na utafutaji huu.' | t }}
+      </p>
+    } @else {
+      @for (role of filteredRoles(); track role.id) {
+        @let people = members(role);
+        <article class="flex flex-col rounded border border-line bg-surface p-5">
+          <div class="flex items-start justify-between gap-3">
+            <div class="min-w-0">
+              <h2 class="font-serif text-lg leading-tight">{{ role.label | t }}</h2>
+              <p class="mt-0.5 font-mono text-xs text-faint">{{ role.name }}</p>
+            </div>
+            @if (role.is_system) {
+              <span class="shrink-0 rounded border border-line px-2 py-0.5 text-[0.65rem] tracking-[0.12em] text-faint uppercase">
+                {{ 'Mfumo' | t }}
+              </span>
+            }
+          </div>
+
+          <p class="mt-3 text-sm text-muted">{{ (role.description || 'Hakuna maelezo.') | t }}</p>
+
+          <div class="mt-4 flex-1">
+            <p class="text-xs tracking-[0.12em] text-faint uppercase">
+              {{ 'Watumiaji {count}' | t: { count: role.users_count } }}
+            </p>
+            @if (people.length) {
+              <ul class="mt-2 flex flex-wrap gap-1.5">
+                @for (person of people.slice(0, previewCount); track person.id) {
+                  <li class="rounded bg-sunken px-2 py-0.5 text-xs">{{ person.name }}</li>
+                }
+                @if (people.length > previewCount) {
+                  <li class="px-1 py-0.5 text-xs text-faint">+{{ people.length - previewCount }}</li>
+                }
+              </ul>
+            }
+          </div>
+
+          @if (isAdmin()) {
+            <div class="mt-5 flex flex-wrap items-center gap-2 border-t border-line pt-4">
+              <button
+                type="button"
+                class="rounded bg-brass-tint px-3 py-1.5 text-xs font-medium text-brass-strong hover:opacity-90"
+                (click)="openAssign(role)"
+              >
+                {{ 'Mpe mtumiaji wadhifa huu' | t }}
+              </button>
+              <span class="flex-1"></span>
+              <button
+                type="button"
+                class="rounded px-2 py-1 text-xs text-muted hover:bg-sunken hover:text-ink"
+                (click)="openEditRole(role)"
+              >
+                {{ 'Hariri' | t }}
+              </button>
+              @if (!role.is_system) {
+                <button
+                  type="button"
+                  class="rounded px-2 py-1 text-xs text-negative hover:bg-negative/10 disabled:opacity-40"
+                  [disabled]="role.users_count > 0"
+                  [title]="(role.users_count > 0 ? 'Wahamishie watumiaji wadhifa mwingine kwanza' : 'Futa wadhifa') | t"
+                  (click)="removeRole(role)"
+                >
+                  {{ 'Futa' | t }}
+                </button>
+              }
+            </div>
+          }
+        </article>
+      }
+    }
+  </div>
+</div>
+
+@if (roleFormOpen()) {
+  <div
+    class="fixed inset-0 z-40 flex items-start justify-center bg-black/40 p-4 pt-10 sm:pt-16"
+    animate.enter="backdrop-in"
+    animate.leave="backdrop-out"
+    (click)="closeRoleForm()"
+  >
+    <section
+      class="w-full max-w-md rounded border border-line bg-surface p-5 shadow-lg"
+      role="dialog"
+      aria-modal="true"
+      aria-labelledby="role-form-title"
+      (click)="$event.stopPropagation()"
+    >
+      <h2 id="role-form-title" class="font-serif text-xl">
+        {{ (editingRole() ? 'Hariri wadhifa' : 'Ongeza wadhifa') | t }}
+      </h2>
+      <p class="mt-1 text-sm text-muted">{{ 'Wadhifa utaonekana kwenye orodha unapoongeza mtumiaji.' | t }}</p>
+
+      @if (roleError()) {
+        <p class="alert-in mt-4 rounded border border-negative/40 bg-negative/10 px-3 py-2 text-sm text-negative" role="alert">
+          {{ roleError() }}
+        </p>
+      }
+
+      <form [formGroup]="roleForm" (ngSubmit)="submitRole()" class="mt-5 space-y-4">
+        <div>
+          <label for="role-label" class="filter-label">{{ 'Jina la wadhifa' | t }}</label>
+          <input
+            id="role-label"
+            type="text"
+            formControlName="label"
+            class="filter-input"
+            [placeholder]="'mf. Mhasibu' | t"
+          />
+          @if (roleForm.controls.label.invalid && roleForm.controls.label.touched) {
+            <p class="mt-1 text-xs text-negative">{{ 'Jina la wadhifa linahitajika.' | t }}</p>
+          }
+        </div>
+        <div>
+          <label for="role-description" class="filter-label">{{ 'Maelezo' | t }}</label>
+          <textarea id="role-description" rows="3" formControlName="description" class="filter-input"></textarea>
+        </div>
+
+        <div class="flex justify-end gap-2 pt-2">
+          <button type="button" class="rounded px-3 py-2 text-sm text-muted hover:bg-sunken" (click)="closeRoleForm()">
+            {{ 'Ghairi' | t }}
+          </button>
+          <button
+            type="submit"
+            class="rounded bg-brass-strong px-4 py-2 text-sm font-medium text-canvas disabled:opacity-60"
+            [disabled]="savingRole()"
+          >
+            {{ (savingRole() ? 'Inahifadhi…' : 'Hifadhi wadhifa') | t }}
+          </button>
+        </div>
+      </form>
+    </section>
+  </div>
+}
+
+@if (assigningRole(); as role) {
+  <app-user-dialog
+    [roles]="roles()"
+    [modules]="modules()"
+    [lockedRole]="role"
+    (saved)="onUserSaved($event)"
+    (closed)="closeAssign()"
+  />
+}

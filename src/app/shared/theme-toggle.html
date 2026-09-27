@@ -1,7 +1,7 @@
 <div
   class="inline-flex items-center rounded-full border border-line bg-surface p-0.5"
   role="group"
-  aria-label="Mandhari ya rangi"
+  [attr.aria-label]="'Mandhari ya rangi' | t"
 >
   @for (option of options; track option.value) {
     <button
@@ -13,10 +13,10 @@
           : 'text-faint hover:text-ink'
       "
       [attr.aria-pressed]="preference() === option.value"
-      [title]="'Mandhari: ' + option.label"
+      [title]="'Mandhari: {label}' | t: { label: (option.label | t) }"
       (click)="select(option.value)"
     >
-      <span class="sr-only">Mandhari: {{ option.label }}</span>
+      <span class="sr-only">{{ 'Mandhari: {label}' | t: { label: (option.label | t) } }}</span>
       @switch (option.value) {
         @case ('light') {
           <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" class="h-4 w-4">

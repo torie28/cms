@@ -28,6 +28,16 @@ return [
         'region' => env('AWS_DEFAULT_REGION', 'us-east-1'),
     ],
 
+    'sms' => [
+        // "log" writes messages to storage/logs instead of sending; "beem" uses Beem Africa.
+        'driver' => env('SMS_DRIVER', 'log'),
+        'sender_id' => env('SMS_SENDER_ID', 'PAROKIA'),
+        'beem' => [
+            'api_key' => env('BEEM_API_KEY'),
+            'secret_key' => env('BEEM_SECRET_KEY'),
+        ],
+    ],
+
     'slack' => [
         'notifications' => [
             'bot_user_oauth_token' => env('SLACK_BOT_USER_OAUTH_TOKEN'),

@@ -1,9 +1,11 @@
 import { ChangeDetectionStrategy, Component, inject } from '@angular/core';
+import { TranslatePipe } from '../core/i18n';
 import { ThemeService, ThemePreference } from '../core/theme';
 
 @Component({
   selector: 'app-theme-toggle',
   changeDetection: ChangeDetectionStrategy.OnPush,
+  imports: [TranslatePipe],
   templateUrl: './theme-toggle.html',
 })
 export class ThemeToggle {

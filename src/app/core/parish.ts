@@ -42,6 +42,18 @@ export class ParishService {
     return firstValueFrom(this.http.post<Kanda>(`${API_BASE}/kandas`, payload));
   }
 
+  importKandas(
+    kandas: { name: string; leader: string; notes: string }[],
+    file: string,
+  ): Promise<{ created: number; skipped: string[]; kandas: Kanda[] }> {
+    return firstValueFrom(
+      this.http.post<{ created: number; skipped: string[]; kandas: Kanda[] }>(
+        `${API_BASE}/kandas/import`,
+        { kandas, file },
+      ),
+    );
+  }
+
   listJumuiyas(): Promise<Jumuiya[]> {
     return firstValueFrom(this.http.get<Jumuiya[]>(`${API_BASE}/jumuiyas`));
   }

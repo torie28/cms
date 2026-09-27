@@ -2,12 +2,14 @@ import { ChangeDetectionStrategy, Component, inject, signal } from '@angular/cor
 import { FormBuilder, ReactiveFormsModule, Validators } from '@angular/forms';
 import { Router, RouterLink } from '@angular/router';
 import { AuthService } from '../../core/auth';
+import { TranslatePipe } from '../../core/i18n';
+import { LanguageToggle } from '../../shared/language-toggle';
 import { ThemeToggle } from '../../shared/theme-toggle';
 
 @Component({
   selector: 'app-login',
   changeDetection: ChangeDetectionStrategy.OnPush,
-  imports: [ReactiveFormsModule, RouterLink, ThemeToggle],
+  imports: [LanguageToggle, ReactiveFormsModule, RouterLink, ThemeToggle, TranslatePipe],
   templateUrl: './login.html',
 })
 export class Login {
@@ -17,7 +19,6 @@ export class Login {
   protected readonly form = inject(FormBuilder).nonNullable.group({
     username: ['', [Validators.required]],
     password: ['', [Validators.required]],
-    remember: [true],
   });
 
   protected readonly submitting = signal(false);
@@ -47,7 +48,7 @@ export class Login {
       await this.auth.authenticate(this.form.getRawValue());
       await this.router.navigateByUrl('/dashboard', { replaceUrl: true });
     } catch (error) {
-      this.error.set(error instanceof Error ? error.message : 'Unable to sign in.');
+      this.error.set(error instanceof Error ? error.message : 'Imeshindwa kuingia.');
     } finally {
       this.submitting.set(false);
     }

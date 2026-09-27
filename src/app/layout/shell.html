@@ -27,12 +27,12 @@
       </svg>
       <div class="min-w-0" [class.lg:hidden]="collapsed()">
         <p class="truncate font-serif text-lg leading-tight">St. Mathias Chapel</p>
-        <p class="text-[0.65rem] tracking-[0.25em] text-faint uppercase">Usimamizi</p>
+        <p class="text-[0.65rem] tracking-[0.25em] text-faint uppercase">{{ 'Usimamizi' | t }}</p>
       </div>
     </div>
 
     <nav class="flex-1 space-y-1 overflow-y-auto px-3 py-4">
-      @for (item of navigation; track item.label) {
+      @for (item of navigation(); track item.label) {
         @if (item.path) {
           <a
             [routerLink]="item.path"
@@ -40,20 +40,20 @@
             [routerLinkActiveOptions]="{ exact: item.exact !== false }"
             class="flex items-center gap-3 rounded px-3 py-2 text-sm text-muted hover:bg-sunken hover:text-ink"
             [class.lg:justify-center]="collapsed()"
-            [attr.title]="collapsed() ? item.label : null"
+            [attr.title]="collapsed() ? (item.label | t) : null"
             (click)="closeSidebar()"
           >
             <app-icon [name]="item.icon" class="h-4.5 w-4.5 shrink-0" />
-            <span class="truncate" [class.lg:sr-only]="collapsed()">{{ item.label }}</span>
+            <span class="truncate" [class.lg:sr-only]="collapsed()">{{ item.label | t }}</span>
           </a>
         } @else {
           <span
             class="flex items-center gap-3 rounded px-3 py-2 text-sm text-faint"
             [class.lg:justify-center]="collapsed()"
-            [attr.title]="item.label + ' (inakuja hivi karibuni)'"
+            [attr.title]="'{label} (inakuja hivi karibuni)' | t: { label: (item.label | t) }"
           >
             <app-icon [name]="item.icon" class="h-4.5 w-4.5 shrink-0" />
-            <span class="truncate" [class.lg:sr-only]="collapsed()">{{ item.label }}</span>
+            <span class="truncate" [class.lg:sr-only]="collapsed()">{{ item.label | t }}</span>
           </span>
         }
       }
@@ -61,11 +61,11 @@
 
     <div class="border-t border-line p-4" [class.lg:hidden]="collapsed()">
       <div class="rounded border border-line bg-sunken p-3">
-        <p class="font-serif text-sm">Neno la leo</p>
+        <p class="font-serif text-sm">{{ 'Neno la leo' | t }}</p>
         <p class="mt-1 text-xs leading-relaxed text-muted">
-          &ldquo;Mkabidhi Bwana kazi zako, na mawazo yako yatathibitika.&rdquo;
+          {{ '“Mkabidhi Bwana kazi zako, na mawazo yako yatathibitika.”' | t }}
         </p>
-        <p class="mt-2 text-[0.65rem] tracking-[0.2em] text-faint uppercase">Mithali 16:3</p>
+        <p class="mt-2 text-[0.65rem] tracking-[0.2em] text-faint uppercase">{{ 'Mithali 16:3' | t }}</p>
       </div>
     </div>
 
@@ -74,9 +74,9 @@
         type="button"
         class="flex w-full items-center gap-3 rounded px-3 py-2 text-sm text-muted hover:bg-sunken hover:text-ink"
         [class.justify-center]="collapsed()"
-        [attr.aria-label]="collapsed() ? 'Panua upau wa pembeni' : 'Punguza upau wa pembeni'"
+        [attr.aria-label]="(collapsed() ? 'Panua upau wa pembeni' : 'Punguza upau wa pembeni') | t"
         [attr.aria-expanded]="!collapsed()"
-        [title]="collapsed() ? 'Panua' : 'Punguza'"
+        [title]="(collapsed() ? 'Panua' : 'Punguza') | t"
         (click)="toggleCollapsed()"
       >
         <svg
@@ -90,7 +90,7 @@
           <path stroke-linecap="round" stroke-linejoin="round" d="m15 6-6 6 6 6" />
         </svg>
         @if (!collapsed()) {
-          <span>Punguza</span>
+          <span>{{ 'Punguza' | t }}</span>
         }
       </button>
     </div>
@@ -98,46 +98,81 @@
 
   <div class="flex min-w-0 flex-1 flex-col">
     <header
-      class="sticky top-0 z-10 flex items-center gap-4 border-b border-line bg-surface/85 px-5 py-3 backdrop-blur"
+      class="sticky top-0 z-10 grid grid-cols-[auto_minmax(0,1fr)_auto] items-center gap-4 border-b border-line bg-surface/85 px-5 py-2.5 backdrop-blur lg:grid-cols-[1fr_auto_1fr]"
     >
-      <button
-        type="button"
-        class="rounded p-1.5 text-muted hover:bg-sunken hover:text-ink lg:hidden"
-        aria-label="Fungua menyu"
-        (click)="toggleSidebar()"
-      >
-        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" class="h-5 w-5">
-          <path stroke-linecap="round" d="M4 7h16M4 12h16M4 17h16" />
-        </svg>
-      </button>
-
-      <div class="min-w-0 flex-1">
-        <p class="truncate text-xs text-faint">{{ today }}</p>
-      </div>
-
-      <app-theme-toggle />
-
-      <div class="flex items-center gap-3 border-l border-line pl-3">
-        <div class="hidden text-right sm:block">
-          <p class="text-sm leading-tight font-medium">{{ user()?.name ?? 'Mgeni' }}</p>
-          <p class="text-xs text-faint">{{ roleName() }}</p>
-        </div>
-        <span
-          class="flex h-9 w-9 items-center justify-center rounded-full bg-brass-tint font-serif text-sm text-brass-strong"
-        >
-          {{ initials() }}
-        </span>
+      <div class="flex items-center">
         <button
           type="button"
-          class="rounded p-1.5 text-muted hover:bg-sunken hover:text-ink"
-          aria-label="Toka"
-          title="Toka"
-          (click)="signOut()"
+          class="rounded p-1.5 text-muted hover:bg-sunken hover:text-ink lg:hidden"
+          [attr.aria-label]="'Fungua menyu' | t"
+          (click)="toggleSidebar()"
         >
-          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" class="h-5 w-5">
-            <path stroke-linecap="round" stroke-linejoin="round" d="M15 16.5V19a2 2 0 0 1-2 2H6a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h7a2 2 0 0 1 2 2v2.5M10 12h11m0 0-3-3m3 3-3 3" />
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" class="h-5 w-5">
+            <path stroke-linecap="round" d="M4 7h16M4 12h16M4 17h16" />
           </svg>
         </button>
+      </div>
+
+      <div
+        class="min-w-0 text-center"
+        [title]="
+          '{season} · Mwaka {cycle} (Dominika) · Juma {weekday} · Rangi: {color}'
+            | t
+              : {
+                  season: (liturgy.seasonLabel | t),
+                  cycle: liturgy.sundayCycle,
+                  weekday: liturgy.weekdayCycle,
+                  color: (liturgy.colorLabel | t),
+                }
+        "
+      >
+        <p class="truncate text-xs text-faint">{{ today() }}</p>
+        <p class="mt-0.5 flex items-center justify-center gap-2 text-sm">
+          <span
+            class="h-2.5 w-2.5 shrink-0 rounded-full ring-1 ring-line-strong"
+            [style.background-color]="liturgy.colorHex"
+            [attr.aria-label]="'Rangi ya liturujia: {color}' | t: { color: (liturgy.colorLabel | t) }"
+          ></span>
+          <span class="truncate font-serif" [class.text-brass-strong]="liturgy.rank === 'solemnity' || liturgy.rank === 'feast'">
+            {{ liturgyName() }}
+          </span>
+          @if (liturgy.rankLabel) {
+            <span class="hidden shrink-0 rounded bg-brass-tint px-1.5 py-0.5 text-[0.6rem] tracking-[0.12em] text-brass-strong uppercase sm:inline">
+              {{ liturgy.rankLabel | t }}
+            </span>
+          }
+          <span class="hidden shrink-0 text-xs text-faint md:inline">· {{ 'Mwaka {cycle}' | t: { cycle: liturgy.sundayCycle } }}</span>
+        </p>
+      </div>
+
+      <div class="flex items-center justify-end gap-4">
+        <app-notification-bell />
+        <app-language-toggle />
+        <app-theme-toggle />
+
+        <div class="flex items-center gap-3 border-l border-line pl-3">
+          <div class="hidden text-right xl:block">
+            <p class="text-sm leading-tight font-medium">{{ user()?.name ?? ('Mgeni' | t) }}</p>
+            <p class="text-xs text-faint">{{ roleName() }}</p>
+          </div>
+          <span
+            class="flex h-9 w-9 items-center justify-center rounded-full bg-brass-tint font-serif text-sm text-brass-strong"
+            [title]="(user()?.name ?? ('Mgeni' | t)) + ' · ' + roleName()"
+          >
+            {{ initials() }}
+          </span>
+          <button
+            type="button"
+            class="rounded p-1.5 text-muted hover:bg-sunken hover:text-ink"
+            [attr.aria-label]="'Toka' | t"
+            [title]="'Toka' | t"
+            (click)="signOut()"
+          >
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" class="h-5 w-5">
+              <path stroke-linecap="round" stroke-linejoin="round" d="M15 16.5V19a2 2 0 0 1-2 2H6a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h7a2 2 0 0 1 2 2v2.5M10 12h11m0 0-3-3m3 3-3 3" />
+            </svg>
+          </button>
+        </div>
       </div>
     </header>
 

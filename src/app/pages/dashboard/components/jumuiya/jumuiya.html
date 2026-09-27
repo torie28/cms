@@ -1,23 +1,77 @@
 <main class="flex-1 space-y-6 p-5 lg:p-7">
   <div class="flex flex-wrap items-end justify-between gap-4">
     <div>
-      <h1 class="font-serif text-2xl">Jumuiya</h1>
-      <p class="mt-1 text-sm text-muted">Jumuiya ndogo ndogo za Kikristo, kila moja ikiwa ndani ya kanda.</p>
+      <h1 class="font-serif text-2xl">{{ 'Jumuiya' | t }}</h1>
+      <p class="mt-1 text-sm text-muted">{{ 'Jumuiya ndogo ndogo za Kikristo, kila moja ikiwa ndani ya kanda.' | t }}</p>
     </div>
-    <button
-      type="button"
-      class="rounded bg-brass-strong px-4 py-2 text-sm font-medium text-canvas hover:opacity-90 disabled:opacity-50"
-      [disabled]="kandas().length === 0"
-      [title]="kandas().length === 0 ? 'Ongeza kanda kwanza' : 'Ongeza jumuiya'"
-      (click)="openJumuiyaForm()"
-    >
-      Ongeza jumuiya
-    </button>
+    <div class="flex flex-wrap items-center gap-2">
+      <button
+        type="button"
+        class="rounded border border-line px-4 py-2 text-sm hover:bg-sunken disabled:opacity-50"
+        [disabled]="kandas().length === 0"
+        [title]="(kandas().length === 0 ? 'Ongeza kanda kwanza' : 'Ingiza jumuiya na wanajumuiya kutoka Excel') | t"
+        (click)="openImport()"
+      >
+        {{ 'Ingiza kutoka Excel' | t }}
+      </button>
+      <div class="relative">
+        <button
+          type="button"
+          class="rounded border border-line px-4 py-2 text-sm hover:bg-sunken disabled:opacity-50"
+          aria-haspopup="menu"
+          [attr.aria-expanded]="exportMenu() === 'page'"
+          [disabled]="filteredJumuiyas().length === 0 || exporting()"
+          (click)="toggleExportMenu('page', $event)"
+        >
+          {{ (exporting() ? 'Inaandaa…' : 'Pakua ▾') | t }}
+        </button>
+        @if (exportMenu() === 'page') {
+          <div
+            class="absolute right-0 z-30 mt-1 w-44 overflow-hidden rounded border border-line bg-surface shadow-lg"
+            role="menu"
+          >
+            @for (format of exportFormats; track format.value) {
+              <button
+                type="button"
+                role="menuitem"
+                class="block w-full px-3 py-2 text-left text-sm hover:bg-sunken"
+                (click)="exportAll(format.value)"
+              >
+                {{ format.label | t }}
+              </button>
+            }
+          </div>
+        }
+      </div>
+      <button
+        type="button"
+        class="rounded bg-brass-strong px-4 py-2 text-sm font-medium text-canvas hover:opacity-90 disabled:opacity-50"
+        [disabled]="kandas().length === 0"
+        [title]="(kandas().length === 0 ? 'Ongeza kanda kwanza' : 'Ongeza jumuiya') | t"
+        (click)="openJumuiyaForm()"
+      >
+        {{ 'Ongeza jumuiya' | t }}
+      </button>
+    </div>
   </div>
+
+  @if (exportMenu()) {
+    <div class="fixed inset-0 z-20" (click)="closeExportMenu()"></div>
+  }
+
+  @if (notice()) {
+    <div
+      class="alert-in flex items-start justify-between gap-3 rounded border border-line bg-brass-tint px-3 py-2 text-sm"
+      role="status"
+    >
+      <span>{{ notice() }}</span>
+      <button type="button" class="text-muted hover:underline" (click)="notice.set(null)">{{ 'Funga' | t }}</button>
+    </div>
+  }
 
   @if (kandas().length === 0 && !loading()) {
     <p class="alert-in rounded border border-line bg-surface px-4 py-3 text-sm text-muted">
-      Anza kwa kuunda kanda, kisha utaweza kuunganisha jumuiya nayo.
+      {{ 'Anza kwa kuunda kanda, kisha utaweza kuunganisha jumuiya nayo.' | t }}
     </p>
   }
 
@@ -31,11 +85,11 @@
     <div class="flex flex-wrap items-center justify-between gap-3 rounded border border-line bg-surface px-4 py-3">
       <p class="text-sm">
         @if (selected(); as group) {
-          Umechagua:
+          {{ 'Umechagua:' | t }}
           <span class="font-medium">{{ group.name }}</span>
-          <span class="text-muted"> · wanajumuiya {{ group.members_count ?? 0 }}</span>
+          <span class="text-muted"> · {{ 'wanajumuiya {count}' | t: { count: group.members_count ?? 0 } }}</span>
         } @else {
-          <span class="text-muted">Chagua jumuiya ili kuitazama, kuihariri, au kusimamia wanajumuiya.</span>
+          <span class="text-muted">{{ 'Chagua jumuiya ili kuitazama, kuihariri, au kusimamia wanajumuiya.' | t }}</span>
         }
       </p>
       <div class="flex flex-wrap gap-2">
@@ -45,7 +99,7 @@
           [disabled]="!selected()"
           (click)="selected() && openView(selected()!)"
         >
-          Tazama
+          {{ 'Tazama' | t }}
         </button>
         <button
           type="button"
@@ -53,7 +107,7 @@
           [disabled]="!selected()"
           (click)="selected() && openEditJumuiya(selected()!)"
         >
-          Hariri
+          {{ 'Hariri' | t }}
         </button>
         <button
           type="button"
@@ -61,7 +115,7 @@
           [disabled]="!selected() || saving()"
           (click)="selected() && removeJumuiya(selected()!)"
         >
-          Futa
+          {{ 'Futa' | t }}
         </button>
         <button
           type="button"
@@ -69,14 +123,14 @@
           [disabled]="!selected()"
           (click)="openMemberForm()"
         >
-          Ongeza wanajumuiya
+          {{ 'Ongeza wanajumuiya' | t }}
         </button>
       </div>
     </div>
   }
 
   @if (loading()) {
-    <section class="overflow-hidden rounded border border-line bg-surface" aria-busy="true" aria-label="Inapakia jumuiya">
+    <section class="overflow-hidden rounded border border-line bg-surface" aria-busy="true" [attr.aria-label]="'Inapakia jumuiya' | t">
       <div class="border-b border-line bg-sunken px-4 py-3.5">
         <span class="skeleton h-3 w-2/3"></span>
       </div>
@@ -94,22 +148,91 @@
     </section>
   } @else if (jumuiyas().length === 0) {
     <p class="rounded border border-dashed border-line bg-surface px-4 py-8 text-center text-sm text-muted">
-      Bado hakuna jumuiya.
+      {{ 'Bado hakuna jumuiya.' | t }}
     </p>
   } @else {
+    <app-filter-panel [activeCount]="activeFilters()" [summary]="filterSummary()" (clear)="clearFilters()">
+      <app-search-box
+        filterSearch
+        class="w-full sm:w-80"
+        [placeholder]="'Tafuta jumuiya, kanda au mwenyekiti…' | t"
+        [(value)]="search"
+      />
+      <div>
+        <label for="jumuiya-kanda-filter" class="filter-label">{{ 'Kanda' | t }}</label>
+        <select
+          id="jumuiya-kanda-filter"
+          class="filter-input"
+          [value]="kandaFilter()"
+          (change)="setKandaFilter($any($event.target).value)"
+        >
+          <option value="0">{{ 'Kanda zote' | t }}</option>
+          @for (kanda of kandas(); track kanda.id) {
+            <option [value]="kanda.id">{{ kanda.name }}</option>
+          }
+        </select>
+      </div>
+      <div>
+        <label for="jumuiya-chair-filter" class="filter-label">{{ 'Mwenyekiti' | t }}</label>
+        <select
+          id="jumuiya-chair-filter"
+          class="filter-input"
+          [value]="chairFilter()"
+          (change)="setChairFilter($any($event.target).value)"
+        >
+          <option value="">{{ 'Zote' | t }}</option>
+          <option value="has">{{ 'Zenye mwenyekiti' | t }}</option>
+          <option value="none">{{ 'Bila mwenyekiti' | t }}</option>
+        </select>
+      </div>
+      <div>
+        <span class="filter-label">{{ 'Idadi ya wanajumuiya' | t }}</span>
+        <div class="flex items-center gap-2">
+          <input
+            type="number"
+            min="0"
+            [placeholder]="'Kuanzia' | t"
+            [attr.aria-label]="'Idadi ya chini ya wanajumuiya' | t"
+            class="filter-input"
+            [value]="minMembers()"
+            (input)="minMembers.set($any($event.target).value)"
+          />
+          <span class="text-faint">–</span>
+          <input
+            type="number"
+            min="0"
+            [placeholder]="'Hadi' | t"
+            [attr.aria-label]="'Idadi ya juu ya wanajumuiya' | t"
+            class="filter-input"
+            [value]="maxMembers()"
+            (input)="maxMembers.set($any($event.target).value)"
+          />
+        </div>
+      </div>
+      <div>
+        <label for="jumuiya-sort" class="filter-label">{{ 'Panga kwa' | t }}</label>
+        <select id="jumuiya-sort" class="filter-input" [value]="sort()" (change)="setSort($any($event.target).value)">
+          <option value="name">{{ 'Jina (A–Z)' | t }}</option>
+          <option value="name-desc">{{ 'Jina (Z–A)' | t }}</option>
+          <option value="members-desc">{{ 'Wanajumuiya wengi kwanza' | t }}</option>
+          <option value="members-asc">{{ 'Wanajumuiya wachache kwanza' | t }}</option>
+        </select>
+      </div>
+    </app-filter-panel>
+
     <section class="overflow-hidden rounded border border-line bg-surface">
       <table class="w-full min-w-[48rem] text-left text-sm">
         <thead class="border-b border-line bg-sunken text-xs tracking-[0.12em] text-faint uppercase">
           <tr>
-            <th class="px-4 py-3 font-medium">Jina</th>
-            <th class="px-4 py-3 font-medium">Kanda</th>
-            <th class="px-4 py-3 font-medium">Mwenyekiti</th>
-            <th class="px-4 py-3 font-medium">Wanajumuiya</th>
-            <th class="px-4 py-3 font-medium">Vitendo</th>
+            <th class="px-4 py-3 font-medium">{{ 'Jina' | t }}</th>
+            <th class="px-4 py-3 font-medium">{{ 'Kanda' | t }}</th>
+            <th class="px-4 py-3 font-medium">{{ 'Mwenyekiti' | t }}</th>
+            <th class="px-4 py-3 font-medium">{{ 'Wanajumuiya' | t }}</th>
+            <th class="px-4 py-3 font-medium">{{ 'Vitendo' | t }}</th>
           </tr>
         </thead>
         <tbody class="divide-y divide-line">
-          @for (group of jumuiyas(); track group.id; let i = $index) {
+          @for (group of filteredJumuiyas(); track group.id; let i = $index) {
             <tr
               class="cursor-pointer"
               [class.bg-brass-tint]="selected()?.id === group.id"
@@ -127,14 +250,14 @@
                     class="text-sm text-brass-strong hover:underline"
                     (click)="openView(group, $event)"
                   >
-                    Tazama
+                    {{ 'Tazama' | t }}
                   </button>
                   <button
                     type="button"
                     class="text-sm text-brass-strong hover:underline"
                     (click)="openEditJumuiya(group, $event)"
                   >
-                    Hariri
+                    {{ 'Hariri' | t }}
                   </button>
                   <button
                     type="button"
@@ -142,16 +265,22 @@
                     [disabled]="saving()"
                     (click)="removeJumuiya(group, $event)"
                   >
-                    Futa
+                    {{ 'Futa' | t }}
                   </button>
                   <button
                     type="button"
                     class="text-sm text-brass-strong hover:underline"
                     (click)="openMemberForm(group, $event)"
                   >
-                    Ongeza wanajumuiya
+                    {{ 'Ongeza wanajumuiya' | t }}
                   </button>
                 </div>
+              </td>
+            </tr>
+          } @empty {
+            <tr>
+              <td colspan="5" class="px-4 py-8 text-center text-muted">
+                {{ 'Hakuna jumuiya inayolingana na utafutaji wako.' | t }}
               </td>
             </tr>
           }
@@ -170,29 +299,66 @@
   >
     <section
       class="max-h-[90vh] w-full max-w-2xl overflow-y-auto rounded border border-line bg-surface p-5"
-      (click)="$event.stopPropagation()"
+      (click)="$event.stopPropagation(); closeExportMenu()"
     >
       <div class="flex flex-wrap items-start justify-between gap-3">
         <div>
           <h2 class="font-serif text-xl">{{ group.name }}</h2>
           <p class="mt-1 text-sm text-muted">
-            {{ group.kanda?.name || 'Hakuna kanda' }} · Mwenyekiti {{ group.chairperson || '—' }}
+            {{ group.kanda?.name || ('Hakuna kanda' | t) }} ·
+            {{ 'Mwenyekiti {name}' | t: { name: group.chairperson || '—' } }}
           </p>
         </div>
         <div class="flex flex-wrap gap-2">
           <button
             type="button"
             class="rounded border border-line px-3 py-1.5 text-sm hover:bg-sunken"
+            (click)="openImport(group)"
+          >
+            {{ 'Ingiza Excel' | t }}
+          </button>
+          <div class="relative">
+            <button
+              type="button"
+              class="rounded border border-line px-3 py-1.5 text-sm hover:bg-sunken disabled:opacity-50"
+              aria-haspopup="menu"
+              [attr.aria-expanded]="exportMenu() === 'view'"
+              [disabled]="membersLoading() || exporting()"
+              (click)="toggleExportMenu('view', $event)"
+            >
+              {{ 'Pakua ▾' | t }}
+            </button>
+            @if (exportMenu() === 'view') {
+              <div
+                class="absolute right-0 z-30 mt-1 w-44 overflow-hidden rounded border border-line bg-surface shadow-lg"
+                role="menu"
+              >
+                @for (format of exportFormats; track format.value) {
+                  <button
+                    type="button"
+                    role="menuitem"
+                    class="block w-full px-3 py-2 text-left text-sm hover:bg-sunken"
+                    (click)="exportSelected(format.value)"
+                  >
+                    {{ format.label | t }}
+                  </button>
+                }
+              </div>
+            }
+          </div>
+          <button
+            type="button"
+            class="rounded border border-line px-3 py-1.5 text-sm hover:bg-sunken"
             (click)="openEditJumuiya(group)"
           >
-            Hariri
+            {{ 'Hariri' | t }}
           </button>
           <button
             type="button"
             class="rounded bg-brass-strong px-3 py-1.5 text-sm font-medium text-canvas hover:opacity-90"
             (click)="openMemberForm(group)"
           >
-            Ongeza wanajumuiya
+            {{ 'Ongeza wanajumuiya' | t }}
           </button>
         </div>
       </div>
@@ -207,12 +373,26 @@
         </p>
       }
 
-      <h3 class="mt-6 text-xs tracking-[0.12em] text-faint uppercase">
-        Wanajumuiya · {{ members().length }}
-      </h3>
+      <div class="mt-6 flex flex-wrap items-center justify-between gap-3">
+        <h3 class="text-xs tracking-[0.12em] text-faint uppercase">
+          {{ 'Wanajumuiya' | t }} ·
+          {{
+            memberSearch()
+              ? ('{shown} kati ya {total}' | t: { shown: filteredMembers().length, total: members().length })
+              : members().length
+          }}
+        </h3>
+        @if (members().length > 0) {
+          <app-search-box
+            class="w-full sm:w-64"
+            [placeholder]="'Tafuta jina au simu…' | t"
+            [(value)]="memberSearch"
+          />
+        }
+      </div>
 
       @if (membersLoading()) {
-        <div class="mt-3 divide-y divide-line" aria-busy="true" aria-label="Inapakia wanajumuiya">
+        <div class="mt-3 divide-y divide-line" aria-busy="true" [attr.aria-label]="'Inapakia wanajumuiya' | t">
           @for (row of skeletonRows; track row) {
             <div class="grid grid-cols-4 gap-4 py-3">
               <span class="skeleton h-4 w-32"></span>
@@ -224,20 +404,20 @@
         </div>
       } @else if (members().length === 0) {
         <p class="mt-3 rounded border border-dashed border-line px-4 py-6 text-center text-sm text-muted">
-          Bado hakuna wanajumuiya katika jumuiya hii.
+          {{ 'Bado hakuna wanajumuiya katika jumuiya hii.' | t }}
         </p>
       } @else {
         <table class="mt-3 w-full text-left text-sm">
           <thead class="border-b border-line text-xs tracking-[0.12em] text-faint uppercase">
             <tr>
-              <th class="py-2 pr-3 font-medium">Jina</th>
-              <th class="py-2 pr-3 font-medium">Simu</th>
-              <th class="py-2 pr-3 font-medium">Jinsia</th>
-              <th class="py-2 font-medium">Vitendo</th>
+              <th class="py-2 pr-3 font-medium">{{ 'Jina' | t }}</th>
+              <th class="py-2 pr-3 font-medium">{{ 'Simu' | t }}</th>
+              <th class="py-2 pr-3 font-medium">{{ 'Jinsia' | t }}</th>
+              <th class="py-2 font-medium">{{ 'Vitendo' | t }}</th>
             </tr>
           </thead>
           <tbody class="divide-y divide-line">
-            @for (member of members(); track member.id; let i = $index) {
+            @for (member of filteredMembers(); track member.id; let i = $index) {
               <tr class="row-slide" [style.animation-delay.ms]="i < 20 ? i * 30 : 0">
                 <td class="py-2 pr-3 font-medium">{{ member.name }}</td>
                 <td class="py-2 pr-3 text-muted">{{ member.phone || '—' }}</td>
@@ -249,7 +429,7 @@
                       class="text-sm text-brass-strong hover:underline"
                       (click)="openEditMember(member)"
                     >
-                      Hariri
+                      {{ 'Hariri' | t }}
                     </button>
                     <button
                       type="button"
@@ -257,9 +437,15 @@
                       [disabled]="saving()"
                       (click)="removeMember(member)"
                     >
-                      Futa
+                      {{ 'Futa' | t }}
                     </button>
                   </div>
+                </td>
+              </tr>
+            } @empty {
+              <tr>
+                <td colspan="4" class="py-6 text-center text-muted">
+                  {{ 'Hakuna mwanajumuiya anayelingana na "{query}".' | t: { query: memberSearch() } }}
                 </td>
               </tr>
             }
@@ -269,7 +455,7 @@
 
       <div class="mt-5 flex justify-end">
         <button type="button" class="rounded px-3 py-2 text-sm text-muted hover:bg-sunken" (click)="closeView()">
-          Funga
+          {{ 'Funga' | t }}
         </button>
       </div>
     </section>
@@ -287,7 +473,7 @@
       class="max-h-[90vh] w-full max-w-2xl overflow-y-auto rounded border border-line bg-surface p-5"
       (click)="$event.stopPropagation()"
     >
-      <h2 class="font-serif text-xl">{{ editingJumuiya() ? 'Hariri jumuiya' : 'Ongeza jumuiya' }}</h2>
+      <h2 class="font-serif text-xl">{{ (editingJumuiya() ? 'Hariri jumuiya' : 'Ongeza jumuiya') | t }}</h2>
 
       @if (error()) {
         <p class="alert-in mt-4 rounded border border-negative/40 bg-negative/10 px-3 py-2 text-sm text-negative" role="alert">
@@ -297,30 +483,30 @@
 
       <form [formGroup]="jumuiyaForm" (ngSubmit)="submitJumuiya()" class="mt-5 space-y-4">
         <div>
-          <label for="jumuiya-name" class="mb-1 block text-xs tracking-[0.12em] text-muted uppercase">Jina</label>
+          <label for="jumuiya-name" class="mb-1 block text-xs tracking-[0.12em] text-muted uppercase">{{ 'Jina' | t }}</label>
           <input
             id="jumuiya-name"
             type="text"
             formControlName="name"
-            placeholder="Jumuiya ya Mt. Yosefu"
+            [placeholder]="'Jumuiya ya Mt. Yosefu' | t"
             class="w-full rounded border border-line bg-canvas px-3 py-2 focus:border-brass focus:ring-1 focus:ring-brass focus:outline-none"
           />
         </div>
         <div>
-          <label for="jumuiya-kanda" class="mb-1 block text-xs tracking-[0.12em] text-muted uppercase">Kanda</label>
+          <label for="jumuiya-kanda" class="mb-1 block text-xs tracking-[0.12em] text-muted uppercase">{{ 'Kanda' | t }}</label>
           <select
             id="jumuiya-kanda"
             formControlName="kanda_id"
             class="w-full rounded border border-line bg-canvas px-3 py-2 focus:border-brass focus:ring-1 focus:ring-brass focus:outline-none"
           >
-            <option value="0" disabled>Chagua kanda</option>
+            <option value="0" disabled>{{ 'Chagua kanda' | t }}</option>
             @for (kanda of kandas(); track kanda.id) {
               <option [value]="kanda.id">{{ kanda.name }}</option>
             }
           </select>
         </div>
         <div>
-          <label for="jumuiya-chair" class="mb-1 block text-xs tracking-[0.12em] text-muted uppercase">Mwenyekiti</label>
+          <label for="jumuiya-chair" class="mb-1 block text-xs tracking-[0.12em] text-muted uppercase">{{ 'Mwenyekiti' | t }}</label>
           <input
             id="jumuiya-chair"
             type="text"
@@ -330,7 +516,7 @@
         </div>
         @if (!editingJumuiya()) {
           <div>
-            <label for="jumuiya-notes" class="mb-1 block text-xs tracking-[0.12em] text-muted uppercase">Maelezo</label>
+            <label for="jumuiya-notes" class="mb-1 block text-xs tracking-[0.12em] text-muted uppercase">{{ 'Maelezo' | t }}</label>
             <textarea
               id="jumuiya-notes"
               formControlName="notes"
@@ -342,21 +528,21 @@
 
         <div class="space-y-3 border-t border-line pt-4">
           <div>
-            <h3 class="text-xs tracking-[0.12em] text-faint uppercase">Wanajumuiya</h3>
+            <h3 class="text-xs tracking-[0.12em] text-faint uppercase">{{ 'Wanajumuiya' | t }}</h3>
             @if (editingJumuiya()) {
               <p class="mt-1 text-sm text-muted">
-                Wanajumuiya waliopo wameorodheshwa hapa chini. Ongeza zaidi kwa kuandaa safu mpya.
+                {{ 'Wanajumuiya waliopo wameorodheshwa hapa chini. Ongeza zaidi kwa kuandaa safu mpya.' | t }}
               </p>
             } @else {
               <p class="mt-1 text-sm text-muted">
-                Weka idadi ya wanajumuiya, kisha ujaze taarifa zao zote kwa pamoja.
+                {{ 'Weka idadi ya wanajumuiya, kisha ujaze taarifa zao zote kwa pamoja.' | t }}
               </p>
             }
           </div>
 
           @if (editingJumuiya()) {
             @if (membersLoading()) {
-              <div class="divide-y divide-line" aria-busy="true" aria-label="Inapakia wanajumuiya">
+              <div class="divide-y divide-line" aria-busy="true" [attr.aria-label]="'Inapakia wanajumuiya' | t">
                 @for (row of skeletonRows; track row) {
                   <div class="grid grid-cols-[2rem_1fr_1fr_1fr] gap-4 py-2.5">
                     <span class="skeleton h-4 w-4"></span>
@@ -368,7 +554,7 @@
               </div>
             } @else if (members().length === 0) {
               <p class="rounded border border-dashed border-line px-3 py-4 text-sm text-muted">
-                Bado hakuna wanajumuiya katika jumuiya hii.
+                {{ 'Bado hakuna wanajumuiya katika jumuiya hii.' | t }}
               </p>
             } @else {
               <div class="overflow-x-auto">
@@ -376,9 +562,9 @@
                   <thead class="border-b border-line text-xs tracking-[0.12em] text-faint uppercase">
                     <tr>
                       <th class="py-2 pr-3 font-medium">#</th>
-                      <th class="py-2 pr-3 font-medium">Jina kamili</th>
-                      <th class="py-2 pr-3 font-medium">Simu</th>
-                      <th class="py-2 font-medium">Jinsia</th>
+                      <th class="py-2 pr-3 font-medium">{{ 'Jina kamili' | t }}</th>
+                      <th class="py-2 pr-3 font-medium">{{ 'Simu' | t }}</th>
+                      <th class="py-2 font-medium">{{ 'Jinsia' | t }}</th>
                     </tr>
                   </thead>
                   <tbody class="divide-y divide-line">
@@ -399,7 +585,7 @@
           <div class="flex flex-wrap items-end gap-2">
             <div>
               <label for="jumuiya-member-count" class="mb-1 block text-xs tracking-[0.12em] text-muted uppercase">
-                {{ editingJumuiya() ? 'Ongeza wanajumuiya' : 'Idadi ya wanajumuiya' }}
+                {{ (editingJumuiya() ? 'Ongeza wanajumuiya' : 'Idadi ya wanajumuiya') | t }}
               </label>
               <input
                 id="jumuiya-member-count"
@@ -415,7 +601,7 @@
               class="rounded border border-line px-3 py-2 text-sm hover:bg-sunken"
               (click)="prepareJumuiyaMembers()"
             >
-              Andaa safu
+              {{ 'Andaa safu' | t }}
             </button>
           </div>
 
@@ -425,9 +611,9 @@
                 <thead class="border-b border-line text-xs tracking-[0.12em] text-faint uppercase">
                   <tr>
                     <th class="py-2 pr-3 font-medium">#</th>
-                    <th class="py-2 pr-3 font-medium">Jina kamili</th>
-                    <th class="py-2 pr-3 font-medium">Simu</th>
-                    <th class="py-2 font-medium">Jinsia</th>
+                    <th class="py-2 pr-3 font-medium">{{ 'Jina kamili' | t }}</th>
+                    <th class="py-2 pr-3 font-medium">{{ 'Simu' | t }}</th>
+                    <th class="py-2 font-medium">{{ 'Jinsia' | t }}</th>
                   </tr>
                 </thead>
                 <tbody>
@@ -438,7 +624,7 @@
                         <input
                           type="text"
                           formControlName="name"
-                          [attr.aria-label]="'Jina la mwanajumuiya ' + ($index + 1)"
+                          [attr.aria-label]="'Jina la mwanajumuiya {n}' | t: { n: $index + 1 }"
                           class="w-full rounded border border-line bg-canvas px-2 py-1.5 focus:border-brass focus:ring-1 focus:ring-brass focus:outline-none"
                         />
                       </td>
@@ -446,19 +632,19 @@
                         <input
                           type="tel"
                           formControlName="phone"
-                          [attr.aria-label]="'Simu ya mwanajumuiya ' + ($index + 1)"
+                          [attr.aria-label]="'Simu ya mwanajumuiya {n}' | t: { n: $index + 1 }"
                           class="w-full rounded border border-line bg-canvas px-2 py-1.5 focus:border-brass focus:ring-1 focus:ring-brass focus:outline-none"
                         />
                       </td>
                       <td class="py-1.5">
                         <select
                           formControlName="gender"
-                          [attr.aria-label]="'Jinsia ya mwanajumuiya ' + ($index + 1)"
+                          [attr.aria-label]="'Jinsia ya mwanajumuiya {n}' | t: { n: $index + 1 }"
                           class="w-full rounded border border-line bg-canvas px-2 py-1.5 focus:border-brass focus:ring-1 focus:ring-brass focus:outline-none"
                         >
                           <option value="">—</option>
-                          <option value="male">Mwanaume</option>
-                          <option value="female">Mwanamke</option>
+                          <option value="male">{{ 'Mwanaume' | t }}</option>
+                          <option value="female">{{ 'Mwanamke' | t }}</option>
                         </select>
                       </td>
                     </tr>
@@ -471,14 +657,14 @@
 
         <div class="flex justify-end gap-2 pt-2">
           <button type="button" class="rounded px-3 py-2 text-sm text-muted hover:bg-sunken" (click)="closeForms()">
-            Ghairi
+            {{ 'Ghairi' | t }}
           </button>
           <button
             type="submit"
             class="rounded bg-brass-strong px-4 py-2 text-sm font-medium text-canvas disabled:opacity-60"
             [disabled]="saving()"
           >
-            {{ saving() ? 'Inahifadhi…' : editingJumuiya() ? 'Hifadhi mabadiliko' : 'Hifadhi jumuiya' }}
+            {{ (saving() ? 'Inahifadhi…' : editingJumuiya() ? 'Hifadhi mabadiliko' : 'Hifadhi jumuiya') | t }}
           </button>
         </div>
       </form>
@@ -499,9 +685,9 @@
       [class.max-w-2xl]="!editingMember()"
       (click)="$event.stopPropagation()"
     >
-      <h2 class="font-serif text-xl">{{ editingMember() ? 'Hariri mwanajumuiya' : 'Ongeza wanajumuiya' }}</h2>
+      <h2 class="font-serif text-xl">{{ (editingMember() ? 'Hariri mwanajumuiya' : 'Ongeza wanajumuiya') | t }}</h2>
       <p class="mt-1 text-sm text-muted">
-        {{ editingMember() ? 'Unahariri katika' : 'Unaongeza katika' }} {{ group.name }}.
+        {{ (editingMember() ? 'Unahariri katika {name}.' : 'Unaongeza katika {name}.') | t: { name: group.name } }}
       </p>
 
       @if (error()) {
@@ -513,7 +699,7 @@
       @if (editingMember()) {
         <form [formGroup]="memberForm" (ngSubmit)="submitMember()" class="mt-5 space-y-4">
           <div>
-            <label for="member-name" class="mb-1 block text-xs tracking-[0.12em] text-muted uppercase">Jina kamili</label>
+            <label for="member-name" class="mb-1 block text-xs tracking-[0.12em] text-muted uppercase">{{ 'Jina kamili' | t }}</label>
             <input
               id="member-name"
               type="text"
@@ -522,7 +708,7 @@
             />
           </div>
           <div>
-            <label for="member-phone" class="mb-1 block text-xs tracking-[0.12em] text-muted uppercase">Simu</label>
+            <label for="member-phone" class="mb-1 block text-xs tracking-[0.12em] text-muted uppercase">{{ 'Simu' | t }}</label>
             <input
               id="member-phone"
               type="tel"
@@ -531,27 +717,27 @@
             />
           </div>
           <div>
-            <label for="member-gender" class="mb-1 block text-xs tracking-[0.12em] text-muted uppercase">Jinsia</label>
+            <label for="member-gender" class="mb-1 block text-xs tracking-[0.12em] text-muted uppercase">{{ 'Jinsia' | t }}</label>
             <select
               id="member-gender"
               formControlName="gender"
               class="w-full rounded border border-line bg-canvas px-3 py-2 focus:border-brass focus:ring-1 focus:ring-brass focus:outline-none"
             >
-              <option value="">Sipendi kusema</option>
-              <option value="male">Mwanaume</option>
-              <option value="female">Mwanamke</option>
+              <option value="">{{ 'Sipendi kusema' | t }}</option>
+              <option value="male">{{ 'Mwanaume' | t }}</option>
+              <option value="female">{{ 'Mwanamke' | t }}</option>
             </select>
           </div>
           <div class="flex justify-end gap-2 pt-2">
             <button type="button" class="rounded px-3 py-2 text-sm text-muted hover:bg-sunken" (click)="closeForms()">
-              Ghairi
+              {{ 'Ghairi' | t }}
             </button>
             <button
               type="submit"
               class="rounded bg-brass-strong px-4 py-2 text-sm font-medium text-canvas disabled:opacity-60"
               [disabled]="saving()"
             >
-              {{ saving() ? 'Inahifadhi…' : 'Hifadhi mabadiliko' }}
+              {{ (saving() ? 'Inahifadhi…' : 'Hifadhi mabadiliko') | t }}
             </button>
           </div>
         </form>
@@ -560,7 +746,7 @@
           <div class="flex flex-wrap items-end gap-2">
             <div>
               <label for="bulk-member-count" class="mb-1 block text-xs tracking-[0.12em] text-muted uppercase">
-                Idadi ya wanajumuiya
+                {{ 'Idadi ya wanajumuiya' | t }}
               </label>
               <input
                 id="bulk-member-count"
@@ -576,7 +762,7 @@
               class="rounded border border-line px-3 py-2 text-sm hover:bg-sunken"
               (click)="prepareBulkMembers()"
             >
-              Andaa safu
+              {{ 'Andaa safu' | t }}
             </button>
           </div>
 
@@ -586,9 +772,9 @@
                 <thead class="border-b border-line text-xs tracking-[0.12em] text-faint uppercase">
                   <tr>
                     <th class="py-2 pr-3 font-medium">#</th>
-                    <th class="py-2 pr-3 font-medium">Jina kamili</th>
-                    <th class="py-2 pr-3 font-medium">Simu</th>
-                    <th class="py-2 font-medium">Jinsia</th>
+                    <th class="py-2 pr-3 font-medium">{{ 'Jina kamili' | t }}</th>
+                    <th class="py-2 pr-3 font-medium">{{ 'Simu' | t }}</th>
+                    <th class="py-2 font-medium">{{ 'Jinsia' | t }}</th>
                   </tr>
                 </thead>
                 <tbody>
@@ -599,7 +785,7 @@
                         <input
                           type="text"
                           formControlName="name"
-                          [attr.aria-label]="'Jina la mwanajumuiya ' + ($index + 1)"
+                          [attr.aria-label]="'Jina la mwanajumuiya {n}' | t: { n: $index + 1 }"
                           class="w-full rounded border border-line bg-canvas px-2 py-1.5 focus:border-brass focus:ring-1 focus:ring-brass focus:outline-none"
                         />
                       </td>
@@ -607,19 +793,19 @@
                         <input
                           type="tel"
                           formControlName="phone"
-                          [attr.aria-label]="'Simu ya mwanajumuiya ' + ($index + 1)"
+                          [attr.aria-label]="'Simu ya mwanajumuiya {n}' | t: { n: $index + 1 }"
                           class="w-full rounded border border-line bg-canvas px-2 py-1.5 focus:border-brass focus:ring-1 focus:ring-brass focus:outline-none"
                         />
                       </td>
                       <td class="py-1.5">
                         <select
                           formControlName="gender"
-                          [attr.aria-label]="'Jinsia ya mwanajumuiya ' + ($index + 1)"
+                          [attr.aria-label]="'Jinsia ya mwanajumuiya {n}' | t: { n: $index + 1 }"
                           class="w-full rounded border border-line bg-canvas px-2 py-1.5 focus:border-brass focus:ring-1 focus:ring-brass focus:outline-none"
                         >
                           <option value="">—</option>
-                          <option value="male">Mwanaume</option>
-                          <option value="female">Mwanamke</option>
+                          <option value="male">{{ 'Mwanaume' | t }}</option>
+                          <option value="female">{{ 'Mwanamke' | t }}</option>
                         </select>
                       </td>
                     </tr>
@@ -631,18 +817,149 @@
 
           <div class="flex justify-end gap-2 pt-2">
             <button type="button" class="rounded px-3 py-2 text-sm text-muted hover:bg-sunken" (click)="closeForms()">
-              Ghairi
+              {{ 'Ghairi' | t }}
             </button>
             <button
               type="submit"
               class="rounded bg-brass-strong px-4 py-2 text-sm font-medium text-canvas disabled:opacity-60"
               [disabled]="saving()"
             >
-              {{ saving() ? 'Inahifadhi…' : 'Hifadhi wanajumuiya' }}
+              {{ (saving() ? 'Inahifadhi…' : 'Hifadhi wanajumuiya') | t }}
             </button>
           </div>
         </form>
       }
+    </section>
+  </div>
+}
+
+@if (importOpen()) {
+  <div
+    class="fixed inset-0 z-50 flex items-center justify-center bg-black/40 p-4"
+    animate.enter="backdrop-in"
+    animate.leave="backdrop-out"
+    (click)="closeImport()"
+  >
+    <section
+      class="max-h-[90vh] w-full max-w-2xl overflow-y-auto rounded border border-line bg-surface p-5"
+      (click)="$event.stopPropagation()"
+    >
+      <h2 class="font-serif text-xl">
+        @if (importTarget(); as target) {
+          {{ 'Ingiza wanajumuiya katika {name}' | t: { name: target.name } }}
+        } @else {
+          {{ 'Ingiza kutoka Excel' | t }}
+        }
+      </h2>
+      <p class="mt-1 text-sm text-muted">
+        @if (importTarget()) {
+          {{ 'Faili liwe na safu:' | t }} <span class="font-medium">Mwanajumuiya, Simu, Jinsia</span>.
+        } @else {
+          {{ 'Kila mstari ni mwanajumuiya mmoja. Safu:' | t }}
+          <span class="font-medium">Jumuiya, Kanda, Mwenyekiti, Mwanajumuiya, Simu, Jinsia</span>.
+          {{ 'Jumuiya zilizopo zitaongezewa wanajumuiya; mpya zitaundwa ndani ya kanda iliyotajwa.' | t }}
+        }
+        {{ 'Inakubali .xlsx, .xls, .ods na .csv.' | t }}
+      </p>
+
+      <div class="mt-4 flex flex-wrap items-center gap-2">
+        <label
+          class="cursor-pointer rounded bg-brass-strong px-4 py-2 text-sm font-medium text-canvas hover:opacity-90"
+          [class.pointer-events-none]="importing()"
+          [class.opacity-60]="importing()"
+        >
+          {{ 'Chagua faili' | t }}
+          <input
+            type="file"
+            class="sr-only"
+            [accept]="spreadsheetAccept"
+            [disabled]="importing()"
+            (change)="chooseImportFile($event)"
+          />
+        </label>
+        <button
+          type="button"
+          class="rounded border border-line px-3 py-2 text-sm hover:bg-sunken"
+          (click)="downloadImportTemplate()"
+        >
+          {{ 'Pakua kiolezo' | t }}
+        </button>
+        @if (importFileName()) {
+          <span class="text-sm text-muted">{{ importFileName() }}</span>
+        }
+      </div>
+
+      @if (importError()) {
+        <p class="alert-in mt-4 rounded border border-negative/40 bg-negative/10 px-3 py-2 text-sm text-negative" role="alert">
+          {{ importError() }}
+        </p>
+      }
+
+      @if (importPlan(); as plan) {
+        <div class="mt-5 space-y-4">
+          <p class="text-sm">
+            {{
+              'Tayari kuingiza wanajumuiya {members} katika jumuiya {groups}.'
+                | t: { members: plan.memberCount, groups: plan.groups.length }
+            }}
+          </p>
+
+          @if (plan.issues.length > 0) {
+            <div class="rounded border border-negative/40 bg-negative/10 px-3 py-2 text-sm text-negative">
+              <p class="font-medium">{{ 'Tahadhari {count}' | t: { count: plan.issues.length } }}</p>
+              <ul class="mt-1 max-h-32 list-disc space-y-0.5 overflow-y-auto pl-5">
+                @for (issue of plan.issues; track $index) {
+                  <li>{{ issue }}</li>
+                }
+              </ul>
+            </div>
+          }
+
+          @if (plan.groups.length > 0) {
+            <div class="overflow-x-auto">
+              <table class="w-full min-w-[32rem] text-left text-sm">
+                <thead class="border-b border-line text-xs tracking-[0.12em] text-faint uppercase">
+                  <tr>
+                    <th class="py-2 pr-3 font-medium">{{ 'Jumuiya' | t }}</th>
+                    <th class="py-2 pr-3 font-medium">{{ 'Hali' | t }}</th>
+                    <th class="py-2 pr-3 font-medium">{{ 'Kanda' | t }}</th>
+                    <th class="py-2 font-medium">{{ 'Wanajumuiya' | t }}</th>
+                  </tr>
+                </thead>
+                <tbody class="divide-y divide-line">
+                  @for (group of plan.groups; track group.name) {
+                    <tr class="row-slide">
+                      <td class="py-2 pr-3 font-medium">{{ group.name }}</td>
+                      <td class="py-2 pr-3 text-muted">{{ (group.existing ? 'Ipo' : 'Mpya') | t }}</td>
+                      <td class="py-2 pr-3 text-muted">{{ group.kandaName || '—' }}</td>
+                      <td class="py-2 text-muted">{{ group.members.length }}</td>
+                    </tr>
+                  }
+                </tbody>
+              </table>
+            </div>
+          }
+        </div>
+      }
+
+      <div class="mt-5 flex justify-end gap-2">
+        <button
+          type="button"
+          class="rounded px-3 py-2 text-sm text-muted hover:bg-sunken disabled:opacity-60"
+          [disabled]="importing()"
+          (click)="closeImport()"
+        >
+          {{ 'Ghairi' | t }}
+        </button>
+        <button
+          type="button"
+          class="rounded bg-brass-strong px-4 py-2 text-sm font-medium text-canvas disabled:opacity-60"
+          [disabled]="importing() || !importPlan() || importPlan()!.groups.length === 0"
+          (click)="runImport()"
+        >
+          {{ (importing() ? 'Inaingiza…' : 'Ingiza') | t }}
+        </button>
+      </div>
     </section>
   </div>
 }

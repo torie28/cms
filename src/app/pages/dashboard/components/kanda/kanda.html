@@ -1,17 +1,69 @@
 <main class="flex-1 space-y-6 p-5 lg:p-7">
   <div class="flex flex-wrap items-end justify-between gap-4">
     <div>
-      <h1 class="font-serif text-2xl">Kanda</h1>
-      <p class="mt-1 text-sm text-muted">Kanda za parokia. Kila kanda ina jumuiya moja au zaidi.</p>
+      <h1 class="font-serif text-2xl">{{ 'Kanda' | t }}</h1>
+      <p class="mt-1 text-sm text-muted">{{ 'Kanda za parokia. Kila kanda ina jumuiya moja au zaidi.' | t }}</p>
     </div>
-    <button
-      type="button"
-      class="rounded bg-brass-strong px-4 py-2 text-sm font-medium text-canvas hover:opacity-90"
-      (click)="openForm()"
-    >
-      Ongeza kanda
-    </button>
+    <div class="flex flex-wrap items-center gap-2">
+      <button
+        type="button"
+        class="rounded border border-line px-4 py-2 text-sm hover:bg-sunken"
+        (click)="openImport()"
+      >
+        {{ 'Ingiza kutoka Excel' | t }}
+      </button>
+      <div class="relative">
+        <button
+          type="button"
+          class="rounded border border-line px-4 py-2 text-sm hover:bg-sunken disabled:opacity-50"
+          aria-haspopup="menu"
+          [attr.aria-expanded]="exportMenuOpen()"
+          [disabled]="filteredKandas().length === 0 || exporting()"
+          (click)="toggleExportMenu($event)"
+        >
+          {{ (exporting() ? 'Inaandaa…' : 'Pakua ▾') | t }}
+        </button>
+        @if (exportMenuOpen()) {
+          <div
+            class="absolute right-0 z-30 mt-1 w-44 overflow-hidden rounded border border-line bg-surface shadow-lg"
+            role="menu"
+          >
+            @for (format of exportFormats; track format.value) {
+              <button
+                type="button"
+                role="menuitem"
+                class="block w-full px-3 py-2 text-left text-sm hover:bg-sunken"
+                (click)="exportList(format.value)"
+              >
+                {{ format.label | t }}
+              </button>
+            }
+          </div>
+        }
+      </div>
+      <button
+        type="button"
+        class="rounded bg-brass-strong px-4 py-2 text-sm font-medium text-canvas hover:opacity-90"
+        (click)="openForm()"
+      >
+        {{ 'Ongeza kanda' | t }}
+      </button>
+    </div>
   </div>
+
+  @if (exportMenuOpen()) {
+    <div class="fixed inset-0 z-20" (click)="exportMenuOpen.set(false)"></div>
+  }
+
+  @if (notice()) {
+    <div
+      class="alert-in flex items-start justify-between gap-3 rounded border border-line bg-brass-tint px-3 py-2 text-sm"
+      role="status"
+    >
+      <span>{{ notice() }}</span>
+      <button type="button" class="text-muted hover:underline" (click)="notice.set(null)">{{ 'Funga' | t }}</button>
+    </div>
+  }
 
   @if (error() && !formOpen()) {
     <p class="alert-in rounded border border-negative/40 bg-negative/10 px-3 py-2 text-sm text-negative" role="alert">
@@ -20,7 +72,7 @@
   }
 
   @if (loading()) {
-    <section class="grid gap-4 md:grid-cols-2 xl:grid-cols-3" aria-busy="true" aria-label="Inapakia kanda">
+    <section class="grid gap-4 md:grid-cols-2 xl:grid-cols-3" aria-busy="true" [attr.aria-label]="'Inapakia kanda' | t">
       @for (card of skeletonCards; track card) {
         <div class="rounded border border-line bg-surface p-4">
           <span class="skeleton h-5 w-28"></span>
@@ -31,19 +83,80 @@
     </section>
   } @else if (kandas().length === 0) {
     <p class="rounded border border-dashed border-line bg-surface px-4 py-8 text-center text-sm text-muted">
-      Bado hakuna kanda. Ongeza kanda ya kwanza ya parokia.
+      {{ 'Bado hakuna kanda. Ongeza kanda ya kwanza ya parokia.' | t }}
     </p>
   } @else {
+    <app-filter-panel [activeCount]="activeFilters()" [summary]="filterSummary()" (clear)="clearFilters()">
+      <app-search-box
+        filterSearch
+        class="w-full sm:w-80"
+        [placeholder]="'Tafuta kanda, kiongozi au maelezo…' | t"
+        [(value)]="search"
+      />
+      <div>
+        <label for="kanda-leader-filter" class="filter-label">{{ 'Kiongozi' | t }}</label>
+        <select
+          id="kanda-leader-filter"
+          class="filter-input"
+          [value]="leaderFilter()"
+          (change)="setLeaderFilter($any($event.target).value)"
+        >
+          <option value="">{{ 'Zote' | t }}</option>
+          <option value="has">{{ 'Zenye kiongozi' | t }}</option>
+          <option value="none">{{ 'Bila kiongozi' | t }}</option>
+        </select>
+      </div>
+      <div class="sm:col-span-2 lg:col-span-1">
+        <span class="filter-label">{{ 'Idadi ya jumuiya' | t }}</span>
+        <div class="flex items-center gap-2">
+          <input
+            type="number"
+            min="0"
+            [placeholder]="'Kuanzia' | t"
+            [attr.aria-label]="'Idadi ya chini ya jumuiya' | t"
+            class="filter-input"
+            [value]="minJumuiyas()"
+            (input)="minJumuiyas.set($any($event.target).value)"
+          />
+          <span class="text-faint">–</span>
+          <input
+            type="number"
+            min="0"
+            [placeholder]="'Hadi' | t"
+            [attr.aria-label]="'Idadi ya juu ya jumuiya' | t"
+            class="filter-input"
+            [value]="maxJumuiyas()"
+            (input)="maxJumuiyas.set($any($event.target).value)"
+          />
+        </div>
+      </div>
+      <div>
+        <label for="kanda-sort" class="filter-label">{{ 'Panga kwa' | t }}</label>
+        <select id="kanda-sort" class="filter-input" [value]="sort()" (change)="setSort($any($event.target).value)">
+          <option value="name">{{ 'Jina (A–Z)' | t }}</option>
+          <option value="name-desc">{{ 'Jina (Z–A)' | t }}</option>
+          <option value="jumuiyas-desc">{{ 'Jumuiya nyingi kwanza' | t }}</option>
+          <option value="jumuiyas-asc">{{ 'Jumuiya chache kwanza' | t }}</option>
+        </select>
+      </div>
+    </app-filter-panel>
+
+    @if (filteredKandas().length === 0) {
+      <p class="rounded border border-dashed border-line bg-surface px-4 py-8 text-center text-sm text-muted">
+        {{ 'Hakuna kanda inayolingana na vichujio hivi.' | t }}
+      </p>
+    }
+
     <section class="grid gap-4 md:grid-cols-2 xl:grid-cols-3">
-      @for (kanda of kandas(); track kanda.id; let i = $index) {
+      @for (kanda of filteredKandas(); track kanda.id; let i = $index) {
         <article
           class="rounded border border-line bg-surface p-4 transition-[box-shadow,translate] hover:-translate-y-0.5 hover:shadow-md"
           [style.animation-delay.ms]="i * 60"
         >
           <h2 class="font-serif text-lg">{{ kanda.name }}</h2>
-          <p class="mt-1 text-sm text-muted">{{ kanda.leader || 'Hakuna kiongozi aliyepangwa' }}</p>
+          <p class="mt-1 text-sm text-muted">{{ kanda.leader || ('Hakuna kiongozi aliyepangwa' | t) }}</p>
           <p class="mt-3 text-xs tracking-[0.12em] text-faint uppercase">
-            Jumuiya {{ kanda.jumuiyas_count }}
+            {{ 'Jumuiya {count}' | t: { count: kanda.jumuiyas_count } }}
           </p>
           @if (kanda.notes) {
             <p class="mt-2 text-sm text-muted">{{ kanda.notes }}</p>
@@ -65,7 +178,7 @@
       class="w-full max-w-md rounded border border-line bg-surface p-5"
       (click)="$event.stopPropagation()"
     >
-      <h2 class="font-serif text-xl">Ongeza kanda</h2>
+      <h2 class="font-serif text-xl">{{ 'Ongeza kanda' | t }}</h2>
 
       @if (error()) {
         <p class="alert-in mt-4 rounded border border-negative/40 bg-negative/10 px-3 py-2 text-sm text-negative" role="alert">
@@ -75,17 +188,17 @@
 
       <form [formGroup]="form" (ngSubmit)="submit()" class="mt-5 space-y-4">
         <div>
-          <label for="kanda-name" class="mb-1 block text-xs tracking-[0.12em] text-muted uppercase">Jina</label>
+          <label for="kanda-name" class="mb-1 block text-xs tracking-[0.12em] text-muted uppercase">{{ 'Jina' | t }}</label>
           <input
             id="kanda-name"
             type="text"
             formControlName="name"
-            placeholder="Kanda A"
+            [placeholder]="'Kanda A' | t"
             class="w-full rounded border border-line bg-canvas px-3 py-2 focus:border-brass focus:ring-1 focus:ring-brass focus:outline-none"
           />
         </div>
         <div>
-          <label for="kanda-leader" class="mb-1 block text-xs tracking-[0.12em] text-muted uppercase">Kiongozi</label>
+          <label for="kanda-leader" class="mb-1 block text-xs tracking-[0.12em] text-muted uppercase">{{ 'Kiongozi' | t }}</label>
           <input
             id="kanda-leader"
             type="text"
@@ -94,7 +207,7 @@
           />
         </div>
         <div>
-          <label for="kanda-notes" class="mb-1 block text-xs tracking-[0.12em] text-muted uppercase">Maelezo</label>
+          <label for="kanda-notes" class="mb-1 block text-xs tracking-[0.12em] text-muted uppercase">{{ 'Maelezo' | t }}</label>
           <textarea
             id="kanda-notes"
             formControlName="notes"
@@ -104,17 +217,141 @@
         </div>
         <div class="flex justify-end gap-2 pt-2">
           <button type="button" class="rounded px-3 py-2 text-sm text-muted hover:bg-sunken" (click)="closeForm()">
-            Ghairi
+            {{ 'Ghairi' | t }}
           </button>
           <button
             type="submit"
             class="rounded bg-brass-strong px-4 py-2 text-sm font-medium text-canvas disabled:opacity-60"
             [disabled]="saving()"
           >
-            {{ saving() ? 'Inahifadhi…' : 'Hifadhi kanda' }}
+            {{ (saving() ? 'Inahifadhi…' : 'Hifadhi kanda') | t }}
           </button>
         </div>
       </form>
+    </section>
+  </div>
+}
+
+@if (importOpen()) {
+  <div
+    class="fixed inset-0 z-50 flex items-center justify-center bg-black/40 p-4"
+    animate.enter="backdrop-in"
+    animate.leave="backdrop-out"
+    (click)="closeImport()"
+  >
+    <section
+      class="max-h-[90vh] w-full max-w-2xl overflow-y-auto rounded border border-line bg-surface p-5"
+      (click)="$event.stopPropagation()"
+    >
+      <h2 class="font-serif text-xl">{{ 'Ingiza kanda kutoka Excel' | t }}</h2>
+      <p class="mt-1 text-sm text-muted">
+        {{ 'Kila mstari ni kanda moja. Safu:' | t }} <span class="font-medium">Kanda, Kiongozi, Maelezo</span>.
+        {{ 'Kanda zilizopo tayari zitarukwa. Inakubali .xlsx, .xls, .ods na .csv.' | t }}
+      </p>
+
+      <div class="mt-4 flex flex-wrap items-center gap-2">
+        <label
+          class="cursor-pointer rounded bg-brass-strong px-4 py-2 text-sm font-medium text-canvas hover:opacity-90"
+          [class.pointer-events-none]="importing()"
+          [class.opacity-60]="importing()"
+        >
+          {{ 'Chagua faili' | t }}
+          <input
+            type="file"
+            class="sr-only"
+            [accept]="spreadsheetAccept"
+            [disabled]="importing()"
+            (change)="chooseImportFile($event)"
+          />
+        </label>
+        <button
+          type="button"
+          class="rounded border border-line px-3 py-2 text-sm hover:bg-sunken"
+          (click)="downloadImportTemplate()"
+        >
+          {{ 'Pakua kiolezo' | t }}
+        </button>
+        @if (importFileName()) {
+          <span class="text-sm text-muted">{{ importFileName() }}</span>
+        }
+      </div>
+
+      @if (importError()) {
+        <p class="alert-in mt-4 rounded border border-negative/40 bg-negative/10 px-3 py-2 text-sm text-negative" role="alert">
+          {{ importError() }}
+        </p>
+      }
+
+      @if (importPlan(); as plan) {
+        <div class="mt-5 space-y-4">
+          <p class="text-sm">
+            {{ 'Tayari kuingiza kanda mpya {count}.' | t: { count: plan.fresh.length } }}
+            @if (plan.existing.length > 0) {
+              <span class="text-muted">{{ '{count} tayari zipo na zitarukwa.' | t: { count: plan.existing.length } }}</span>
+            }
+          </p>
+
+          @if (plan.issues.length > 0) {
+            <div class="rounded border border-negative/40 bg-negative/10 px-3 py-2 text-sm text-negative">
+              <p class="font-medium">{{ 'Tahadhari {count}' | t: { count: plan.issues.length } }}</p>
+              <ul class="mt-1 max-h-32 list-disc space-y-0.5 overflow-y-auto pl-5">
+                @for (issue of plan.issues; track $index) {
+                  <li>{{ issue }}</li>
+                }
+              </ul>
+            </div>
+          }
+
+          @if (plan.fresh.length > 0 || plan.existing.length > 0) {
+            <div class="overflow-x-auto">
+              <table class="w-full min-w-[32rem] text-left text-sm">
+                <thead class="border-b border-line text-xs tracking-[0.12em] text-faint uppercase">
+                  <tr>
+                    <th class="py-2 pr-3 font-medium">{{ 'Kanda' | t }}</th>
+                    <th class="py-2 pr-3 font-medium">{{ 'Kiongozi' | t }}</th>
+                    <th class="py-2 font-medium">{{ 'Hali' | t }}</th>
+                  </tr>
+                </thead>
+                <tbody class="divide-y divide-line">
+                  @for (row of plan.fresh; track row.name) {
+                    <tr class="row-slide">
+                      <td class="py-2 pr-3 font-medium">{{ row.name }}</td>
+                      <td class="py-2 pr-3 text-muted">{{ row.leader || '—' }}</td>
+                      <td class="py-2 text-muted">{{ 'Mpya' | t }}</td>
+                    </tr>
+                  }
+                  @for (name of plan.existing; track name) {
+                    <tr class="row-slide text-faint">
+                      <td class="py-2 pr-3">{{ name }}</td>
+                      <td class="py-2 pr-3">—</td>
+                      <td class="py-2">{{ 'Ipo · itarukwa' | t }}</td>
+                    </tr>
+                  }
+                </tbody>
+              </table>
+            </div>
+          }
+        </div>
+      }
+
+      <div class="mt-5 flex justify-end gap-2">
+        <button
+          type="button"
+          class="rounded px-3 py-2 text-sm text-muted hover:bg-sunken disabled:opacity-60"
+          [disabled]="importing()"
+          (click)="closeImport()"
+        >
+          {{ 'Ghairi' | t }}
+        </button>
+        <button
+          type="button"
+          class="rounded bg-brass-strong px-4 py-2 text-sm font-medium text-canvas disabled:opacity-60"
+          [disabled]="importing() || !importPlan() || importPlan()!.fresh.length === 0"
+          (click)="runImport()"
+        >
+          {{ (importing() ? 'Inaingiza…' : 'Ingiza') | t }}
+        </button>
+      </div>
     </section>
   </div>
 }

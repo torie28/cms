@@ -1,0 +1,234 @@
+<section class="space-y-4">
+  <div>
+    <h2 class="font-serif text-xl">{{ 'API na huduma za nje' | t }}</h2>
+    <p class="mt-1 text-sm text-muted">
+      {{ 'Weka funguo za SMS, barua pepe na huduma nyingine hapa bila kuhariri faili la .env.' | t }}
+      {{ 'Sehemu usiyoijaza hapa hutumia thamani ya .env.' | t }}
+    </p>
+  </div>
+
+  @if (error()) {
+    <p class="alert-in rounded border border-negative/40 bg-negative/10 px-3 py-2 text-sm text-negative" role="alert">
+      {{ error() }}
+    </p>
+  }
+
+  @if (!isAdmin()) {
+    <p class="rounded border border-line bg-sunken px-3 py-2 text-xs text-muted">
+      {{ 'Ni msimamizi pekee anayeweza kubadilisha mipangilio ya API.' | t }}
+    </p>
+  }
+
+  @if (loading()) {
+    @for (row of [1, 2]; track row) {
+      <div class="space-y-3 rounded border border-line bg-surface p-5" aria-hidden="true">
+        <span class="skeleton h-5 w-40"></span>
+        <span class="skeleton h-3 w-72"></span>
+        <div class="grid gap-4 pt-2 sm:grid-cols-2">
+          <span class="skeleton h-9 w-full"></span>
+          <span class="skeleton h-9 w-full"></span>
+        </div>
+      </div>
+    }
+  } @else {
+    @for (service of services(); track service.key) {
+      @let st = state(service);
+      @let badge = status(service);
+      <article class="rounded border border-line bg-surface" [attr.aria-labelledby]="'api-' + service.key">
+        <header class="flex flex-wrap items-start justify-between gap-3 border-b border-line px-5 py-4">
+          <div class="min-w-0">
+            <div class="flex flex-wrap items-center gap-2">
+              <h3 [id]="'api-' + service.key" class="font-serif text-lg">{{ service.label | t }}</h3>
+              <span class="rounded border px-1.5 py-0.5 text-[0.65rem] tracking-[0.12em] uppercase" [class]="badge.classes">
+                {{ badge.label | t }}
+              </span>
+            </div>
+            <p class="mt-0.5 text-sm text-muted">{{ service.description | t }}</p>
+            @if (service.status === 'incomplete') {
+              <p class="mt-1 text-xs text-negative">
+                {{ 'Inakosa: {fields}' | t: { fields: service.missing.join(', ') } }}
+              </p>
+            }
+          </div>
+          @if (service.updated_at) {
+            <p class="text-xs text-faint">
+              {{ 'Ilibadilishwa na {name}' | t: { name: service.updated_by ?? '—' } }}
+              · {{ service.updated_at | date: 'medium' : undefined : i18n.dateLocale() }}
+            </p>
+          }
+        </header>
+
+        <form class="space-y-4 px-5 py-4" (submit)="$event.preventDefault(); save(service)">
+          @if (st.error) {
+            <p class="alert-in rounded border border-negative/40 bg-negative/10 px-3 py-2 text-sm text-negative" role="alert">
+              {{ st.error }}
+            </p>
+          }
+          @if (st.notice) {
+            <p class="alert-in rounded border border-positive/40 bg-positive/10 px-3 py-2 text-sm text-positive" role="status">
+              {{ st.notice }}
+            </p>
+          }
+
+          <div class="grid gap-4 sm:grid-cols-2">
+            @for (field of service.fields; track field.key) {
+              @if (isVisible(service, field)) {
+                @let id = 'api-' + service.key + '-' + field.key;
+                <div [class]="field.key === service.fields[0].key ? 'sm:col-span-2' : ''">
+                  <label [for]="id" class="filter-label flex items-center gap-2">
+                    <span>
+                      {{ field.label | t }}
+                      @if (field.required) {
+                        <span class="text-negative" aria-hidden="true">*</span>
+                      }
+                    </span>
+                    @if (field.source === 'database') {
+                      <span class="rounded bg-brass-tint px-1 text-[0.6rem] normal-case tracking-normal text-brass-strong">
+                        {{ 'imehifadhiwa hapa' | t }}
+                      </span>
+                    } @else if (field.source === 'env') {
+                      <span class="rounded bg-sunken px-1 font-mono text-[0.6rem] normal-case tracking-normal text-faint">.env</span>
+                    }
+                  </label>
+
+                  @switch (field.type) {
+                    @case ('select') {
+                      <select
+                        [id]="id"
+                        class="filter-input w-full"
+                        [disabled]="!isAdmin() || st.saving"
+                        (change)="setDraft(service, field, $any($event.target).value)"
+                      >
+                        @if (!field.required) {
+                          <option value="" [selected]="draftValue(service, field) === ''">{{ 'Chaguo-msingi' | t }}</option>
+                        }
+                        @for (option of field.options ?? []; track option.value) {
+                          <option [value]="option.value" [selected]="draftValue(service, field) === option.value">
+                            {{ option.label | t }}
+                          </option>
+                        }
+                      </select>
+                    }
+                    @case ('secret') {
+                      <div class="flex gap-2">
+                        <input
+                          [id]="id"
+                          [type]="isRevealed(service, field) ? 'text' : 'password'"
+                          class="filter-input w-full font-mono"
+                          autocomplete="new-password"
+                          spellcheck="false"
+                          [placeholder]="
+                            field.has_value
+                              ? ('Imehifadhiwa {preview} — andika mpya kubadilisha' | t: { preview: field.preview })
+                              : ('Bado haijawekwa' | t)
+                          "
+                          [value]="draftValue(service, field)"
+                          [disabled]="!isAdmin() || st.saving"
+                          (input)="setDraft(service, field, $any($event.target).value)"
+                        />
+                        <button
+                          type="button"
+                          class="shrink-0 rounded border border-line px-2 text-xs text-muted hover:bg-sunken"
+                          [attr.aria-label]="(isRevealed(service, field) ? 'Ficha' : 'Onyesha') | t"
+                          [disabled]="!isAdmin()"
+                          (click)="toggleReveal(service, field)"
+                        >
+                          {{ (isRevealed(service, field) ? 'Ficha' : 'Onyesha') | t }}
+                        </button>
+                      </div>
+                    }
+                    @default {
+                      <input
+                        [id]="id"
+                        [type]="field.type"
+                        class="filter-input w-full"
+                        [attr.maxlength]="field.max"
+                        [attr.min]="field.type === 'number' ? 1 : null"
+                        [placeholder]="field.placeholder ?? ''"
+                        [value]="draftValue(service, field)"
+                        [disabled]="!isAdmin() || st.saving"
+                        (input)="setDraft(service, field, $any($event.target).value)"
+                      />
+                    }
+                  }
+
+                  @if (field.help) {
+                    <p class="mt-1 text-xs text-faint">{{ field.help | t }}</p>
+                  }
+                </div>
+              }
+            }
+          </div>
+
+          @if (isAdmin()) {
+            <div class="flex flex-wrap items-center justify-end gap-2 border-t border-line pt-4">
+              @if (service.overridden) {
+                <button
+                  type="button"
+                  class="mr-auto rounded px-3 py-2 text-xs text-muted hover:bg-sunken hover:text-ink"
+                  [disabled]="st.saving"
+                  (click)="resetToEnv(service)"
+                >
+                  {{ 'Rudisha mipangilio ya .env' | t }}
+                </button>
+              }
+              @if (isDirty(service)) {
+                <button type="button" class="rounded px-3 py-2 text-sm text-muted hover:bg-sunken" (click)="discard(service)">
+                  {{ 'Ghairi' | t }}
+                </button>
+              }
+              <button
+                type="submit"
+                class="rounded bg-brass-strong px-4 py-2 text-sm font-medium text-canvas disabled:opacity-60"
+                [disabled]="st.saving || !isDirty(service)"
+              >
+                {{ (st.saving ? 'Inahifadhi…' : 'Hifadhi mabadiliko') | t }}
+              </button>
+            </div>
+          }
+        </form>
+
+        @if (isAdmin()) {
+          <form
+            class="space-y-2 border-t border-line bg-sunken/50 px-5 py-4"
+            (submit)="$event.preventDefault(); sendTest(service)"
+          >
+            <label [for]="'api-test-' + service.key" class="filter-label">
+              {{ (service.test === 'phone' ? 'Jaribu kwa kutuma SMS kwenda' : 'Jaribu kwa kutuma barua pepe kwenda') | t }}
+            </label>
+            <div class="flex flex-col gap-2 sm:flex-row">
+              <input
+                [id]="'api-test-' + service.key"
+                [type]="service.test === 'phone' ? 'tel' : 'email'"
+                class="filter-input w-full sm:max-w-xs"
+                [placeholder]="service.test === 'phone' ? '0712 345 678' : 'jina@example.com'"
+                [value]="st.testTo"
+                (input)="setTestTo(service, $any($event.target).value)"
+              />
+              <button
+                type="submit"
+                class="rounded border border-brass px-4 py-2 text-sm font-medium text-brass-strong hover:bg-brass-tint disabled:opacity-60"
+                [disabled]="st.testing || !st.testTo.trim() || isDirty(service)"
+              >
+                {{ (st.testing ? 'Inatuma…' : 'Tuma jaribio') | t }}
+              </button>
+            </div>
+            @if (isDirty(service)) {
+              <p class="text-xs text-faint">{{ 'Hifadhi mabadiliko kwanza, kisha ujaribu.' | t }}</p>
+            }
+            @if (st.testResult; as result) {
+              <p
+                class="alert-in text-sm"
+                [class.text-positive]="result.ok"
+                [class.text-negative]="!result.ok"
+                role="status"
+              >
+                {{ result.message }}
+              </p>
+            }
+          </form>
+        }
+      </article>
+    }
+  }
+</section>

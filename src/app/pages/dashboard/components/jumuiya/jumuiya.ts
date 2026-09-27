@@ -1,6 +1,27 @@
-import { afterNextRender, ChangeDetectionStrategy, Component, inject, signal } from '@angular/core';
+import {
+  afterNextRender,
+  ChangeDetectionStrategy,
+  Component,
+  computed,
+  inject,
+  signal,
+} from '@angular/core';
 import { FormArray, FormBuilder, ReactiveFormsModule, Validators } from '@angular/forms';
+import { ActivatedRoute } from '@angular/router';
+import { FilterPanel, parseBound, withinNumberRange } from '../../../../shared/filter-panel';
+import { matchesSearch, SearchBox } from '../../../../shared/search-box';
+import { ActivityService } from '../../../../core/activity';
 import { httpErrorMessage } from '../../../../core/http-error';
+import { translate, TranslatePipe } from '../../../../core/i18n';
+import { EXPORT_FORMATS, FORMAT_NAMES, SPREADSHEET_ACCEPT } from '../../../../core/spreadsheet';
+import {
+  downloadTemplate,
+  ExportFormat,
+  exportJumuiyas,
+  ImportedRow,
+  normalizeGender,
+  readSpreadsheet,
+} from '../../../../core/jumuiya-transfer';
 import {
   Jumuiya,
   JumuiyaMember,
@@ -9,10 +30,26 @@ import {
   ParishService,
 } from '../../../../core/parish';
 
+interface ImportGroup {
+  name: string;
+  existing: Jumuiya | null;
+  kandaId: number;
+  kandaName: string;
+  chairperson: string;
+  notes: string;
+  members: JumuiyaMemberPayload[];
+}
+
+interface ImportPlan {
+  groups: ImportGroup[];
+  issues: string[];
+  memberCount: number;
+}
+
 @Component({
   selector: 'app-jumuiya',
   changeDetection: ChangeDetectionStrategy.OnPush,
-  imports: [ReactiveFormsModule],
+  imports: [ReactiveFormsModule, SearchBox, FilterPanel, TranslatePipe],
   templateUrl: './jumuiya.html',
 })
 export class JumuiyaPage {
@@ -33,6 +70,73 @@ export class JumuiyaPage {
   protected readonly viewOpen = signal(false);
   protected readonly error = signal<string | null>(null);
   protected readonly skeletonRows = [1, 2, 3, 4];
+
+  protected readonly search = signal(inject(ActivatedRoute).snapshot.queryParamMap.get('q') ?? '');
+  protected readonly kandaFilter = signal(0);
+  protected readonly chairFilter = signal<'' | 'has' | 'none'>('');
+  protected readonly minMembers = signal('');
+  protected readonly maxMembers = signal('');
+  protected readonly sort = signal<'name' | 'name-desc' | 'members-desc' | 'members-asc'>('name');
+  protected readonly memberSearch = signal('');
+
+  protected readonly activeFilters = computed(
+    () =>
+      [this.kandaFilter(), this.chairFilter(), this.minMembers(), this.maxMembers()].filter(Boolean)
+        .length + (this.sort() === 'name' ? 0 : 1),
+  );
+
+  protected readonly filteredJumuiyas = computed(() => {
+    const kandaId = this.kandaFilter();
+    const chair = this.chairFilter();
+    const min = parseBound(this.minMembers());
+    const max = parseBound(this.maxMembers());
+    const sort = this.sort();
+
+    return this.jumuiyas()
+      .filter(
+        (group) =>
+          (kandaId === 0 || group.kanda_id === kandaId) &&
+          (chair === '' || (chair === 'has') === !!group.chairperson?.trim()) &&
+          withinNumberRange(group.members_count ?? 0, min, max) &&
+          matchesSearch(this.search(), [group.name, group.kanda?.name, group.chairperson, group.notes]),
+      )
+      .sort((a, b) => {
+        if (sort === 'members-desc' || sort === 'members-asc') {
+          const diff = (a.members_count ?? 0) - (b.members_count ?? 0);
+          return sort === 'members-desc' ? -diff : diff;
+        }
+
+        const diff = a.name.localeCompare(b.name);
+        return sort === 'name-desc' ? -diff : diff;
+      });
+  });
+
+  protected readonly filterSummary = computed(() =>
+    this.search() || this.activeFilters() > 0
+      ? translate('Jumuiya {shown} kati ya {total}', {
+          shown: this.filteredJumuiyas().length,
+          total: this.jumuiyas().length,
+        })
+      : '',
+  );
+  protected readonly filteredMembers = computed(() =>
+    this.members().filter((member) =>
+      matchesSearch(this.memberSearch(), [member.name, member.phone, this.genderLabel(member.gender)]),
+    ),
+  );
+
+  protected readonly importOpen = signal(false);
+  protected readonly importTarget = signal<Jumuiya | null>(null);
+  protected readonly importPlan = signal<ImportPlan | null>(null);
+  protected readonly importFileName = signal<string | null>(null);
+  protected readonly importError = signal<string | null>(null);
+  protected readonly importing = signal(false);
+  protected readonly notice = signal<string | null>(null);
+  protected readonly exportMenu = signal<'page' | 'view' | null>(null);
+  protected readonly exporting = signal(false);
+  protected readonly exportFormats = EXPORT_FORMATS;
+  protected readonly spreadsheetAccept = SPREADSHEET_ACCEPT;
+  private readonly activity = inject(ActivityService);
 
   protected readonly jumuiyaForm = this.fb.nonNullable.group({
     name: ['', Validators.required],
@@ -122,6 +226,7 @@ export class JumuiyaPage {
     event?.stopPropagation();
     this.selected.set(group);
     this.error.set(null);
+    this.memberSearch.set('');
     this.viewOpen.set(true);
     await this.loadMembers(group.id);
   }
@@ -294,7 +399,9 @@ export class JumuiyaPage {
 
     if (
       this.saving() ||
-      !window.confirm(`Futa ${group.name}? Wanajumuiya wake wote wataondolewa pia.`)
+      !window.confirm(
+        translate('Futa {name}? Wanajumuiya wake wote wataondolewa pia.', { name: group.name }),
+      )
     ) {
       return;
     }
@@ -324,7 +431,9 @@ export class JumuiyaPage {
     if (
       !jumuiya ||
       this.saving() ||
-      !window.confirm(`Mwondoe ${member.name} kutoka ${jumuiya.name}?`)
+      !window.confirm(
+        translate('Mwondoe {member} kutoka {jumuiya}?', { member: member.name, jumuiya: jumuiya.name }),
+      )
     ) {
       return;
     }
@@ -355,16 +464,325 @@ export class JumuiyaPage {
     this.resizeDraftMembers(this.bulkMembers, count);
   }
 
+  protected openImport(target?: Jumuiya, event?: Event): void {
+    event?.stopPropagation();
+    this.importTarget.set(target ?? null);
+    this.importPlan.set(null);
+    this.importFileName.set(null);
+    this.importError.set(null);
+    this.exportMenu.set(null);
+    this.importOpen.set(true);
+  }
+
+  protected closeImport(): void {
+    if (this.importing()) {
+      return;
+    }
+
+    this.importOpen.set(false);
+    this.importTarget.set(null);
+    this.importPlan.set(null);
+  }
+
+  protected async downloadImportTemplate(): Promise<void> {
+    await downloadTemplate(this.importTarget()?.name);
+  }
+
+  protected async chooseImportFile(event: Event): Promise<void> {
+    const input = event.target as HTMLInputElement;
+    const file = input.files?.[0];
+    input.value = '';
+
+    if (!file) {
+      return;
+    }
+
+    this.importFileName.set(file.name);
+    this.importPlan.set(null);
+    this.importError.set(null);
+
+    try {
+      const rows = await readSpreadsheet(file);
+      if (rows.length === 0) {
+        this.importError.set(translate('Faili hilo halina safu zenye taarifa.'));
+        return;
+      }
+      this.importPlan.set(this.buildImportPlan(rows, this.importTarget()));
+    } catch (error) {
+      this.importError.set(
+        error instanceof Error && error.message
+          ? error.message
+          : translate('Imeshindwa kusoma faili hilo.'),
+      );
+    }
+  }
+
+  protected async runImport(): Promise<void> {
+    const plan = this.importPlan();
+
+    if (!plan || plan.groups.length === 0 || this.importing()) {
+      return;
+    }
+
+    this.importing.set(true);
+    this.importError.set(null);
+    const failures: string[] = [];
+    let created = 0;
+    let added = 0;
+
+    for (const group of plan.groups) {
+      try {
+        if (group.existing) {
+          if (group.members.length > 0) {
+            await this.parish.addJumuiyaMembers(group.existing.id, group.members);
+            added += group.members.length;
+          }
+        } else {
+          await this.parish.createJumuiya({
+            name: group.name,
+            kanda_id: group.kandaId,
+            chairperson: group.chairperson,
+            notes: group.notes,
+            members: group.members,
+          });
+          created++;
+          added += group.members.length;
+        }
+      } catch (error) {
+        failures.push(`${group.name}: ${httpErrorMessage(error, 'imeshindwa kuhifadhiwa.')}`);
+      }
+    }
+
+    this.importing.set(false);
+
+    if (created > 0 || added > 0) {
+      const target = this.importTarget();
+      void this.activity.record({
+        action: 'imported',
+        subject:
+          (target
+            ? `${added} members into ${target.name}`
+            : `${created} jumuiyas and ${added} members`) +
+          (this.importFileName() ? ` from ${this.importFileName()}` : ''),
+        subject_type: target ? 'jumuiya_member' : 'jumuiya',
+      });
+    }
+
+    await this.refresh();
+
+    const selected = this.selected();
+    if (this.viewOpen() && selected) {
+      await this.loadMembers(selected.id);
+    }
+
+    if (failures.length > 0) {
+      this.importPlan.set(null);
+      this.importError.set(translate('Baadhi hazikuingizwa. {failures}', { failures: failures.join(' · ') }));
+      return;
+    }
+
+    this.closeImport();
+    this.notice.set(
+      translate('Uingizaji umekamilika: jumuiya mpya {created}, wanajumuiya {added}.', { created, added }),
+    );
+  }
+
+  protected toggleExportMenu(menu: 'page' | 'view', event: Event): void {
+    event.stopPropagation();
+    this.exportMenu.update((current) => (current === menu ? null : menu));
+  }
+
+  protected closeExportMenu(): void {
+    this.exportMenu.set(null);
+  }
+
+  protected async exportAll(format: ExportFormat): Promise<void> {
+    this.exportMenu.set(null);
+
+    if (this.exporting() || this.filteredJumuiyas().length === 0) {
+      return;
+    }
+
+    this.exporting.set(true);
+    this.error.set(null);
+
+    try {
+      const detailed = await Promise.all(
+        this.filteredJumuiyas().map((group) => this.parish.getJumuiya(group.id)),
+      );
+      await exportJumuiyas(detailed, format, translate('Jumuiya zote'));
+      void this.activity.record({
+        action: 'exported',
+        subject: `${detailed.length} jumuiyas as ${FORMAT_NAMES[format]}`,
+        subject_type: 'jumuiya',
+      });
+    } catch (error) {
+      this.error.set(httpErrorMessage(error, 'Imeshindwa kuandaa faili la kupakua.'));
+    } finally {
+      this.exporting.set(false);
+    }
+  }
+
+  protected async exportSelected(format: ExportFormat): Promise<void> {
+    this.exportMenu.set(null);
+    const group = this.selected();
+
+    if (!group || this.exporting()) {
+      return;
+    }
+
+    this.exporting.set(true);
+
+    try {
+      await exportJumuiyas(
+        [{ ...group, members: this.members() }],
+        format,
+        translate('Jumuiya {name}', { name: group.name }),
+      );
+      void this.activity.record({
+        action: 'exported',
+        subject: `${group.name} members as ${FORMAT_NAMES[format]}`,
+        subject_type: 'jumuiya_member',
+      });
+    } catch (error) {
+      this.error.set(httpErrorMessage(error, 'Imeshindwa kuandaa faili la kupakua.'));
+    } finally {
+      this.exporting.set(false);
+    }
+  }
+
+  protected setKandaFilter(value: string): void {
+    this.kandaFilter.set(Number(value) || 0);
+  }
+
+  protected clearFilters(): void {
+    this.kandaFilter.set(0);
+    this.chairFilter.set('');
+    this.minMembers.set('');
+    this.maxMembers.set('');
+    this.sort.set('name');
+  }
+
+  protected setChairFilter(value: string): void {
+    this.chairFilter.set(value === 'has' || value === 'none' ? value : '');
+  }
+
+  protected setSort(value: string): void {
+    this.sort.set(
+      value === 'name-desc' || value === 'members-desc' || value === 'members-asc' ? value : 'name',
+    );
+  }
+
   protected genderLabel(gender: string | null): string {
     if (gender === 'male') {
-      return 'Mwanaume';
+      return translate('Mwanaume');
     }
 
     if (gender === 'female') {
-      return 'Mwanamke';
+      return translate('Mwanamke');
     }
 
     return '—';
+  }
+
+  private buildImportPlan(rows: ImportedRow[], target: Jumuiya | null): ImportPlan {
+    const issues: string[] = [];
+    const groups = new Map<string, ImportGroup>();
+    const findKanda = (name: string) =>
+      this.kandas().find((kanda) => kanda.name.trim().toLowerCase() === name.trim().toLowerCase());
+
+    for (const row of rows) {
+      const name = target ? target.name : row.jumuiya;
+
+      if (!name) {
+        issues.push(translate('Mstari {line}: jina la jumuiya halipo, umerukwa.', { line: row.line }));
+        continue;
+      }
+
+      const key = name.trim().toLowerCase();
+      let group = groups.get(key);
+
+      if (!group) {
+        const existing =
+          target ?? this.jumuiyas().find((item) => item.name.trim().toLowerCase() === key) ?? null;
+        group = {
+          name: existing?.name ?? name,
+          existing,
+          kandaId: existing?.kanda_id ?? 0,
+          kandaName: existing?.kanda?.name ?? row.kanda,
+          chairperson: '',
+          notes: '',
+          members: [],
+        };
+        groups.set(key, group);
+      }
+
+      if (!group.existing) {
+        group.kandaName ||= row.kanda;
+        group.chairperson ||= row.chairperson;
+        group.notes ||= row.notes;
+      }
+
+      if (!row.member) {
+        if (row.phone || row.gender) {
+          issues.push(
+            translate('Mstari {line}: jina la mwanajumuiya halipo, umerukwa.', { line: row.line }),
+          );
+        }
+        continue;
+      }
+
+      if (row.member.length > 255 || row.phone.length > 40) {
+        issues.push(translate('Mstari {line}: jina au simu ni ndefu mno, umerukwa.', { line: row.line }));
+        continue;
+      }
+
+      let gender = normalizeGender(row.gender);
+      if (gender === 'invalid') {
+        issues.push(
+          translate('Mstari {line}: jinsia "{gender}" haitambuliki, imeachwa wazi.', {
+            line: row.line,
+            gender: row.gender,
+          }),
+        );
+        gender = '';
+      }
+
+      group.members.push({ name: row.member, phone: row.phone, gender });
+    }
+
+    const valid: ImportGroup[] = [];
+
+    for (const group of groups.values()) {
+      if (!group.existing) {
+        const kanda = group.kandaName ? findKanda(group.kandaName) : undefined;
+
+        if (!kanda) {
+          issues.push(
+            group.kandaName
+              ? translate('{name}: kanda "{kanda}" haipo, jumuiya imerukwa.', {
+                  name: group.name,
+                  kanda: group.kandaName,
+                })
+              : translate('{name}: kanda haijatajwa, jumuiya imerukwa.', { name: group.name }),
+          );
+          continue;
+        }
+
+        group.kandaId = kanda.id;
+        group.kandaName = kanda.name;
+      } else if (group.members.length === 0) {
+        continue;
+      }
+
+      valid.push(group);
+    }
+
+    return {
+      groups: valid,
+      issues,
+      memberCount: valid.reduce((total, group) => total + group.members.length, 0),
+    };
   }
 
   private newDraftMember() {
@@ -414,7 +832,7 @@ export class JumuiyaPage {
     return Array.from({ length: targetCount }, (_, index) => {
       const current = prepared[index] ?? { name: '', phone: '', gender: '' };
       return {
-        name: current.name === '' ? `Mwanajumuiya ${index + 1}` : current.name,
+        name: current.name === '' ? translate('Mwanajumuiya {n}', { n: index + 1 }) : current.name,
         phone: current.phone,
         gender: current.gender,
       };

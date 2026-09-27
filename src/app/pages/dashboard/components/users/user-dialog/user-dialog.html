@@ -1,0 +1,192 @@
+<div
+  class="fixed inset-0 z-40 flex items-start justify-center bg-black/40 p-4 pt-10 sm:pt-16"
+  animate.enter="backdrop-in"
+  animate.leave="backdrop-out"
+  (click)="close()"
+>
+  <section
+    class="flex max-h-[calc(100dvh-5rem)] w-full max-w-2xl sm:max-h-[calc(100dvh-8rem)] flex-col rounded border border-line bg-surface shadow-lg"
+    role="dialog"
+    aria-modal="true"
+    aria-labelledby="user-dialog-title"
+    (click)="$event.stopPropagation()"
+  >
+    <header class="border-b border-line px-5 py-4">
+      <h2 id="user-dialog-title" class="font-serif text-xl">
+        @if (isEdit()) {
+          {{ 'Hariri mtumiaji' | t }}
+        } @else if (lockedRole(); as role) {
+          {{ 'Mpe mtumiaji wadhifa wa {role}' | t: { role: (role.label | t) } }}
+        } @else {
+          {{ 'Ongeza mtumiaji' | t }}
+        }
+      </h2>
+      <p class="mt-1 text-sm text-muted">
+        {{ 'Ataweza kuingia kwa jina la mtumiaji na nenosiri hili, na ataona moduli utakazomchagulia tu.' | t }}
+      </p>
+    </header>
+
+    <form [formGroup]="form" (ngSubmit)="submit()" class="flex min-h-0 flex-1 flex-col">
+      <div class="min-h-0 flex-1 space-y-5 overflow-y-auto px-5 py-4">
+        @if (error()) {
+          <p class="alert-in rounded border border-negative/40 bg-negative/10 px-3 py-2 text-sm text-negative" role="alert">
+            {{ error() }}
+          </p>
+        }
+
+        <div class="grid gap-4 sm:grid-cols-2">
+          <div class="sm:col-span-2">
+            <label for="ud-name" class="filter-label">{{ 'Jina kamili' | t }}</label>
+            <input id="ud-name" type="text" formControlName="name" class="filter-input w-full" />
+            @if (invalid('name')) {
+              <p class="mt-1 text-xs text-negative">{{ 'Jina linahitajika.' | t }}</p>
+            }
+          </div>
+
+          <div>
+            <label for="ud-username" class="filter-label">{{ 'Jina la mtumiaji' | t }}</label>
+            <input id="ud-username" type="text" formControlName="username" autocomplete="off" class="filter-input w-full" />
+            @if (invalid('username')) {
+              <p class="mt-1 text-xs text-negative">{{ 'Tumia herufi, namba, _ au - tu.' | t }}</p>
+            }
+          </div>
+
+          <div>
+            <label for="ud-password" class="filter-label">
+              {{ 'Nenosiri' | t }}
+              @if (isEdit()) {
+                <span class="normal-case tracking-normal text-faint">{{ '(acha wazi kubaki na la zamani)' | t }}</span>
+              }
+            </label>
+            <input
+              id="ud-password"
+              type="password"
+              formControlName="password"
+              autocomplete="new-password"
+              class="filter-input w-full"
+            />
+            @if (invalid('password')) {
+              <p class="mt-1 text-xs text-negative">{{ 'Nenosiri liwe na herufi 4 au zaidi.' | t }}</p>
+            }
+          </div>
+
+          <div>
+            <label for="ud-phone" class="filter-label">{{ 'Namba ya simu' | t }}</label>
+            <input
+              id="ud-phone"
+              type="tel"
+              formControlName="phone"
+              placeholder="+255 7XX XXX XXX"
+              class="filter-input w-full"
+            />
+            @if (invalid('phone')) {
+              <p class="mt-1 text-xs text-negative">{{ 'Weka namba ya simu sahihi.' | t }}</p>
+            }
+          </div>
+
+          <div>
+            <span class="filter-label">{{ 'Jinsia' | t }}</span>
+            <div class="flex gap-2">
+              @for (gender of genders; track gender.value) {
+                <label
+                  class="flex flex-1 cursor-pointer items-center justify-center gap-2 rounded border px-3 py-2 text-sm"
+                  [class.border-brass]="form.controls.gender.value === gender.value"
+                  [class.bg-brass-tint]="form.controls.gender.value === gender.value"
+                  [class.text-brass-strong]="form.controls.gender.value === gender.value"
+                  [class.border-line]="form.controls.gender.value !== gender.value"
+                >
+                  <input type="radio" formControlName="gender" [value]="gender.value" class="sr-only" />
+                  {{ gender.label | t }}
+                </label>
+              }
+            </div>
+          </div>
+
+          <div>
+            <label for="ud-email" class="filter-label">
+              {{ 'Barua pepe' | t }} <span class="normal-case tracking-normal text-faint">{{ '(hiari)' | t }}</span>
+            </label>
+            <input id="ud-email" type="email" formControlName="email" class="filter-input w-full" />
+            @if (invalid('email')) {
+              <p class="mt-1 text-xs text-negative">{{ 'Barua pepe si sahihi.' | t }}</p>
+            }
+          </div>
+
+          <div>
+            <label for="ud-role" class="filter-label">{{ 'Wadhifa' | t }}</label>
+            <select
+              id="ud-role"
+              formControlName="role"
+              class="filter-input w-full"
+              (change)="onRoleChange($any($event.target).value)"
+            >
+              @for (role of roles(); track role.id) {
+                <option [value]="role.name">{{ role.label | t }}</option>
+              }
+            </select>
+          </div>
+        </div>
+
+        <fieldset>
+          <div class="mb-2 flex items-center justify-between gap-3">
+            <legend class="filter-label mb-0">{{ 'Moduli anazoweza kufikia' | t }}</legend>
+            @if (!isAdminRole()) {
+              <button type="button" class="text-xs text-brass-strong hover:underline" (click)="toggleAll()">
+                {{ 'Chagua/ondoa zote' | t }}
+              </button>
+            }
+          </div>
+
+          @if (isAdminRole()) {
+            <p class="mb-2 rounded border border-line bg-sunken px-3 py-2 text-xs text-muted">
+              {{ 'Msimamizi anafikia moduli zote moja kwa moja.' | t }}
+            </p>
+          }
+
+          <div class="grid gap-2 sm:grid-cols-2">
+            @for (module of availableModules(); track module.key) {
+              @let locked = module.key === alwaysOn || isAdminRole();
+              <label
+                class="flex items-start gap-3 rounded border px-3 py-2.5 text-sm"
+                [class.cursor-pointer]="!locked"
+                [class.opacity-70]="locked"
+                [class.border-brass]="isSelected(module.key)"
+                [class.bg-brass-tint]="isSelected(module.key)"
+                [class.border-line]="!isSelected(module.key)"
+              >
+                <input
+                  type="checkbox"
+                  class="mt-0.5 accent-[var(--brass-strong)]"
+                  [checked]="isSelected(module.key)"
+                  [disabled]="locked"
+                  (change)="toggleModule(module.key)"
+                />
+                <span class="min-w-0">
+                  <span class="block font-medium">{{ module.label | t }}</span>
+                  @if (module.key === alwaysOn) {
+                    <span class="block text-xs text-faint">{{ 'Kila mtumiaji anaiona' | t }}</span>
+                  } @else if (module.description) {
+                    <span class="block text-xs text-muted">{{ module.description | t }}</span>
+                  }
+                </span>
+              </label>
+            }
+          </div>
+        </fieldset>
+      </div>
+
+      <footer class="flex justify-end gap-2 border-t border-line px-5 py-3">
+        <button type="button" class="rounded px-3 py-2 text-sm text-muted hover:bg-sunken" (click)="close()">
+          {{ 'Ghairi' | t }}
+        </button>
+        <button
+          type="submit"
+          class="rounded bg-brass-strong px-4 py-2 text-sm font-medium text-canvas disabled:opacity-60"
+          [disabled]="saving()"
+        >
+          {{ (saving() ? 'Inahifadhi…' : isEdit() ? 'Hifadhi mabadiliko' : 'Hifadhi mtumiaji') | t }}
+        </button>
+      </footer>
+    </form>
+  </section>
+</div>

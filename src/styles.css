@@ -191,6 +191,30 @@ textarea {
   animation: rise-in 0.25s ease-out both;
 }
 
+.filter-label {
+  display: block;
+  margin-bottom: 0.25rem;
+  font-size: 0.75rem;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+  color: var(--ink-muted);
+}
+
+.filter-input {
+  width: 100%;
+  border: 1px solid var(--line);
+  border-radius: 0.25rem;
+  background: var(--canvas);
+  padding: 0.5rem 0.75rem;
+  font-size: 0.875rem;
+}
+
+.filter-input:focus {
+  outline: none;
+  border-color: var(--brass);
+  box-shadow: 0 0 0 1px var(--brass);
+}
+
 @media (prefers-reduced-motion: reduce) {
   *,
   *::before,

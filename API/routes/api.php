@@ -11,20 +11,9 @@ use App\Http\Controllers\ModuleController;
 use App\Http\Controllers\OfferingController;
 use App\Http\Controllers\RoleController;
 use App\Http\Controllers\UserController;
-use App\Support\Recycle;
-use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Route;
 
 Route::post('/login', [AuthController::class, 'login']);
-
-// Vercel Cron stands in for `schedule:run`; it authenticates with the CRON_SECRET bearer token.
-Route::get('/cron/purge-expired', function (Request $request) {
-    $secret = config('services.cron.secret');
-    abort_unless($secret && hash_equals("Bearer {$secret}", (string) $request->header('Authorization')), 401);
-
-    return response()->json(['purged' => Recycle::purgeExpired()]);
-});
-
 Route::middleware('auth:sanctum')->group(function () {
     Route::get('/user', [AuthController::class, 'user']);
     Route::put('/user/preferences', [AuthController::class, 'preferences']);

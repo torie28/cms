@@ -1,2 +1,3 @@
+# robots.txt — CHRMS API (JSON only, nothing to index)
 User-agent: *
-Disallow:
+Disallow: /

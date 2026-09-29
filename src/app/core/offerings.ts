@@ -22,19 +22,21 @@ export interface CategoryDefinition {
   personal?: boolean;
   /** Always belongs to a jumuiya (mirrors Offering::JUMUIYA_CATEGORIES). */
   jumuiya?: boolean;
+  /** Giver gets an automatic thank-you SMS when a phone is given (mirrors Offering::THANK_YOU_CATEGORIES). */
+  thankYou?: boolean;
 }
 
 export const OFFERING_CATEGORIES: readonly CategoryDefinition[] = [
   { value: 'sadaka', label: 'Sadaka ya ibada', hint: 'Sadaka inayokusanywa wakati wa misa na ibada.' },
-  { value: 'zaka', label: 'Zaka', hint: 'Zaka ya muumini kwa parokia.', personal: true },
-  { value: 'fungu_la_kumi', label: 'Fungu la kumi', hint: 'Sehemu ya kumi ya mapato ya muumini.', personal: true },
+  { value: 'zaka', label: 'Zaka', hint: 'Zaka ya muumini kwa parokia.', personal: true, thankYou: true },
+  { value: 'fungu_la_kumi', label: 'Fungu la kumi', hint: 'Sehemu ya kumi ya mapato ya muumini.', personal: true, thankYou: true },
   {
     value: 'majitoleo',
     label: 'Majitoleo ya jumuiya',
     hint: 'Thamani ya vipaji kutoka jumuiya ndogo ndogo.',
     jumuiya: true,
   },
-  { value: 'shukrani', label: 'Shukrani', hint: 'Sadaka ya shukrani kwa Mungu.' },
+  { value: 'shukrani', label: 'Shukrani', hint: 'Sadaka ya shukrani kwa Mungu.', thankYou: true },
   { value: 'ujenzi', label: 'Mchango wa ujenzi', hint: 'Michango ya ujenzi na miradi ya parokia.' },
   { value: 'mengineyo', label: 'Matoleo mengineyo', hint: 'Matoleo mengine yoyote; eleza kwenye maelezo.' },
 ];
@@ -56,6 +58,10 @@ export interface Offering {
   jumuiya_id: number | null;
   jumuiya?: { id: number; name: string } | null;
   contributor: string | null;
+  /** Normalised, e.g. 255712345678. */
+  contributor_phone: string | null;
+  thank_you_message_id: number | null;
+  thank_you_message?: { id: number; status: 'sending' | 'sent' | 'partial' | 'failed' } | null;
   reference: string | null;
   notes: string | null;
   recorded_by: string | null;
@@ -69,6 +75,8 @@ export interface OfferingPayload {
   payment_method: PaymentMethod;
   jumuiya_id: number | null;
   contributor: string;
+  contributor_phone: string;
+  send_thank_you: boolean;
   reference: string;
   notes: string;
 }

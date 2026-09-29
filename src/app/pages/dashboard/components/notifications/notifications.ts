@@ -7,6 +7,7 @@ import {
   inject,
   signal,
 } from '@angular/core';
+import { ConfirmService } from '../../../../core/confirm';
 import { httpErrorMessage } from '../../../../core/http-error';
 import { I18nService, translate, TranslatePipe } from '../../../../core/i18n';
 import {
@@ -55,6 +56,7 @@ const PICKER_LIMIT = 60;
 })
 export class NotificationsPage {
   private readonly messages = inject(MessagesService);
+  private readonly confirm = inject(ConfirmService);
   protected readonly i18n = inject(I18nService);
 
   protected readonly tab = signal<Tab>('compose');
@@ -510,8 +512,14 @@ export class NotificationsPage {
     });
   }
 
-  protected useTemplate(body: string): void {
-    if (this.body().trim() && !window.confirm(translate('Badilisha ujumbe ulioandika kwa kiolezo hiki?'))) {
+  protected async useTemplate(body: string): Promise<void> {
+    if (
+      this.body().trim() &&
+      !(await this.confirm.ask({
+        message: translate('Badilisha ujumbe ulioandika kwa kiolezo hiki?'),
+        confirmLabel: 'Badilisha',
+      }))
+    ) {
       return;
     }
     this.body.set(translate(body));
@@ -544,7 +552,7 @@ export class NotificationsPage {
       ? translate('Tuma {first} na {second}?', { first, second })
       : translate('Tuma {first}?', { first });
 
-    if (!window.confirm(question)) {
+    if (!(await this.confirm.ask({ message: question, confirmLabel: 'Tuma' })) || this.sending()) {
       return;
     }
 
@@ -617,10 +625,14 @@ export class NotificationsPage {
   }
 
   protected async retry(message: Message): Promise<void> {
-    if (
-      this.retrying() ||
-      !window.confirm(translate('Tuma tena SMS {failed} zilizoshindwa?', { failed: message.sms_failed }))
-    ) {
+    if (this.retrying()) {
+      return;
+    }
+    const confirmed = await this.confirm.ask({
+      message: translate('Tuma tena SMS {failed} zilizoshindwa?', { failed: message.sms_failed }),
+      confirmLabel: 'Tuma tena',
+    });
+    if (!confirmed || this.retrying()) {
       return;
     }
 

@@ -1,6 +1,7 @@
 import { afterNextRender, ChangeDetectionStrategy, Component, computed, inject, signal } from '@angular/core';
 import { FormBuilder, ReactiveFormsModule, Validators } from '@angular/forms';
 import { AuthService } from '../../../../../core/auth';
+import { ConfirmService } from '../../../../../core/confirm';
 import { httpErrorMessage } from '../../../../../core/http-error';
 import { translate, TranslatePipe } from '../../../../../core/i18n';
 import { AppModule, ModulesService } from '../../../../../core/modules';
@@ -22,6 +23,7 @@ export class Roles {
   private readonly usersApi = inject(UsersService);
   private readonly modulesApi = inject(ModulesService);
   private readonly auth = inject(AuthService);
+  private readonly confirm = inject(ConfirmService);
 
   protected readonly isAdmin = this.auth.isAdmin;
   protected readonly previewCount = PREVIEW_MEMBERS;
@@ -125,7 +127,11 @@ export class Roles {
   }
 
   protected async removeRole(role: Role): Promise<void> {
-    if (!window.confirm(translate('Futa wadhifa wa {role}?', { role: translate(role.label) }))) {
+    const confirmed = await this.confirm.ask({
+      message: translate('Futa wadhifa wa {role}?', { role: translate(role.label) }),
+      tone: 'danger',
+    });
+    if (!confirmed) {
       return;
     }
 

@@ -11,6 +11,7 @@ import { ActivatedRoute } from '@angular/router';
 import { FilterPanel, parseBound, withinNumberRange } from '../../../../shared/filter-panel';
 import { matchesSearch, SearchBox } from '../../../../shared/search-box';
 import { ActivityService } from '../../../../core/activity';
+import { ConfirmService } from '../../../../core/confirm';
 import { httpErrorMessage } from '../../../../core/http-error';
 import { translate, TranslatePipe } from '../../../../core/i18n';
 import { EXPORT_FORMATS, FORMAT_NAMES, SPREADSHEET_ACCEPT } from '../../../../core/spreadsheet';
@@ -55,6 +56,7 @@ interface ImportPlan {
 export class JumuiyaPage {
   private readonly parish = inject(ParishService);
   private readonly fb = inject(FormBuilder);
+  private readonly confirm = inject(ConfirmService);
 
   protected readonly jumuiyas = signal<Jumuiya[]>([]);
   protected readonly kandas = signal<Kanda[]>([]);
@@ -397,12 +399,14 @@ export class JumuiyaPage {
   protected async removeJumuiya(group: Jumuiya, event?: Event): Promise<void> {
     event?.stopPropagation();
 
-    if (
-      this.saving() ||
-      !window.confirm(
-        translate('Futa {name}? Wanajumuiya wake wote wataondolewa pia.', { name: group.name }),
-      )
-    ) {
+    if (this.saving()) {
+      return;
+    }
+    const confirmed = await this.confirm.ask({
+      message: translate('Futa {name}? Wanajumuiya wake wote wataondolewa pia.', { name: group.name }),
+      tone: 'danger',
+    });
+    if (!confirmed || this.saving()) {
       return;
     }
 
@@ -428,13 +432,15 @@ export class JumuiyaPage {
   protected async removeMember(member: JumuiyaMember): Promise<void> {
     const jumuiya = this.selected();
 
-    if (
-      !jumuiya ||
-      this.saving() ||
-      !window.confirm(
-        translate('Mwondoe {member} kutoka {jumuiya}?', { member: member.name, jumuiya: jumuiya.name }),
-      )
-    ) {
+    if (!jumuiya || this.saving()) {
+      return;
+    }
+    const confirmed = await this.confirm.ask({
+      message: translate('Mwondoe {member} kutoka {jumuiya}?', { member: member.name, jumuiya: jumuiya.name }),
+      confirmLabel: 'Ondoa',
+      tone: 'danger',
+    });
+    if (!confirmed || this.saving()) {
       return;
     }
 

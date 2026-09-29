@@ -11,7 +11,7 @@ use App\Models\User;
 use App\Support\ActivityLogger;
 use App\Support\Modules;
 use App\Support\Sms\Audience;
-use App\Support\Sms\Segments;
+use App\Support\Sms\Outbox;
 use App\Support\Sms\SmsGateway;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
@@ -20,8 +20,6 @@ use Illuminate\Validation\Rule;
 class MessageController extends Controller
 {
     private const CHANNELS = ['sms', 'app', 'both'];
-
-    private const NAME_PLACEHOLDER = '{jina}';
 
     /** Everything the compose screen needs to pick recipients and count them before sending. */
     public function contacts(Request $request): JsonResponse
@@ -119,7 +117,7 @@ class MessageController extends Controller
             'skipped_count' => $wantsSms ? $resolved['skipped'] : 0,
         ]);
 
-        $this->deliverSms($message, $sms);
+        Outbox::deliverSms($message, $sms);
 
         $now = now();
         foreach (array_chunk($app, 500) as $chunk) {
@@ -133,7 +131,7 @@ class MessageController extends Controller
             ], $chunk));
         }
 
-        $this->refreshTotals($message);
+        Outbox::refreshTotals($message);
 
         app(ActivityLogger::class)->record(
             $user,
@@ -157,16 +155,16 @@ class MessageController extends Controller
 
         $results = app(SmsGateway::class)->send(
             $failed->mapWithKeys(fn (MessageRecipient $recipient) => [
-                $recipient->phone => $this->render($message->body, $recipient->name),
+                $recipient->phone => Outbox::render($message->body, $recipient->name),
             ])->all(),
         );
 
         foreach ($failed as $recipient) {
-            $error = $this->errorFor($results, $recipient->phone);
+            $error = Outbox::errorFor($results, $recipient->phone);
             $recipient->update(['status' => $error === null ? 'sent' : 'failed', 'error' => $error]);
         }
 
-        $this->refreshTotals($message);
+        Outbox::refreshTotals($message);
 
         app(ActivityLogger::class)->record(
             $request->user(),
@@ -204,7 +202,7 @@ class MessageController extends Controller
                 'created_at' => $item->created_at,
                 'sender' => $item->message?->sender,
                 'title' => $item->message?->title,
-                'body' => $this->render((string) $item->message?->body, $request->user()->name),
+                'body' => Outbox::render((string) $item->message?->body, $request->user()->name),
             ]),
         ]);
     }
@@ -234,70 +232,6 @@ class MessageController extends Controller
             ->update(['read_at' => now()]);
 
         return response()->json(['message' => 'Zote zimesomwa.']);
-    }
-
-    /** @param list<array<string, mixed>> $recipients */
-    private function deliverSms(Message $message, array $recipients): void
-    {
-        if ($recipients === []) {
-            return;
-        }
-
-        $texts = [];
-        foreach ($recipients as $recipient) {
-            $texts[$recipient['phone']] = $this->render($message->body, $recipient['name']);
-        }
-
-        $results = app(SmsGateway::class)->send($texts);
-        $now = now();
-
-        foreach (array_chunk($recipients, 500) as $chunk) {
-            MessageRecipient::query()->insert(array_map(function (array $recipient) use ($message, $results, $now) {
-                $error = $this->errorFor($results, $recipient['phone']);
-
-                return [
-                    ...$recipient,
-                    'message_id' => $message->id,
-                    'channel' => 'sms',
-                    'status' => $error === null ? 'sent' : 'failed',
-                    'error' => $error,
-                    'created_at' => $now,
-                    'updated_at' => $now,
-                ];
-            }, $chunk));
-        }
-    }
-
-    private function refreshTotals(Message $message): void
-    {
-        $sms = $message->recipients()->where('channel', 'sms')->get(['name', 'status']);
-        $sent = $sms->where('status', 'sent');
-        $failed = $sms->count() - $sent->count();
-        $app = $message->recipients()->where('channel', 'app')->count();
-
-        $message->update([
-            'sms_count' => $sms->count(),
-            'sms_sent' => $sent->count(),
-            'sms_failed' => $failed,
-            'sms_segments' => $sent->sum(fn ($recipient) => Segments::count($this->render($message->body, $recipient->name))),
-            'app_count' => $app,
-            'status' => match (true) {
-                $failed === 0 => 'sent',
-                $sent->isEmpty() && $app === 0 => 'failed',
-                default => 'partial',
-            },
-        ]);
-    }
-
-    /** @param array<string, string|null> $results  null means sent, so `??` can't be used here. */
-    private function errorFor(array $results, string $phone): ?string
-    {
-        return array_key_exists($phone, $results) ? $results[$phone] : 'Haikutumwa.';
-    }
-
-    private function render(string $body, ?string $name): string
-    {
-        return str_replace(self::NAME_PLACEHOLDER, $name ?: 'Mpendwa', $body);
     }
 
     private function summary(Message $message): string

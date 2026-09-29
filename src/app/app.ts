@@ -1,11 +1,12 @@
 import { ChangeDetectionStrategy, Component, inject } from '@angular/core';
 import { RouterOutlet } from '@angular/router';
 import { ThemeService } from './core/theme';
+import { ConfirmDialog } from './shared/confirm-dialog';
 import { OfflineScreen } from './shared/offline-screen';
 
 @Component({
   changeDetection: ChangeDetectionStrategy.OnPush,
-  imports: [RouterOutlet, OfflineScreen],
+  imports: [RouterOutlet, OfflineScreen, ConfirmDialog],
   selector: 'app-root',
   styleUrl: './app.css',
   templateUrl: './app.html',

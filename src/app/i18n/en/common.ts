@@ -121,6 +121,16 @@ export const COMMON: Record<string, string> = {
   'Inasubiri muunganisho…': 'Waiting for connection…',
   'Jaribu tena': 'Try again',
 
+  // Confirm dialog
+  'Una uhakika?': 'Are you sure?',
+  Thibitisha: 'Confirm',
+  Endelea: 'Continue',
+  Ondoa: 'Remove',
+  Tuma: 'Send',
+  'Tuma tena': 'Resend',
+  Badilisha: 'Replace',
+  'Rudisha .env': 'Reset to .env',
+
   // Login
   'Usajili wa Parokia': 'Parish Registry',
   '“Tuangaliane sisi kwa sisi, ili kuhimizana katika upendo na matendo mema.”':

@@ -9,6 +9,7 @@ import {
   signal,
 } from '@angular/core';
 import { AuthService } from '../../../../../core/auth';
+import { ConfirmService } from '../../../../../core/confirm';
 import { httpErrorMessage } from '../../../../../core/http-error';
 import { I18nService, translate, TranslatePipe } from '../../../../../core/i18n';
 import { AppModule, ModulesService } from '../../../../../core/modules';
@@ -32,6 +33,7 @@ export class UserList {
   private readonly modulesApi = inject(ModulesService);
   private readonly auth = inject(AuthService);
   private readonly locale = inject(LOCALE_ID);
+  private readonly confirm = inject(ConfirmService);
   protected readonly i18n = inject(I18nService);
 
   protected readonly isAdmin = this.auth.isAdmin;
@@ -147,7 +149,11 @@ export class UserList {
   }
 
   protected async remove(person: ManagedUser): Promise<void> {
-    if (!window.confirm(translate('Futa akaunti ya {name}? Hataweza kuingia tena.', { name: person.name }))) {
+    const confirmed = await this.confirm.ask({
+      message: translate('Futa akaunti ya {name}? Hataweza kuingia tena.', { name: person.name }),
+      tone: 'danger',
+    });
+    if (!confirmed) {
       return;
     }
 

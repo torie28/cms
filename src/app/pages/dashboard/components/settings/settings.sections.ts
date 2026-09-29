@@ -1,7 +1,7 @@
 import { inject, Type } from '@angular/core';
-import { Routes } from '@angular/router';
+import { Router, Routes } from '@angular/router';
 import { AuthService } from '../../../../core/auth';
-import { moduleGuard } from '../../../../core/auth-guard';
+import { moduleGuard, noAccessUrl } from '../../../../core/auth-guard';
 
 export interface SettingsSection {
   /** URL segment under /settings, and by convention the sub-folder name. */
@@ -51,7 +51,7 @@ export const SETTINGS_ROUTES: Routes = [
     redirectTo: () => {
       const auth = inject(AuthService);
       const first = SETTINGS_SECTIONS.find((section) => auth.canAccess(section.module));
-      return first ? `/settings/${first.path}` : '/dashboard';
+      return first ? `/settings/${first.path}` : noAccessUrl(inject(Router), SETTINGS_MODULES);
     },
   },
   ...SETTINGS_SECTIONS.map((section) => ({

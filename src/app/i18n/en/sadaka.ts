@@ -99,6 +99,20 @@ export const SADAKA: Record<string, string> = {
   'Jumla (TSh)': 'Total (TSh)',
   'Jumla kuu': 'Grand total',
 
+  // Thank-you SMS
+  'Simu ya mtoaji': "Giver's phone",
+  'Tuma SMS ya shukrani kwa mtoaji': 'Send the giver a thank-you SMS',
+  'Ujumbe wa shukrani wenye kiasi na tarehe hutumwa mara moja, na huonekana kwenye Arifa na SMS.':
+    'A thank-you message with the amount and date is sent right away and appears under Notifications & SMS.',
+  'SMS ya shukrani ilishatumwa kwa mchango huu.': 'A thank-you SMS was already sent for this offering.',
+  'Weka namba ya simu ili mtoaji apokee SMS ya shukrani.': "Add a phone number so the giver receives a thank-you SMS.",
+  'SMS ya shukrani imetumwa kwa {phone}.': 'Thank-you SMS sent to {phone}.',
+  'SMS ya shukrani imeshindwa kutumwa; unaweza kuituma tena kutoka Arifa na SMS.':
+    'The thank-you SMS failed; you can resend it from Notifications & SMS.',
+  'SMS ya shukrani imetumwa': 'Thank-you SMS sent',
+  'SMS ya shukrani imeshindwa': 'Thank-you SMS failed',
+  'Namba ya simu ya mtoaji si sahihi.': "The giver's phone number is not valid.",
+
   // Errors
   'Imeshindwa kupakia kumbukumbu za sadaka.': 'Could not load offering records.',
   'Imeshindwa kuhifadhi mabadiliko.': 'Could not save the changes.',

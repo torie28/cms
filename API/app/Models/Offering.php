@@ -9,7 +9,7 @@ use Illuminate\Database\Eloquent\SoftDeletes;
 
 #[Fillable([
     'category', 'amount', 'received_on', 'payment_method', 'jumuiya_id',
-    'contributor', 'reference', 'notes', 'user_id', 'recorded_by',
+    'contributor', 'contributor_phone', 'thank_you_message_id', 'reference', 'notes', 'user_id', 'recorded_by',
 ])]
 class Offering extends Model
 {
@@ -32,6 +32,9 @@ class Offering extends Model
     /** Always belong to a jumuiya. */
     public const JUMUIYA_CATEGORIES = ['majitoleo'];
 
+    /** The giver gets an automatic thank-you SMS when one of these is recorded with their phone number. */
+    public const THANK_YOU_CATEGORIES = ['zaka', 'fungu_la_kumi', 'shukrani'];
+
     /** @var array<string, string> */
     public const PAYMENT_METHODS = [
         'cash' => 'Taslimu',
@@ -51,5 +54,10 @@ class Offering extends Model
     public function jumuiya(): BelongsTo
     {
         return $this->belongsTo(Jumuiya::class)->withTrashed();
+    }
+
+    public function thankYouMessage(): BelongsTo
+    {
+        return $this->belongsTo(Message::class, 'thank_you_message_id');
     }
 }

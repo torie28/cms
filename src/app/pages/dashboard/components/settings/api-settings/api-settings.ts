@@ -2,6 +2,7 @@ import { afterNextRender, ChangeDetectionStrategy, Component, inject, signal } f
 import { DatePipe } from '@angular/common';
 import { ApiField, ApiService, ApiServiceStatus, ApiSettingsService } from '../../../../../core/api-settings';
 import { AuthService } from '../../../../../core/auth';
+import { ConfirmService } from '../../../../../core/confirm';
 import { httpErrorMessage } from '../../../../../core/http-error';
 import { I18nService, translate, TranslatePipe } from '../../../../../core/i18n';
 
@@ -31,6 +32,7 @@ const STATUS: Record<ApiServiceStatus, { label: string; classes: string }> = {
 export class ApiSettings {
   private readonly api = inject(ApiSettingsService);
   private readonly auth = inject(AuthService);
+  private readonly confirm = inject(ConfirmService);
   protected readonly i18n = inject(I18nService);
 
   protected readonly isAdmin = this.auth.isAdmin;
@@ -120,11 +122,13 @@ export class ApiSettings {
       return;
     }
 
-    const confirmed = confirm(
-      translate('Futa mipangilio ya {label} iliyohifadhiwa hapa na urudi kwenye ile ya faili la .env?', {
+    const confirmed = await this.confirm.ask({
+      message: translate('Futa mipangilio ya {label} iliyohifadhiwa hapa na urudi kwenye ile ya faili la .env?', {
         label: translate(service.label),
       }),
-    );
+      confirmLabel: 'Rudisha .env',
+      tone: 'danger',
+    });
     if (!confirmed) {
       return;
     }

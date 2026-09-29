@@ -6,6 +6,8 @@ use App\Models\Offering;
 use App\Support\ActivityLogger;
 use App\Support\Modules;
 use App\Support\Recycle;
+use App\Support\Sms\Phone;
+use App\Support\Sms\ThankYou;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Illuminate\Validation\Rule;
@@ -22,7 +24,7 @@ class OfferingController extends Controller
         ]);
 
         $offerings = Offering::query()
-            ->with('jumuiya:id,name')
+            ->with(['jumuiya:id,name', 'thankYouMessage:id,status'])
             ->when($range['from'] ?? null, fn ($query, $from) => $query->whereDate('received_on', '>=', $from))
             ->when($range['to'] ?? null, fn ($query, $to) => $query->whereDate('received_on', '<=', $to))
             ->orderByDesc('received_on')
@@ -42,6 +44,7 @@ class OfferingController extends Controller
             'recorded_by' => $request->user()->name,
         ]);
         $offering->load('jumuiya:id,name');
+        $this->thankGiver($request, $offering);
 
         app(ActivityLogger::class)->record(
             $request->user(),
@@ -67,10 +70,14 @@ class OfferingController extends Controller
             'payment_method' => 'Njia ya malipo',
             'jumuiya_id' => 'Jumuiya (namba)',
             'contributor' => 'Mtoaji',
+            'contributor_phone' => 'Simu ya mtoaji',
             'reference' => 'Namba ya risiti',
             'notes' => 'Maelezo',
         ]);
         $offering->load('jumuiya:id,name');
+        if ($offering->thank_you_message_id === null) {
+            $this->thankGiver($request, $offering);
+        }
 
         app(ActivityLogger::class)->record(
             $request->user(),
@@ -127,6 +134,16 @@ class OfferingController extends Controller
                 'string',
                 'max:255',
             ],
+            'contributor_phone' => [
+                'nullable',
+                'string',
+                'max:40',
+                function (string $attribute, mixed $value, \Closure $fail) {
+                    if (Phone::normalize($value) === null) {
+                        $fail('Namba ya simu ya mtoaji si sahihi.');
+                    }
+                },
+            ],
             'reference' => ['nullable', 'string', 'max:100'],
             'notes' => ['nullable', 'string', 'max:2000'],
         ], [
@@ -138,9 +155,20 @@ class OfferingController extends Controller
             ...$data,
             'jumuiya_id' => $data['jumuiya_id'] ?? null,
             'contributor' => $data['contributor'] ?? null,
+            'contributor_phone' => Phone::normalize($data['contributor_phone'] ?? null),
             'reference' => $data['reference'] ?? null,
             'notes' => $data['notes'] ?? null,
         ];
+    }
+
+    /** Sends the automatic thank-you SMS unless the recorder unticked "send_thank_you". */
+    private function thankGiver(Request $request, Offering $offering): void
+    {
+        if (ThankYou::applies($offering) && $request->boolean('send_thank_you', true)) {
+            ThankYou::send($offering, $request->user());
+        }
+
+        $offering->load('thankYouMessage:id,status');
     }
 
     private function describe(Offering $offering): string

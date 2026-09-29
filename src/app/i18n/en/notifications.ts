@@ -181,5 +181,6 @@ export const NOTIFICATIONS: Record<string, string> = {
   'Huna ruhusa ya kutuma arifa na SMS.': "You don't have permission to send notifications and SMS.",
   'Zote zimesomwa.': 'All marked as read.',
   'Haikutumwa.': 'Not sent.',
+  'SMS ya shukrani': 'Thank-you SMS',
   'Beem haijasanidiwa (BEEM_API_KEY / BEEM_SECRET_KEY).': 'Beem is not configured (BEEM_API_KEY / BEEM_SECRET_KEY).',
 };

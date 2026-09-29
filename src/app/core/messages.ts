@@ -5,7 +5,8 @@ import { API_BASE } from './api';
 import { translate } from './i18n';
 
 export type MessageChannel = 'sms' | 'app' | 'both';
-export type AudienceType = 'all' | 'kanda' | 'jumuiya' | 'users' | 'custom';
+/** `offering` is the automatic thank-you SMS sent when Zaka, Fungu la kumi or Shukrani is recorded. */
+export type AudienceType = 'all' | 'kanda' | 'jumuiya' | 'users' | 'custom' | 'offering';
 export type MessageStatus = 'sending' | 'sent' | 'partial' | 'failed';
 
 export interface Message {
@@ -98,6 +99,11 @@ export function audienceLabel(label: string): string {
   if (named) {
     const names = named[3] ? translate('{names} na nyingine {count}', { names: named[2], count: named[3] }) : named[2];
     return `${translate(named[1])}: ${names}`;
+  }
+
+  const thanks = label.match(/^SMS ya shukrani · (.*)$/);
+  if (thanks) {
+    return `${translate('SMS ya shukrani')} · ${translate(thanks[1])}`;
   }
 
   return translate(label);

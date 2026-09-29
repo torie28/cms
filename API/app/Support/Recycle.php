@@ -149,6 +149,7 @@ class Recycle
                 'Njia ya malipo' => Offering::PAYMENT_METHODS[$model->payment_method] ?? $model->payment_method,
                 'Jumuiya' => $model->jumuiya_id ? Jumuiya::withTrashed()->whereKey($model->jumuiya_id)->value('name') : null,
                 'Mtoaji' => $model->contributor,
+                'Simu ya mtoaji' => $model->contributor_phone,
                 'Namba ya risiti' => $model->reference,
                 'Maelezo' => $model->notes,
                 'Imerekodiwa na' => $model->recorded_by,

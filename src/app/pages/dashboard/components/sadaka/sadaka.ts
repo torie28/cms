@@ -10,8 +10,10 @@ import {
 import { FormBuilder, ReactiveFormsModule, Validators } from '@angular/forms';
 import { ActivatedRoute } from '@angular/router';
 import { ActivityService } from '../../../../core/activity';
+import { ConfirmService } from '../../../../core/confirm';
 import { httpErrorMessage } from '../../../../core/http-error';
 import { I18nService, translate, TranslatePipe } from '../../../../core/i18n';
+import { displayPhone, normalizePhone } from '../../../../core/messages';
 import {
   CategoryDefinition,
   Offering,
@@ -71,6 +73,7 @@ export class Sadaka {
   private readonly activity = inject(ActivityService);
   private readonly fb = inject(FormBuilder);
   private readonly route = inject(ActivatedRoute);
+  private readonly confirm = inject(ConfirmService);
   protected readonly i18n = inject(I18nService);
 
   protected readonly categories = OFFERING_CATEGORIES;
@@ -234,6 +237,8 @@ export class Sadaka {
     payment_method: ['cash' as PaymentMethod, Validators.required],
     jumuiya_id: [0],
     contributor: [''],
+    contributor_phone: [''],
+    send_thank_you: [true],
     reference: [''],
     notes: [''],
   });
@@ -243,8 +248,16 @@ export class Sadaka {
     () => this.categories.find((category) => category.value === this.formCategory()) ?? this.categories[0],
   );
 
+  protected readonly displayPhone = displayPhone;
+  private readonly formPhone = signal('');
+  /** The thank-you SMS goes out once per offering, so editing only offers it if none was sent yet. */
+  protected readonly canSendThankYou = computed(
+    () => !!this.selectedCategory().thankYou && !!this.formPhone().trim() && !this.editing()?.thank_you_message_id,
+  );
+
   constructor() {
     this.form.controls.category.valueChanges.subscribe((value) => this.formCategory.set(value));
+    this.form.controls.contributor_phone.valueChanges.subscribe((value) => this.formPhone.set(value));
     this.applyQueryParams();
 
     afterNextRender(() => {
@@ -337,6 +350,8 @@ export class Sadaka {
       payment_method: 'cash',
       jumuiya_id: this.jumuiyaFilter(),
       contributor: '',
+      contributor_phone: '',
+      send_thank_you: true,
       reference: '',
       notes: '',
     });
@@ -353,6 +368,8 @@ export class Sadaka {
       payment_method: item.payment_method,
       jumuiya_id: item.jumuiya_id ?? 0,
       contributor: item.contributor ?? '',
+      contributor_phone: item.contributor_phone ?? '',
+      send_thank_you: true,
       reference: item.reference ?? '',
       notes: item.notes ?? '',
     });
@@ -381,7 +398,9 @@ export class Sadaka {
           ? 'Chagua jumuiya iliyotoa majitoleo haya.'
           : category.personal && !raw.contributor.trim()
             ? 'Andika jina la aliyetoa.'
-            : raw.received_on > this.today
+            : raw.contributor_phone.trim() && !normalizePhone(raw.contributor_phone)
+              ? 'Namba ya simu ya mtoaji si sahihi.'
+              : raw.received_on > this.today
               ? 'Tarehe haiwezi kuwa ya baadaye.'
               : null;
 
@@ -398,6 +417,8 @@ export class Sadaka {
       payment_method: raw.payment_method,
       jumuiya_id: Number(raw.jumuiya_id) || null,
       contributor: raw.contributor.trim(),
+      contributor_phone: raw.contributor_phone.trim(),
+      send_thank_you: raw.send_thank_you,
       reference: raw.reference.trim(),
       notes: raw.notes.trim(),
     };
@@ -417,12 +438,20 @@ export class Sadaka {
         category: translate(this.categoryLabel(saved.category)),
         amount: this.money(saved.amount),
       });
+      const thanked = saved.thank_you_message && !editing?.thank_you_message_id ? saved.thank_you_message : null;
+      const thankYouNote = !thanked
+        ? ''
+        : thanked.status === 'sent'
+          ? translate('SMS ya shukrani imetumwa kwa {phone}.', { phone: displayPhone(saved.contributor_phone) })
+          : translate('SMS ya shukrani imeshindwa kutumwa; unaweza kuituma tena kutoka Arifa na SMS.');
       this.notice.set(
-        inRange ? message : `${message} ${translate('Tarehe yake iko nje ya kipindi unachotazama.')}`,
+        [message, inRange ? '' : translate('Tarehe yake iko nje ya kipindi unachotazama.'), thankYouNote]
+          .filter(Boolean)
+          .join(' '),
       );
 
       if (addAnother && !editing) {
-        this.form.patchValue({ amount: null, contributor: '', reference: '', notes: '' });
+        this.form.patchValue({ amount: null, contributor: '', contributor_phone: '', reference: '', notes: '' });
         this.form.markAsUntouched();
       } else {
         this.saving.set(false);
@@ -438,16 +467,18 @@ export class Sadaka {
   }
 
   protected async remove(item: Offering): Promise<void> {
-    if (
-      this.saving() ||
-      !window.confirm(
-        translate('Futa {category} ya {amount} ({date})?', {
-          category: translate(this.categoryLabel(item.category)),
-          amount: this.money(item.amount),
-          date: item.received_on,
-        }),
-      )
-    ) {
+    if (this.saving()) {
+      return;
+    }
+    const confirmed = await this.confirm.ask({
+      message: translate('Futa {category} ya {amount} ({date})?', {
+        category: translate(this.categoryLabel(item.category)),
+        amount: this.money(item.amount),
+        date: item.received_on,
+      }),
+      tone: 'danger',
+    });
+    if (!confirmed || this.saving()) {
       return;
     }
 

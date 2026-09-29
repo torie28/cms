@@ -10,6 +10,7 @@ import {
 } from '@angular/core';
 import { ActivityEntry, ActivityService, isDeletion, isPendingDeletion } from '../../../../../core/activity';
 import { AuthService } from '../../../../../core/auth';
+import { ConfirmService } from '../../../../../core/confirm';
 import { httpErrorMessage } from '../../../../../core/http-error';
 import { I18nService, translate, TranslatePipe } from '../../../../../core/i18n';
 import { FilterPanel, withinDateRange } from '../../../../../shared/filter-panel';
@@ -61,6 +62,7 @@ const MAX_ENTRIES = 500;
 export class ActivityLogs {
   private readonly activity = inject(ActivityService);
   private readonly locale = inject(LOCALE_ID);
+  private readonly confirm = inject(ConfirmService);
   protected readonly i18n = inject(I18nService);
   private polling = false;
 
@@ -330,7 +332,7 @@ export class ActivityLogs {
       type: this.typeLabel(entry.subject_type).toLowerCase(),
       subject: entry.subject,
     });
-    if (!window.confirm(question)) {
+    if (!(await this.confirm.ask({ message: question, confirmLabel: 'Rejesha' }))) {
       return;
     }
 
@@ -342,7 +344,7 @@ export class ActivityLogs {
       'Futa kabisa "{subject}"? Hatua hii haiwezi kutenduliwa, ingawa maelezo yake yatabaki kwenye kumbukumbu.',
       { subject: entry.subject },
     );
-    if (!window.confirm(question)) {
+    if (!(await this.confirm.ask({ message: question, confirmLabel: 'Futa kabisa', tone: 'danger' }))) {
       return;
     }
 

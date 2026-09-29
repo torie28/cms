@@ -332,6 +332,16 @@
                     @if (item.contributor && item.jumuiya) {
                       <span class="block text-xs text-faint">{{ item.jumuiya.name }}</span>
                     }
+                    @if (item.thank_you_message; as sms) {
+                      <span
+                        class="block text-xs"
+                        [class.text-positive]="sms.status === 'sent'"
+                        [class.text-negative]="sms.status !== 'sent'"
+                        [title]="displayPhone(item.contributor_phone)"
+                      >
+                        {{ (sms.status === 'sent' ? 'SMS ya shukrani imetumwa' : 'SMS ya shukrani imeshindwa') | t }}
+                      </span>
+                    }
                     @if (item.notes) {
                       <span class="block max-w-xs truncate text-xs text-muted" [title]="item.notes">{{ item.notes }}</span>
                     }
@@ -566,7 +576,42 @@
               class="w-full rounded border border-line bg-canvas px-3 py-2 focus:border-brass focus:ring-1 focus:ring-brass focus:outline-none"
             />
           </div>
+          @if (selectedCategory().thankYou) {
+            <div>
+              <label for="offering-phone" class="mb-1 block text-xs tracking-[0.12em] text-muted uppercase">
+                {{ 'Simu ya mtoaji' | t }}
+                <span class="normal-case tracking-normal text-faint">({{ 'si lazima' | t }})</span>
+              </label>
+              <input
+                id="offering-phone"
+                type="tel"
+                inputmode="tel"
+                autocomplete="tel"
+                formControlName="contributor_phone"
+                placeholder="0712 345 678"
+                class="w-full rounded border border-line bg-canvas px-3 py-2 focus:border-brass focus:ring-1 focus:ring-brass focus:outline-none"
+              />
+            </div>
+          }
         </div>
+
+        @if (selectedCategory().thankYou) {
+          @if (canSendThankYou()) {
+            <label class="flex items-start gap-2 rounded border border-line bg-canvas px-3 py-2 text-sm">
+              <input type="checkbox" formControlName="send_thank_you" class="mt-0.5 accent-brass" />
+              <span>
+                {{ 'Tuma SMS ya shukrani kwa mtoaji' | t }}
+                <span class="block text-xs text-muted">
+                  {{ 'Ujumbe wa shukrani wenye kiasi na tarehe hutumwa mara moja, na huonekana kwenye Arifa na SMS.' | t }}
+                </span>
+              </span>
+            </label>
+          } @else if (editing()?.thank_you_message_id) {
+            <p class="text-xs text-muted">{{ 'SMS ya shukrani ilishatumwa kwa mchango huu.' | t }}</p>
+          } @else {
+            <p class="text-xs text-muted">{{ 'Weka namba ya simu ili mtoaji apokee SMS ya shukrani.' | t }}</p>
+          }
+        }
 
         <div>
           <label for="offering-notes" class="mb-1 block text-xs tracking-[0.12em] text-muted uppercase">{{ 'Maelezo' | t }}</label>

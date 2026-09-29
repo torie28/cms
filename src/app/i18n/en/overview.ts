@@ -31,6 +31,10 @@ export const OVERVIEW: Record<string, string> = {
   'Miezi {count} iliyopita · bofya mwezi kuona michango yake':
     'Last {count} months · click a month to see its offerings',
   '{month}: {amount}': '{month}: {amount}',
+  'Aina ya chati': 'Chart type',
+  Nguzo: 'Bar',
+  Mstari: 'Line',
+  Eneo: 'Area',
   'Mwezi huu kwa aina': 'This month by type',
   'Michango ya hivi karibuni': 'Recent offerings',
   'Ona zote': 'See all',

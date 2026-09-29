@@ -42,7 +42,8 @@ export async function readSheet<F extends string>(
   preferredHeaders: string[],
 ): Promise<{ rows: ParsedRow<F>[]; found: Set<F> }> {
   const XLSX = await import('xlsx');
-  const workbook = XLSX.read(await file.arrayBuffer(), { type: 'array' });
+  // dateNF makes cells with Excel's default date format come out as ISO text instead of m/d/yy.
+  const workbook = XLSX.read(await file.arrayBuffer(), { type: 'array', dateNF: 'yyyy-mm-dd' });
   const preferred = new Set(preferredHeaders.map((label) => label.toLowerCase()));
 
   const sheetName =

@@ -177,14 +177,32 @@
       >
         <div class="flex items-start justify-between gap-2">
           <p class="text-xs tracking-[0.15em] text-faint uppercase">{{ tile.label | t }}</p>
-          <button
-            type="button"
-            class="rounded border border-line px-2 py-0.5 text-xs text-brass-strong hover:bg-sunken"
-            [attr.aria-label]="'Rekodi {category}' | t: { category: (tile.label | t) }"
-            (click)="openForm(tile.value, $event)"
-          >
-            + {{ 'Rekodi' | t }}
-          </button>
+          <div class="flex shrink-0 gap-1">
+            @if (tile.personal) {
+              <button
+                type="button"
+                class="flex items-center gap-1 rounded border border-line px-2 py-0.5 text-xs text-positive hover:bg-sunken"
+                [attr.aria-label]="'Ingiza {category} kutoka Excel' | t: { category: (tile.label | t) }"
+                [title]="'Ingiza {category} kutoka Excel' | t: { category: (tile.label | t) }"
+                (click)="openImport(tile, $event)"
+                (keydown)="$event.stopPropagation()"
+              >
+                <svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.4" stroke-linecap="round" stroke-linejoin="round" class="h-3 w-3" aria-hidden="true">
+                  <rect x="2" y="2" width="12" height="12" rx="1.5" />
+                  <path d="M2 6h12M2 10h12M6 2v12" />
+                </svg>
+                Excel
+              </button>
+            }
+            <button
+              type="button"
+              class="rounded border border-line px-2 py-0.5 text-xs text-brass-strong hover:bg-sunken"
+              [attr.aria-label]="'Rekodi {category}' | t: { category: (tile.label | t) }"
+              (click)="openForm(tile.value, $event)"
+            >
+              + {{ 'Rekodi' | t }}
+            </button>
+          </div>
         </div>
         @if (loading()) {
           <span class="skeleton mt-3 h-7 w-28"></span>
@@ -204,7 +222,7 @@
   </section>
 
   <div class="grid gap-6 xl:grid-cols-3">
-    <section class="space-y-4 xl:col-span-2">
+    <section #ledger class="scroll-mt-4 space-y-4 xl:col-span-2">
       <div class="flex items-baseline justify-between gap-3">
         <h2 class="font-serif text-lg">{{ 'Daftari la makusanyo' | t }}</h2>
         @if (categoryFilter()) {
@@ -272,6 +290,18 @@
             <option value="amount-asc">{{ 'Kiasi kidogo kwanza' | t }}</option>
           </select>
         </div>
+        <div>
+          <label for="offering-page-size" class="filter-label">{{ 'Idadi kwa ukurasa' | t }}</label>
+          <select
+            id="offering-page-size"
+            class="filter-input"
+            (change)="setPageSize($any($event.target).value)"
+          >
+            @for (size of pageSizes; track size) {
+              <option [value]="size" [selected]="size === pageSize()">{{ size === 0 ? ('Zote' | t) : size }}</option>
+            }
+          </select>
+        </div>
       </app-filter-panel>
 
       @if (loading()) {
@@ -316,7 +346,7 @@
               </tr>
             </thead>
             <tbody class="divide-y divide-line">
-              @for (item of filtered(); track item.id; let i = $index) {
+              @for (item of pageRows(); track item.id; let i = $index) {
                 <tr class="row-slide align-top" [style.animation-delay.ms]="i < 20 ? i * 30 : 0">
                   <td class="px-4 py-3 whitespace-nowrap text-muted">
                     {{ item.received_on | date: 'd MMM y' : undefined : i18n.dateLocale() }}
@@ -374,6 +404,15 @@
             </tbody>
             @if (filtered().length > 0) {
               <tfoot class="border-t-2 border-line bg-sunken">
+                @if (pageCount() > 1) {
+                  <tr class="border-b border-line">
+                    <td colspan="4" class="px-4 py-2 text-xs tracking-[0.12em] text-faint uppercase">
+                      {{ 'Ukurasa huu ({count})' | t: { count: pageRows().length } }}
+                    </td>
+                    <td class="px-4 py-2 text-right whitespace-nowrap text-muted tabular-nums">{{ money(pageTotal()) }}</td>
+                    <td></td>
+                  </tr>
+                }
                 <tr>
                   <td colspan="4" class="px-4 py-3 text-xs tracking-[0.12em] text-faint uppercase">
                     {{ 'Jumla ({count})' | t: { count: filtered().length } }}
@@ -387,6 +426,77 @@
             }
           </table>
         </div>
+
+        @if (filtered().length > 0) {
+          <nav
+            class="flex flex-wrap items-center justify-between gap-3 rounded border border-line bg-surface px-4 py-2.5 text-sm"
+            [attr.aria-label]="'Kurasa za daftari' | t"
+          >
+            <div class="flex items-center gap-2 text-muted">
+              <label for="offering-page-size-bar" class="whitespace-nowrap">{{ 'Onyesha' | t }}</label>
+              <select
+                id="offering-page-size-bar"
+                class="rounded border border-line bg-canvas px-2 py-1 text-sm text-ink focus:border-brass focus:ring-1 focus:ring-brass focus:outline-none"
+                (change)="setPageSize($any($event.target).value)"
+              >
+                @for (size of pageSizes; track size) {
+                  <option [value]="size" [selected]="size === pageSize()">{{ size === 0 ? ('Zote' | t) : size }}</option>
+                }
+              </select>
+              <span class="whitespace-nowrap tabular-nums">
+                {{
+                  'Inaonyesha {from}–{to} kati ya {total}'
+                    | t: { from: pageStart() + 1, to: pageStart() + pageRows().length, total: filtered().length }
+                }}
+              </span>
+            </div>
+
+            @if (pageCount() > 1) {
+              <div class="flex items-center gap-1">
+                <button
+                  type="button"
+                  class="flex h-8 w-8 items-center justify-center rounded text-muted hover:bg-sunken hover:text-ink disabled:pointer-events-none disabled:opacity-40"
+                  [disabled]="page() === 1"
+                  [attr.aria-label]="'Ukurasa uliopita' | t"
+                  [title]="'Ukurasa uliopita' | t"
+                  (click)="goToPage(page() - 1)"
+                >
+                  <svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" class="h-4 w-4" aria-hidden="true">
+                    <path d="M10 3.5 5.5 8l4.5 4.5" />
+                  </svg>
+                </button>
+                @for (entry of pages(); track $index) {
+                  @if (entry === 'gap') {
+                    <span class="flex h-8 w-6 items-center justify-center text-faint" aria-hidden="true">…</span>
+                  } @else {
+                    <button
+                      type="button"
+                      class="h-8 min-w-8 rounded px-2 tabular-nums"
+                      [class]="entry === page() ? 'bg-brass-strong font-medium text-canvas' : 'text-muted hover:bg-sunken hover:text-ink'"
+                      [attr.aria-current]="entry === page() ? 'page' : null"
+                      [attr.aria-label]="'Ukurasa {page}' | t: { page: entry }"
+                      (click)="goToPage(entry)"
+                    >
+                      {{ entry }}
+                    </button>
+                  }
+                }
+                <button
+                  type="button"
+                  class="flex h-8 w-8 items-center justify-center rounded text-muted hover:bg-sunken hover:text-ink disabled:pointer-events-none disabled:opacity-40"
+                  [disabled]="page() === pageCount()"
+                  [attr.aria-label]="'Ukurasa unaofuata' | t"
+                  [title]="'Ukurasa unaofuata' | t"
+                  (click)="goToPage(page() + 1)"
+                >
+                  <svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" class="h-4 w-4" aria-hidden="true">
+                    <path d="M6 3.5 10.5 8 6 12.5" />
+                  </svg>
+                </button>
+              </div>
+            }
+          </nav>
+        }
       }
     </section>
 
@@ -487,6 +597,30 @@
             }
           </div>
         </fieldset>
+
+        @if (selectedCategory().personal && !editing()) {
+          <div
+            class="alert-in flex flex-wrap items-center gap-3 rounded-lg border border-positive/30 bg-positive/5 px-4 py-3"
+          >
+            <span class="flex h-9 w-9 shrink-0 items-center justify-center rounded-lg bg-positive/15 text-positive">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" class="h-5 w-5" aria-hidden="true">
+                <path d="M14 3H7a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h10a2 2 0 0 0 2-2V8z" />
+                <path d="M14 3v5h5M9 13l3 4m0-4-3 4" />
+              </svg>
+            </span>
+            <p class="min-w-0 flex-1 text-sm">
+              <span class="block font-medium">{{ 'Una orodha ya {category}?' | t: { category: (selectedCategory().label | t) } }}</span>
+              <span class="block text-xs text-muted">{{ 'Ingiza watoaji wote kwa mara moja kutoka faili la Excel.' | t }}</span>
+            </p>
+            <button
+              type="button"
+              class="rounded border border-positive/40 bg-surface px-3 py-1.5 text-sm font-medium text-positive hover:bg-positive/10"
+              (click)="openImport(selectedCategory())"
+            >
+              {{ 'Ingiza kutoka Excel' | t }}
+            </button>
+          </div>
+        }
 
         <div class="grid gap-4 sm:grid-cols-2">
           <div>
@@ -654,6 +788,201 @@
           </button>
         </div>
       </form>
+    </section>
+  </div>
+}
+
+@if (importCategory(); as category) {
+  <div
+    class="fixed inset-0 z-50 flex items-center justify-center bg-black/40 p-4"
+    animate.enter="backdrop-in"
+    animate.leave="backdrop-out"
+    (click)="closeImport()"
+  >
+    <section
+      class="max-h-[92vh] w-full max-w-3xl overflow-y-auto rounded border border-line bg-surface p-5"
+      role="dialog"
+      aria-modal="true"
+      aria-labelledby="offering-import-title"
+      (click)="$event.stopPropagation()"
+    >
+      <h2 id="offering-import-title" class="font-serif text-xl">
+        {{ 'Ingiza {category} kutoka Excel' | t: { category: (category.label | t) } }}
+      </h2>
+      <p class="mt-1 text-sm text-muted">
+        {{ 'Kila mstari ni mtoaji mmoja. Safu za lazima:' | t }}
+        <span class="font-medium text-ink">Jina, Kiasi</span>.
+        {{ 'Hiari:' | t }}
+        <span class="font-medium">Tarehe, Simu, Jumuiya, Njia ya malipo, Namba ya risiti, Maelezo</span>.
+        {{ 'Tarehe ikikosekana, ya leo itatumika. Inakubali .xlsx, .xls, .ods na .csv.' | t }}
+      </p>
+
+      <div class="mt-4 flex flex-wrap items-center gap-2">
+        <label
+          class="cursor-pointer rounded bg-brass-strong px-4 py-2 text-sm font-medium text-canvas hover:opacity-90"
+          [class.pointer-events-none]="importing()"
+          [class.opacity-60]="importing()"
+        >
+          {{ 'Chagua faili' | t }}
+          <input
+            type="file"
+            class="sr-only"
+            [accept]="spreadsheetAccept"
+            [disabled]="importing()"
+            (change)="chooseImportFile($event)"
+          />
+        </label>
+        <button type="button" class="rounded border border-line px-3 py-2 text-sm hover:bg-sunken" (click)="downloadImportTemplate()">
+          {{ 'Pakua kiolezo' | t }}
+        </button>
+        @if (importFileName()) {
+          <span class="text-sm text-muted">{{ importFileName() }}</span>
+        }
+      </div>
+
+      @if (importError()) {
+        <div class="alert-in mt-4 rounded border border-negative/40 bg-negative/10 px-3 py-2 text-sm text-negative" role="alert">
+          <p>{{ importError() }}</p>
+          @if (importFailures().length > 0) {
+            <ul class="mt-1 max-h-40 list-disc space-y-0.5 overflow-y-auto pl-5">
+              @for (failure of importFailures(); track $index) {
+                <li>{{ failure }}</li>
+              }
+            </ul>
+          }
+        </div>
+      }
+
+      @if (importPlan(); as plan) {
+        <div class="mt-5 space-y-4">
+          <div class="grid gap-3 sm:grid-cols-3">
+            <div class="rounded border border-line bg-canvas px-3 py-2">
+              <p class="text-xs tracking-[0.12em] text-faint uppercase">{{ 'Tayari kuingizwa' | t }}</p>
+              <p class="mt-1 font-serif text-xl tabular-nums">{{ plan.rows.length }}</p>
+            </div>
+            <div class="rounded border border-line bg-canvas px-3 py-2">
+              <p class="text-xs tracking-[0.12em] text-faint uppercase">{{ 'Jumla' | t }}</p>
+              <p class="mt-1 font-serif text-xl tabular-nums">{{ money(plan.total) }}</p>
+            </div>
+            <div
+              class="rounded border px-3 py-2"
+              [class]="plan.errors.length > 0 ? 'border-negative/40 bg-negative/10' : 'border-line bg-canvas'"
+            >
+              <p class="text-xs tracking-[0.12em] text-faint uppercase">{{ 'Zitarukwa' | t }}</p>
+              <p class="mt-1 font-serif text-xl tabular-nums" [class.text-negative]="plan.errors.length > 0">
+                {{ plan.errors.length }}
+              </p>
+            </div>
+          </div>
+
+          @if (plan.errors.length > 0) {
+            <div class="rounded border border-negative/40 bg-negative/10 px-3 py-2 text-sm text-negative">
+              <p class="font-medium">{{ 'Mistari hii haitaingizwa:' | t }}</p>
+              <ul class="mt-1 max-h-32 list-disc space-y-0.5 overflow-y-auto pl-5">
+                @for (issue of plan.errors; track $index) {
+                  <li>{{ issue }}</li>
+                }
+              </ul>
+            </div>
+          }
+
+          @if (plan.rows.length > 0) {
+            <div class="max-h-72 overflow-auto rounded border border-line">
+              <table class="w-full min-w-[40rem] text-left text-sm">
+                <thead class="sticky top-0 border-b border-line bg-surface text-xs tracking-[0.12em] text-faint uppercase">
+                  <tr>
+                    <th class="px-3 py-2 font-medium">#</th>
+                    <th class="px-3 py-2 font-medium">{{ 'Jina' | t }}</th>
+                    <th class="px-3 py-2 text-right font-medium">{{ 'Kiasi' | t }}</th>
+                    <th class="px-3 py-2 font-medium">{{ 'Tarehe' | t }}</th>
+                    <th class="px-3 py-2 font-medium">{{ 'Simu' | t }}</th>
+                    <th class="px-3 py-2 font-medium">{{ 'Jumuiya' | t }}</th>
+                    <th class="px-3 py-2 font-medium">{{ 'Njia ya malipo' | t }}</th>
+                  </tr>
+                </thead>
+                <tbody class="divide-y divide-line">
+                  @for (row of plan.rows; track row.line) {
+                    <tr>
+                      <td class="px-3 py-1.5 text-faint tabular-nums">{{ row.line }}</td>
+                      <td class="px-3 py-1.5">
+                        <span class="font-medium">{{ row.payload.contributor }}</span>
+                        @for (warning of row.warnings; track $index) {
+                          <span class="block text-xs text-brass-strong">{{ warning }}</span>
+                        }
+                      </td>
+                      <td class="px-3 py-1.5 text-right whitespace-nowrap tabular-nums">{{ money(row.payload.amount) }}</td>
+                      <td class="px-3 py-1.5 whitespace-nowrap text-muted">{{ row.payload.received_on }}</td>
+                      <td class="px-3 py-1.5 whitespace-nowrap text-muted">
+                        {{ row.payload.contributor_phone ? displayPhone(normalizePhone(row.payload.contributor_phone)) : '—' }}
+                      </td>
+                      <td class="px-3 py-1.5 text-muted">{{ row.jumuiyaName || '—' }}</td>
+                      <td class="px-3 py-1.5 whitespace-nowrap text-muted">{{ methodLabel(row.payload.payment_method) | t }}</td>
+                    </tr>
+                  }
+                </tbody>
+              </table>
+            </div>
+
+            @if (category.thankYou && plan.withPhone > 0) {
+              <label class="flex items-start gap-2 rounded border border-line bg-canvas px-3 py-2 text-sm">
+                <input
+                  type="checkbox"
+                  class="mt-0.5 accent-brass"
+                  [checked]="importThankYou()"
+                  [disabled]="importing()"
+                  (change)="importThankYou.set($any($event.target).checked)"
+                />
+                <span>
+                  {{ 'Tuma SMS ya shukrani kwa watoaji {count} wenye namba za simu' | t: { count: plan.withPhone } }}
+                  <span class="block text-xs text-muted">
+                    {{ 'Kila mmoja hupokea ujumbe wenye kiasi na tarehe yake. SMS hizi hutozwa gharama.' | t }}
+                  </span>
+                </span>
+              </label>
+            }
+          }
+        </div>
+      }
+
+      @if (importing() && importPlan(); as plan) {
+        <div class="mt-5" aria-live="polite">
+          <div class="flex justify-between text-xs text-muted">
+            <span>{{ 'Inaingiza…' | t }}</span>
+            <span class="tabular-nums">{{ importProgress() }} / {{ plan.rows.length }}</span>
+          </div>
+          <div class="mt-1 h-1.5 overflow-hidden rounded-full bg-sunken">
+            <div
+              class="h-full rounded-full bg-brass transition-[width] duration-200"
+              [style.width.%]="(importProgress() / plan.rows.length) * 100"
+            ></div>
+          </div>
+        </div>
+      }
+
+      <div class="mt-5 flex justify-end gap-2">
+        <button
+          type="button"
+          class="rounded px-3 py-2 text-sm text-muted hover:bg-sunken disabled:opacity-60"
+          [disabled]="importing()"
+          (click)="closeImport()"
+        >
+          {{ (importFailures().length > 0 ? 'Funga' : 'Ghairi') | t }}
+        </button>
+        <button
+          type="button"
+          class="rounded bg-brass-strong px-4 py-2 text-sm font-medium text-canvas disabled:opacity-60"
+          [disabled]="importing() || !importPlan() || importPlan()!.rows.length === 0"
+          (click)="runImport()"
+        >
+          @if (importing()) {
+            {{ 'Inaingiza…' | t }}
+          } @else if (importPlan(); as plan) {
+            {{ 'Ingiza michango {count}' | t: { count: plan.rows.length } }}
+          } @else {
+            {{ 'Ingiza' | t }}
+          }
+        </button>
+      </div>
     </section>
   </div>
 }

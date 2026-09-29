@@ -4,8 +4,12 @@ import {
   ChangeDetectionStrategy,
   Component,
   computed,
+  effect,
+  ElementRef,
   inject,
   signal,
+  untracked,
+  viewChild,
 } from '@angular/core';
 import { FormBuilder, ReactiveFormsModule, Validators } from '@angular/forms';
 import { ActivatedRoute } from '@angular/router';
@@ -14,6 +18,11 @@ import { ConfirmService } from '../../../../core/confirm';
 import { httpErrorMessage } from '../../../../core/http-error';
 import { I18nService, translate, TranslatePipe } from '../../../../core/i18n';
 import { displayPhone, normalizePhone } from '../../../../core/messages';
+import {
+  downloadOfferingTemplate,
+  OfferingImportPlan,
+  readOfferingSheet,
+} from '../../../../core/offering-transfer';
 import {
   CategoryDefinition,
   Offering,
@@ -34,12 +43,41 @@ import {
   savePdf,
   saveWorkbook,
   SheetData,
+  SPREADSHEET_ACCEPT,
 } from '../../../../core/spreadsheet';
 import { FilterPanel, withinDateRange } from '../../../../shared/filter-panel';
 import { matchesSearch, SearchBox } from '../../../../shared/search-box';
 
 type Period = 'today' | 'week' | 'month' | 'year' | 'custom';
 type Sort = 'date-desc' | 'date-asc' | 'amount-desc' | 'amount-asc';
+
+/** 0 means "show everything on one page". */
+const PAGE_SIZES = [10, 25, 50, 100, 0] as const;
+const DEFAULT_PAGE_SIZE = 25;
+const PAGE_SIZE_KEY = 'cms.sadaka.pageSize';
+
+/** Page numbers to show, with 'gap' where a run of pages is collapsed: 1 … 4 5 6 … 20. */
+function pageWindow(current: number, count: number): (number | 'gap')[] {
+  if (count <= 7) {
+    return Array.from({ length: count }, (_, i) => i + 1);
+  }
+  let start = Math.max(2, Math.min(current - 1, count - 4));
+  let end = Math.min(count - 1, Math.max(current + 1, 5));
+  // A gap hiding a single page takes as much room as that page's number, so show the number.
+  if (start === 3) {
+    start = 2;
+  }
+  if (end === count - 2) {
+    end = count - 1;
+  }
+  return [
+    1,
+    ...(start > 2 ? (['gap'] as const) : []),
+    ...Array.from({ length: end - start + 1 }, (_, i) => start + i),
+    ...(end < count - 1 ? (['gap'] as const) : []),
+    count,
+  ];
+}
 
 interface CategoryTile extends CategoryDefinition {
   total: number;
@@ -94,6 +132,16 @@ export class Sadaka {
   protected readonly error = signal<string | null>(null);
   protected readonly formError = signal<string | null>(null);
   protected readonly notice = signal<string | null>(null);
+
+  protected readonly spreadsheetAccept = SPREADSHEET_ACCEPT;
+  protected readonly importCategory = signal<CategoryDefinition | null>(null);
+  protected readonly importPlan = signal<OfferingImportPlan | null>(null);
+  protected readonly importFileName = signal<string | null>(null);
+  protected readonly importError = signal<string | null>(null);
+  protected readonly importing = signal(false);
+  protected readonly importProgress = signal(0);
+  protected readonly importThankYou = signal(false);
+  protected readonly importFailures = signal<string[]>([]);
 
   protected readonly period = signal<Period>('month');
   protected readonly customFrom = signal(this.today.slice(0, 8) + '01');
@@ -221,6 +269,27 @@ export class Sadaka {
     this.filtered().reduce((sum, item) => sum + Number(item.amount), 0),
   );
 
+  protected readonly pageSizes = PAGE_SIZES;
+  protected readonly pageSize = signal<number>(DEFAULT_PAGE_SIZE);
+  private readonly requestedPage = signal(1);
+  private readonly ledger = viewChild<ElementRef<HTMLElement>>('ledger');
+
+  protected readonly pageCount = computed(() => {
+    const size = this.pageSize();
+    return size === 0 ? 1 : Math.max(1, Math.ceil(this.filtered().length / size));
+  });
+  /** Clamped so deleting the last row of the last page falls back a page instead of showing nothing. */
+  protected readonly page = computed(() => Math.min(this.requestedPage(), this.pageCount()));
+  protected readonly pageStart = computed(() => (this.pageSize() === 0 ? 0 : (this.page() - 1) * this.pageSize()));
+  protected readonly pageRows = computed(() => {
+    const size = this.pageSize();
+    return size === 0 ? this.filtered() : this.filtered().slice(this.pageStart(), this.pageStart() + size);
+  });
+  protected readonly pageTotal = computed(() =>
+    this.pageRows().reduce((sum, item) => sum + Number(item.amount), 0),
+  );
+  protected readonly pages = computed(() => pageWindow(this.page(), this.pageCount()));
+
   protected readonly filterSummary = computed(() =>
     this.search() || this.activeFilters() > 0
       ? translate('Kumbukumbu {shown} kati ya {total}', {
@@ -249,6 +318,7 @@ export class Sadaka {
   );
 
   protected readonly displayPhone = displayPhone;
+  protected readonly normalizePhone = normalizePhone;
   private readonly formPhone = signal('');
   /** The thank-you SMS goes out once per offering, so editing only offers it if none was sent yet. */
   protected readonly canSendThankYou = computed(
@@ -260,7 +330,23 @@ export class Sadaka {
     this.form.controls.contributor_phone.valueChanges.subscribe((value) => this.formPhone.set(value));
     this.applyQueryParams();
 
+    // Any change to what is being listed starts again from the first page.
+    effect(() => {
+      this.search();
+      this.categoryFilter();
+      this.methodFilter();
+      this.jumuiyaFilter();
+      this.sort();
+      this.range();
+      this.pageSize();
+      untracked(() => this.requestedPage.set(1));
+    });
+
     afterNextRender(() => {
+      const stored = localStorage.getItem(PAGE_SIZE_KEY);
+      if (stored !== null && (PAGE_SIZES as readonly number[]).includes(Number(stored))) {
+        this.pageSize.set(Number(stored));
+      }
       void this.loadJumuiyas();
       void this.refresh();
     });
@@ -313,6 +399,27 @@ export class Sadaka {
     this.sort.set(
       value === 'date-asc' || value === 'amount-desc' || value === 'amount-asc' ? value : 'date-desc',
     );
+  }
+
+  protected setPageSize(value: string): void {
+    const size = Number(value);
+    if (!(PAGE_SIZES as readonly number[]).includes(size)) {
+      return;
+    }
+    this.pageSize.set(size);
+    localStorage.setItem(PAGE_SIZE_KEY, String(size));
+  }
+
+  protected goToPage(target: number): void {
+    const next = Math.min(Math.max(1, target), this.pageCount());
+    if (next === this.page()) {
+      return;
+    }
+    this.requestedPage.set(next);
+    const top = this.ledger()?.nativeElement;
+    if (top && top.getBoundingClientRect().top < 0) {
+      top.scrollIntoView({ behavior: 'smooth', block: 'start' });
+    }
   }
 
   protected clearFilters(): void {
@@ -494,6 +601,147 @@ export class Sadaka {
     } finally {
       this.saving.set(false);
     }
+  }
+
+  /** Opens the Excel import for a personal category (Zaka, Fungu la kumi); closes the single-entry form if it was open. */
+  protected openImport(category: CategoryDefinition, event?: Event): void {
+    event?.stopPropagation();
+    if (this.saving()) {
+      return;
+    }
+    this.formOpen.set(false);
+    this.editing.set(null);
+    this.importCategory.set(category);
+    this.importPlan.set(null);
+    this.importFileName.set(null);
+    this.importError.set(null);
+    this.importFailures.set([]);
+    this.importProgress.set(0);
+    this.importThankYou.set(false);
+  }
+
+  protected closeImport(): void {
+    if (!this.importing()) {
+      this.importCategory.set(null);
+      this.importPlan.set(null);
+    }
+  }
+
+  protected async downloadImportTemplate(): Promise<void> {
+    const category = this.importCategory();
+    if (category) {
+      await downloadOfferingTemplate(translate(category.label), this.today);
+    }
+  }
+
+  protected async chooseImportFile(event: Event): Promise<void> {
+    const input = event.target as HTMLInputElement;
+    const file = input.files?.[0];
+    input.value = '';
+    const category = this.importCategory();
+
+    if (!file || !category) {
+      return;
+    }
+
+    this.importFileName.set(file.name);
+    this.importPlan.set(null);
+    this.importError.set(null);
+    this.importFailures.set([]);
+
+    try {
+      const plan = await readOfferingSheet(file, category.value, this.jumuiyas(), this.today);
+      if (plan.rows.length === 0 && plan.errors.length === 0) {
+        this.importError.set(translate('Faili hilo halina safu zenye taarifa.'));
+        return;
+      }
+      this.importPlan.set(plan);
+    } catch (error) {
+      this.importError.set(
+        error instanceof Error && error.message ? error.message : translate('Imeshindwa kusoma faili hilo.'),
+      );
+    }
+  }
+
+  protected async runImport(): Promise<void> {
+    const plan = this.importPlan();
+    const category = this.importCategory();
+    if (!plan || !category || plan.rows.length === 0 || this.importing()) {
+      return;
+    }
+
+    this.importing.set(true);
+    this.importProgress.set(0);
+    this.importError.set(null);
+    this.importFailures.set([]);
+
+    const failures: string[] = [];
+    const saved: Offering[] = [];
+    let thanked = 0;
+    const queue = [...plan.rows];
+    // A few requests at a time keeps large sheets quick without flooding the API or the SMS gateway.
+    const worker = async () => {
+      for (let row = queue.shift(); row; row = queue.shift()) {
+        try {
+          const offering = await this.offeringsApi.create({ ...row.payload, send_thank_you: this.importThankYou() });
+          saved.push(offering);
+          if (offering.thank_you_message?.status === 'sent') {
+            thanked++;
+          }
+        } catch (error) {
+          failures.push(
+            translate('Mstari {line} ({name}): {reason}', {
+              line: row.line,
+              name: row.payload.contributor,
+              reason: httpErrorMessage(error, 'imeshindwa kuhifadhiwa.'),
+            }),
+          );
+        }
+        this.importProgress.update((done) => done + 1);
+      }
+    };
+    await Promise.all(Array.from({ length: Math.min(4, plan.rows.length) }, worker));
+
+    this.importing.set(false);
+
+    if (saved.length > 0) {
+      const total = saved.reduce((sum, item) => sum + Number(item.amount), 0);
+      void this.activity.record({
+        action: 'imported',
+        subject:
+          `${saved.length} ${category.label} offerings (TSh ${total.toLocaleString('en')})` +
+          (this.importFileName() ? ` from ${this.importFileName()}` : ''),
+        subject_type: 'offering',
+      });
+      await this.refresh();
+      this.notice.set(
+        [
+          translate('{category}: michango {count} ya jumla {amount} imeingizwa kutoka Excel.', {
+            category: translate(category.label),
+            count: saved.length,
+            amount: this.money(total),
+          }),
+          thanked > 0 ? translate('SMS za shukrani {count} zimetumwa.', { count: thanked }) : '',
+        ]
+          .filter(Boolean)
+          .join(' '),
+      );
+    }
+
+    if (failures.length > 0) {
+      failures.sort((a, b) => a.localeCompare(b, undefined, { numeric: true }));
+      this.importPlan.set(null);
+      this.importFailures.set(failures);
+      this.importError.set(
+        translate('Michango {saved} imeingizwa, {failed} imeshindwa. Rekebisha mistari hii kisha uingize faili lenye hiyo tu.', {
+          saved: saved.length,
+          failed: failures.length,
+        }),
+      );
+      return;
+    }
+
+    this.closeImport();
   }
 
   protected toggleExport(event: Event): void {

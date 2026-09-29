@@ -1,5 +1,5 @@
 import { DatePipe } from '@angular/common';
-import { afterNextRender, Component, computed, inject, signal } from '@angular/core';
+import { afterNextRender, Component, computed, effect, inject, Injector, signal } from '@angular/core';
 import { RouterLink } from '@angular/router';
 import { AuthService } from '../../../../core/auth';
 import { I18nService, translate, TranslatePipe } from '../../../../core/i18n';
@@ -12,6 +12,41 @@ import { matchesSearch, SearchBox } from '../../../../shared/search-box';
 
 const RESULT_LIMIT = 5;
 const CHART_MONTHS = 6;
+const CHART_HEIGHT = 160;
+const CHART_STYLE_KEY = 'cms.overview.chart';
+
+export type ChartStyle = 'bar' | 'line' | 'area';
+
+const CHART_STYLES: readonly { value: ChartStyle; label: string }[] = [
+  { value: 'bar', label: 'Nguzo' },
+  { value: 'line', label: 'Mstari' },
+  { value: 'area', label: 'Eneo' },
+];
+
+function isChartStyle(value: unknown): value is ChartStyle {
+  return value === 'bar' || value === 'line' || value === 'area';
+}
+
+/** Smooth path through the points (Catmull-Rom as cubic Béziers), clamped so it never dips below the baseline. */
+function smoothPath(points: readonly [number, number][]): string {
+  if (points.length === 0) {
+    return '';
+  }
+  const clampY = (y: number) => Math.min(CHART_HEIGHT, Math.max(0, y));
+  let d = `M${points[0][0]},${points[0][1]}`;
+  for (let i = 0; i < points.length - 1; i++) {
+    const [x0, y0] = points[i - 1] ?? points[i];
+    const [x1, y1] = points[i];
+    const [x2, y2] = points[i + 1];
+    const [x3, y3] = points[i + 2] ?? points[i + 1];
+    const c1x = x1 + (x2 - x0) / 6;
+    const c1y = clampY(y1 + (y2 - y0) / 6);
+    const c2x = x2 - (x3 - x1) / 6;
+    const c2y = clampY(y2 - (y3 - y1) / 6);
+    d += ` C${c1x},${c1y} ${c2x},${c2y} ${x2},${y2}`;
+  }
+  return d;
+}
 
 interface Metric {
   label: string;
@@ -47,6 +82,7 @@ export class Overview {
   private readonly usersApi = inject(UsersService);
   private readonly messagesApi = inject(MessagesService);
   private readonly auth = inject(AuthService);
+  private readonly injector = inject(Injector);
   protected readonly i18n = inject(I18nService);
 
   protected readonly can = {
@@ -238,6 +274,24 @@ export class Overview {
 
   protected readonly peakMonth = computed(() => Math.max(1, ...this.months().map((bar) => bar.total)));
 
+  protected readonly chartStyles = CHART_STYLES;
+  protected readonly chartStyle = signal<ChartStyle>('bar');
+  protected readonly chartWidth = computed(() => this.months().length * 100);
+
+  /** Line/area geometry in a viewBox of chartWidth × CHART_HEIGHT; each month owns a 100-unit column. */
+  protected readonly trend = computed(() => {
+    const points = this.months().map(
+      (bar, i) => [i * 100 + 50, CHART_HEIGHT - this.plotHeight(bar.total)] as [number, number],
+    );
+    const line = smoothPath(points);
+    if (!line) {
+      return { line: '', area: '' };
+    }
+    const first = points[0][0];
+    const last = points[points.length - 1][0];
+    return { line, area: `${line} L${last},${CHART_HEIGHT} L${first},${CHART_HEIGHT} Z` };
+  });
+
   protected readonly monthByCategory = computed(() => {
     const total = this.monthTotal();
 
@@ -263,6 +317,12 @@ export class Overview {
 
   constructor() {
     afterNextRender(() => {
+      const stored = localStorage.getItem(CHART_STYLE_KEY);
+      if (isChartStyle(stored)) {
+        this.chartStyle.set(stored);
+      }
+      effect(() => localStorage.setItem(CHART_STYLE_KEY, this.chartStyle()), { injector: this.injector });
+
       void this.loadParish();
       if (this.can.sadaka) {
         void this.loadOfferings();
@@ -284,8 +344,11 @@ export class Overview {
     return OFFERING_CATEGORIES.find((category) => category.value === value)?.label ?? value;
   }
 
-  protected barHeight(total: number): number {
-    return total > 0 ? Math.max(6, Math.round((total / this.peakMonth()) * 160)) : 2;
+  protected plotHeight(total: number): number {
+    if (this.offeringsLoading()) {
+      return 2;
+    }
+    return total > 0 ? Math.max(6, Math.round((total / this.peakMonth()) * CHART_HEIGHT)) : 2;
   }
 
   protected clearFilters(): void {

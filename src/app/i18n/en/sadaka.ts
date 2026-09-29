@@ -35,6 +35,13 @@ export const SADAKA: Record<string, string> = {
   'Hakuna mchango unaolingana na vichujio hivi.': 'No offerings match these filters.',
   'Jumla ({count})': 'Total ({count})',
   'Kumbukumbu {shown} kati ya {total}': '{shown} of {total} records',
+  'Idadi kwa ukurasa': 'Rows per page',
+  'Kurasa za daftari': 'Ledger pages',
+  'Inaonyesha {from}–{to} kati ya {total}': 'Showing {from}–{to} of {total}',
+  'Ukurasa huu ({count})': 'This page ({count})',
+  'Ukurasa uliopita': 'Previous page',
+  'Ukurasa unaofuata': 'Next page',
+  'Ukurasa {page}': 'Page {page}',
   'Majitoleo kwa jumuiya': 'Community gifts',
   'Thamani ya vipaji iliyowasilishwa na kila jumuiya katika kipindi hiki.':
     'Value of gifts presented by each community in this period.',
@@ -112,6 +119,42 @@ export const SADAKA: Record<string, string> = {
   'SMS ya shukrani imetumwa': 'Thank-you SMS sent',
   'SMS ya shukrani imeshindwa': 'Thank-you SMS failed',
   'Namba ya simu ya mtoaji si sahihi.': "The giver's phone number is not valid.",
+
+  // Excel import (Zaka, Fungu la kumi)
+  'Ingiza {category} kutoka Excel': 'Import {category} from Excel',
+  'Una orodha ya {category}?': 'Have a list of {category}?',
+  'Ingiza watoaji wote kwa mara moja kutoka faili la Excel.': 'Import every giver at once from an Excel file.',
+  'Kila mstari ni mtoaji mmoja. Safu za lazima:': 'Each row is one giver. Required columns:',
+  'Hiari:': 'Optional:',
+  'Tarehe ikikosekana, ya leo itatumika. Inakubali .xlsx, .xls, .ods na .csv.':
+    "If the date is missing, today's is used. Accepts .xlsx, .xls, .ods and .csv.",
+  'Tayari kuingizwa': 'Ready to import',
+  Jumla: 'Total',
+  Zitarukwa: 'Will be skipped',
+  'Mistari hii haitaingizwa:': 'These rows will not be imported:',
+  'Tuma SMS ya shukrani kwa watoaji {count} wenye namba za simu':
+    'Send a thank-you SMS to the {count} givers with phone numbers',
+  'Kila mmoja hupokea ujumbe wenye kiasi na tarehe yake. SMS hizi hutozwa gharama.':
+    'Each receives a message with their amount and date. These SMS are charged.',
+  'Ingiza michango {count}': 'Import {count} offerings',
+  'Faili lazima liwe na safu za {name} na {amount}. Pakua kiolezo uone mpangilio.':
+    'The file must have {name} and {amount} columns. Download the template to see the layout.',
+  'Mstari {line}: {reason}': 'Row {line}: {reason}',
+  'Mstari {line} ({name}): {reason}': 'Row {line} ({name}): {reason}',
+  'jina la mtoaji halipo.': "the giver's name is missing.",
+  'kiasi "{value}" si sahihi.': 'amount "{value}" is not valid.',
+  'tarehe "{value}" haieleweki; tumia mfano 2026-09-29 au 29/09/2026.':
+    'date "{value}" is not understood; use e.g. 2026-09-29 or 29/09/2026.',
+  'tarehe {value} ni ya baadaye.': 'date {value} is in the future.',
+  'njia ya malipo "{value}" haijulikani; tumia Taslimu, Pesa kwa simu, Benki au Hundi.':
+    'payment method "{value}" is unknown; use Cash, Mobile money, Bank or Cheque.',
+  'Namba ya simu "{value}" si sahihi, imeachwa.': 'Phone "{value}" is not valid and was left out.',
+  'Jumuiya "{value}" haipo, imeachwa.': 'Community "{value}" does not exist and was left out.',
+  '{category}: michango {count} ya jumla {amount} imeingizwa kutoka Excel.':
+    '{category}: {count} offerings totalling {amount} imported from Excel.',
+  'SMS za shukrani {count} zimetumwa.': '{count} thank-you SMS sent.',
+  'Michango {saved} imeingizwa, {failed} imeshindwa. Rekebisha mistari hii kisha uingize faili lenye hiyo tu.':
+    '{saved} offerings imported, {failed} failed. Fix these rows, then import a file containing only them.',
 
   // Errors
   'Imeshindwa kupakia kumbukumbu za sadaka.': 'Could not load offering records.',

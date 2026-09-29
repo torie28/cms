@@ -1,6 +1,6 @@
 import { isPlatformBrowser } from '@angular/common';
 import { inject, PLATFORM_ID } from '@angular/core';
-import { CanActivateFn, Router } from '@angular/router';
+import { CanActivateFn, RedirectCommand, Router, UrlTree } from '@angular/router';
 import { AuthService } from './auth';
 
 export const authGuard: CanActivateFn = () => {
@@ -16,16 +16,27 @@ export const authGuard: CanActivateFn = () => {
   return auth.isAuthenticated() ? true : router.createUrlTree(['/login']);
 };
 
-/** Sends users to the dashboard unless they can open at least one of the given modules. */
+/** Shows the no-access page unless the user can open at least one of the given modules. */
 export function moduleGuard(key: string | readonly string[]): CanActivateFn {
-  return () => {
+  return (_route, state) => {
     if (!isPlatformBrowser(inject(PLATFORM_ID))) {
       return true;
     }
 
-    const auth = inject(AuthService);
-    return auth.canAccess(key) ? true : inject(Router).createUrlTree(['/dashboard']);
+    if (inject(AuthService).canAccess(key)) {
+      return true;
+    }
+
+    // browserUrl keeps the address the user asked for, so a reload re-checks it
+    // once their role has been given access.
+    return new RedirectCommand(noAccessUrl(inject(Router), key), { browserUrl: state.url });
   };
+}
+
+export function noAccessUrl(router: Router, key: string | readonly string[]): UrlTree {
+  return router.createUrlTree(['/no-access'], {
+    queryParams: { module: [key].flat().join(',') },
+  });
 }
 
 export const guestGuard: CanActivateFn = () => {

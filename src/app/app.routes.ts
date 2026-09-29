@@ -85,7 +85,16 @@ export const routes: Routes = [
           import('./pages/dashboard/components/settings/settings').then((m) => m.Settings),
         children: SETTINGS_ROUTES,
       },
+      {
+        path: 'no-access',
+        title: 'Huna ruhusa · Mfumo wa Usimamizi wa Kanisa',
+        loadComponent: () => import('./pages/forbidden/forbidden').then((m) => m.Forbidden),
+      },
     ],
   },
-  { path: '**', redirectTo: 'login' },
+  {
+    path: '**',
+    title: 'Ukurasa haukupatikana · Mfumo wa Usimamizi wa Kanisa',
+    loadComponent: () => import('./pages/not-found/not-found').then((m) => m.NotFound),
+  },
 ];

@@ -121,6 +121,25 @@ export const COMMON: Record<string, string> = {
   'Inasubiri muunganisho…': 'Waiting for connection…',
   'Jaribu tena': 'Try again',
 
+  // 404 page
+  'Ukurasa haukupatikana': 'Page not found',
+  '404 — Ukurasa haukupatikana': '404 — Page not found',
+  'Anwani uliyofungua haipo au imehamishwa. Hakikisha kiungo ni sahihi, au rudi ulipotoka.':
+    'The address you opened does not exist or has moved. Check the link, or go back to where you were.',
+  'Rudi nyuma': 'Go back',
+  'Nenda kwenye muhtasari': 'Go to the overview',
+
+  // No access (403)
+  'Huna ruhusa': 'Access denied',
+  'Nafasi yako haina ruhusa ya kufungua moduli ya {module}.':
+    'Your role does not have permission to open the {module} module.',
+  'Nafasi yako haina ruhusa ya kufungua ukurasa huu.':
+    'Your role does not have permission to open this page.',
+  'Ikiwa unahitaji kuitumia, wasiliana na msimamizi wa mfumo akupe ruhusa.':
+    'If you need it, ask a system administrator to grant you access.',
+  Ukurasa: 'Page',
+  'Nafasi yako': 'Your role',
+
   // Confirm dialog
   'Una uhakika?': 'Are you sure?',
   Thibitisha: 'Confirm',

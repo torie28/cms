@@ -38,7 +38,7 @@ The project has two parts in one repository:
 | Sadaka (`sadaka`)              | `/sadaka`       | Records offerings by category (sadaka ya ibada, zaka, fungu la kumi, majitoleo ya jumuiya, shukrani, ujenzi, mengineyo) and payment method (cash, mobile, bank, cheque). Personal categories (zaka, fungu la kumi) require the giver's name; majitoleo must belong to a jumuiya. |
 | Arifa na SMS (`notifications`) | `/notifications`| Send messages by **SMS**, **in-app**, or both to: everyone, selected kanda, selected jumuiya, system users, or custom phone numbers. Tracks delivery per recipient, SMS segment counts, and lets you retry failed sends. Users see in-app messages in the notification bell. |
 | Mipangilio (`settings`)        | `/settings/system` | Enable/disable modules. |
-| API na huduma za nje (`api_settings`) | `/settings/apis` | Credentials for external services (e.g. the Beem Africa SMS gateway), stored **encrypted** with `APP_KEY`, with a "send test" button. |
+| API na huduma za nje (`api_settings`) | `/settings/apis` | Credentials for external services (SMS provider: NextSMS or Beem Africa, switchable from the dashboard), stored **encrypted** with `APP_KEY`, with a "send test" button. |
 | Kumbukumbu za shughuli (`activity_logs`) | `/settings/activity-logs` | Audit trail of who did what and when. Deleted records can be **restored** from here. |
 
 ### Other behaviour worth knowing

@@ -36,6 +36,8 @@ class MessageController extends Controller
             'users' => User::query()->orderBy('name')->get(['id', 'name', 'phone', 'role']),
             'gateway' => [
                 'driver' => SmsGateway::driver(),
+                'provider' => SmsGateway::providerLabel(),
+                'test_mode' => SmsGateway::isTestMode(),
                 'sender_id' => SmsGateway::senderId(),
             ],
         ]);

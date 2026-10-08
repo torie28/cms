@@ -46,7 +46,7 @@ export interface ContactBook {
   jumuiyas: { id: number; name: string; kanda_id: number; kanda?: { id: number; name: string } }[];
   members: { id: number; jumuiya_id: number; name: string; phone: string | null }[];
   users: { id: number; name: string; phone: string | null; role: string }[];
-  gateway: { driver: string; sender_id: string };
+  gateway: { driver: string; provider: string; test_mode: boolean; sender_id: string };
 }
 
 export interface MessagePayload {

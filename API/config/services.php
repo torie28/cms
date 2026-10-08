@@ -29,9 +29,15 @@ return [
     ],
 
     'sms' => [
-        // "log" writes messages to storage/logs instead of sending; "beem" uses Beem Africa.
+        // "log" writes messages to storage/logs instead of sending; "nextsms" and "beem" send for real.
         'driver' => env('SMS_DRIVER', 'log'),
         'sender_id' => env('SMS_SENDER_ID', 'PAROKIA'),
+        'nextsms' => [
+            'username' => env('NEXTSMS_USERNAME'),
+            'password' => env('NEXTSMS_PASSWORD'),
+            // "sandbox" uses NextSMS's test endpoint: credentials are checked but nothing is delivered.
+            'environment' => env('NEXTSMS_ENVIRONMENT', 'live'),
+        ],
         'beem' => [
             'api_key' => env('BEEM_API_KEY'),
             'secret_key' => env('BEEM_SECRET_KEY'),

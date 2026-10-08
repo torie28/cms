@@ -9,22 +9,22 @@
     @if (contacts()?.gateway; as gateway) {
       <p
         class="flex items-center gap-2 rounded border px-3 py-1.5 text-xs"
-        [class.border-brass]="gateway.driver === 'log'"
-        [class.bg-brass-tint]="gateway.driver === 'log'"
-        [class.text-brass-strong]="gateway.driver === 'log'"
-        [class.border-line]="gateway.driver !== 'log'"
-        [class.text-muted]="gateway.driver !== 'log'"
-        [title]="gateway.driver === 'log' ? ('Weka SMS_DRIVER=beem kwenye API/.env ili kutuma kwa kweli' | t) : ''"
+        [class.border-brass]="gateway.test_mode"
+        [class.bg-brass-tint]="gateway.test_mode"
+        [class.text-brass-strong]="gateway.test_mode"
+        [class.border-line]="!gateway.test_mode"
+        [class.text-muted]="!gateway.test_mode"
+        [title]="gateway.test_mode ? ('Chagua mtoa huduma halisi kwenye Mipangilio → API na huduma za nje ili kutuma kwa kweli' | t) : ''"
       >
         <span
           class="h-2 w-2 rounded-full"
-          [class.bg-brass-strong]="gateway.driver === 'log'"
-          [class.bg-positive]="gateway.driver !== 'log'"
+          [class.bg-brass-strong]="gateway.test_mode"
+          [class.bg-positive]="!gateway.test_mode"
         ></span>
-        @if (gateway.driver === 'log') {
+        @if (gateway.test_mode) {
           {{ 'Hali ya majaribio · SMS haziendi kwenye simu' | t }}
         } @else {
-          {{ 'Mtoa huduma: {driver} · Mtumaji {sender}' | t: { driver: gateway.driver, sender: gateway.sender_id } }}
+          {{ 'Mtoa huduma: {driver} · Mtumaji {sender}' | t: { driver: gateway.provider, sender: gateway.sender_id } }}
         }
       </p>
     }

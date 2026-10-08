@@ -145,9 +145,11 @@ class ApiSettingController extends Controller
         return response()->json([
             'ok' => true,
             'test_mode' => $isTestMode,
-            'message' => $isTestMode
-                ? 'Iko kwenye hali ya majaribio: ujumbe umeandikwa kwenye storage/logs/laravel.log, haujatumwa.'
-                : 'Ujumbe wa majaribio umetumwa. Hakikisha umeupokea.',
+            'message' => match (true) {
+                $service === 'sms' && $isTestMode && SmsGateway::driver() === 'nextsms' => 'Sandbox ya NextSMS imekubali ombi: username, password na Sender ID vimekubalika. Hakuna SMS iliyotumwa; badili mazingira kuwa "Halisi" ili kutuma kweli.',
+                $isTestMode => 'Iko kwenye hali ya majaribio: ujumbe umeandikwa kwenye storage/logs/laravel.log, haujatumwa.',
+                default => 'Ujumbe wa majaribio umetumwa. Hakikisha umeupokea.',
+            },
         ]);
     }
 

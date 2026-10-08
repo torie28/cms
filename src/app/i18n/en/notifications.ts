@@ -3,7 +3,8 @@ export const NOTIFICATIONS: Record<string, string> = {
   // Header & tabs
   'Tuma ujumbe kwa waumini wote, kanda, jumuiya, watumiaji wa mfumo au watu maalum.':
     'Send messages to all parishioners, zones, communities, system users or specific people.',
-  'Weka SMS_DRIVER=beem kwenye API/.env ili kutuma kwa kweli': 'Set SMS_DRIVER=beem in API/.env to send for real',
+  'Chagua mtoa huduma halisi kwenye Mipangilio → API na huduma za nje ili kutuma kwa kweli':
+    'Choose a real provider in Settings → APIs & external services to send for real',
   'Hali ya majaribio · SMS haziendi kwenye simu': 'Test mode · SMS are not delivered to phones',
   'Mtoa huduma: {driver} · Mtumaji {sender}': 'Provider: {driver} · Sender {sender}',
   'Takwimu za ujumbe': 'Message statistics',
@@ -183,4 +184,6 @@ export const NOTIFICATIONS: Record<string, string> = {
   'Haikutumwa.': 'Not sent.',
   'SMS ya shukrani': 'Thank-you SMS',
   'Beem haijasanidiwa (BEEM_API_KEY / BEEM_SECRET_KEY).': 'Beem is not configured (BEEM_API_KEY / BEEM_SECRET_KEY).',
+  'NextSMS haijasanidiwa (username / password).': 'NextSMS is not configured (username / password).',
+  'NextSMS imekataa username au password (HTTP 401).': 'NextSMS rejected the username or password (HTTP 401).',
 };

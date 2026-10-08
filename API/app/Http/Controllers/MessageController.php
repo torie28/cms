@@ -61,7 +61,7 @@ class MessageController extends Controller
 
     public function store(Request $request): JsonResponse
     {
-        $this->ensureModule($request);
+        $this->ensureCan($request, 'notifications', 'create');
 
         $data = $request->validate([
             'channel' => ['required', Rule::in(self::CHANNELS)],
@@ -148,7 +148,7 @@ class MessageController extends Controller
     /** Sends the failed SMS of a message again. */
     public function retry(Request $request, Message $message): JsonResponse
     {
-        $this->ensureModule($request);
+        $this->ensureCan($request, 'notifications', 'create');
 
         $failed = $message->recipients()->where('channel', 'sms')->where('status', 'failed')->get();
         abort_if($failed->isEmpty(), 422, 'Hakuna SMS iliyoshindwa kwenye ujumbe huu.');

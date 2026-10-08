@@ -13,9 +13,9 @@
     </p>
   }
 
-  @if (!isAdmin()) {
+  @if (!canUpdate()) {
     <p class="rounded border border-line bg-sunken px-3 py-2 text-xs text-muted">
-      {{ 'Ni msimamizi pekee anayeweza kubadilisha mipangilio ya API.' | t }}
+      {{ 'Huna ruhusa ya kubadilisha mipangilio ya API.' | t }}
     </p>
   }
 
@@ -96,7 +96,7 @@
                       <select
                         [id]="id"
                         class="filter-input w-full"
-                        [disabled]="!isAdmin() || st.saving"
+                        [disabled]="!canUpdate() || st.saving"
                         (change)="setDraft(service, field, $any($event.target).value)"
                       >
                         @if (!field.required) {
@@ -123,14 +123,14 @@
                               : ('Bado haijawekwa' | t)
                           "
                           [value]="draftValue(service, field)"
-                          [disabled]="!isAdmin() || st.saving"
+                          [disabled]="!canUpdate() || st.saving"
                           (input)="setDraft(service, field, $any($event.target).value)"
                         />
                         <button
                           type="button"
                           class="shrink-0 rounded border border-line px-2 text-xs text-muted hover:bg-sunken"
                           [attr.aria-label]="(isRevealed(service, field) ? 'Ficha' : 'Onyesha') | t"
-                          [disabled]="!isAdmin()"
+                          [disabled]="!canUpdate()"
                           (click)="toggleReveal(service, field)"
                         >
                           {{ (isRevealed(service, field) ? 'Ficha' : 'Onyesha') | t }}
@@ -146,7 +146,7 @@
                         [attr.min]="field.type === 'number' ? 1 : null"
                         [placeholder]="field.placeholder ?? ''"
                         [value]="draftValue(service, field)"
-                        [disabled]="!isAdmin() || st.saving"
+                        [disabled]="!canUpdate() || st.saving"
                         (input)="setDraft(service, field, $any($event.target).value)"
                       />
                     }
@@ -160,7 +160,7 @@
             }
           </div>
 
-          @if (isAdmin()) {
+          @if (canUpdate()) {
             <div class="flex flex-wrap items-center justify-end gap-2 border-t border-line pt-4">
               @if (service.overridden) {
                 <button
@@ -188,7 +188,7 @@
           }
         </form>
 
-        @if (isAdmin()) {
+        @if (canUpdate()) {
           <form
             class="space-y-2 border-t border-line bg-sunken/50 px-5 py-4"
             (submit)="$event.preventDefault(); sendTest(service)"

@@ -5,13 +5,15 @@
       <p class="mt-1 text-sm text-muted">{{ 'Kanda za parokia. Kila kanda ina jumuiya moja au zaidi.' | t }}</p>
     </div>
     <div class="flex flex-wrap items-center gap-2">
-      <button
-        type="button"
-        class="rounded border border-line px-4 py-2 text-sm hover:bg-sunken"
-        (click)="openImport()"
-      >
-        {{ 'Ingiza kutoka Excel' | t }}
-      </button>
+      @if (canCreate()) {
+        <button
+          type="button"
+          class="rounded border border-line px-4 py-2 text-sm hover:bg-sunken"
+          (click)="openImport()"
+        >
+          {{ 'Ingiza kutoka Excel' | t }}
+        </button>
+      }
       <div class="relative">
         <button
           type="button"
@@ -41,13 +43,15 @@
           </div>
         }
       </div>
-      <button
-        type="button"
-        class="rounded bg-brass-strong px-4 py-2 text-sm font-medium text-canvas hover:opacity-90"
-        (click)="openForm()"
-      >
-        {{ 'Ongeza kanda' | t }}
-      </button>
+      @if (canCreate()) {
+        <button
+          type="button"
+          class="rounded bg-brass-strong px-4 py-2 text-sm font-medium text-canvas hover:opacity-90"
+          (click)="openForm()"
+        >
+          {{ 'Ongeza kanda' | t }}
+        </button>
+      }
     </div>
   </div>
 

@@ -84,8 +84,8 @@
       {{ 'Kitu kilichofutwa kinaweza kurejeshwa ndani ya' | t }}
       <strong>{{ 'siku {days}' | t: { days: retentionDays } }}</strong>.
       {{ 'Baada ya hapo mfumo hukifuta kabisa, lakini maelezo yake hubaki hapa ili yaangaliwe (hakiwezi kurejeshwa tena).' | t }}
-      @if (!isAdmin()) {
-        {{ 'Msimamizi pekee ndiye anayeweza kurejesha au kufuta kabisa.' | t }}
+      @if (!canRestore() && !canPurge()) {
+        {{ 'Huna ruhusa ya kurejesha au kufuta kabisa.' | t }}
       }
     </p>
   }
@@ -339,7 +339,7 @@
                     {{ 'Angalia' | t }}
                   </button>
                 }
-                @if (isAdmin() && isPendingDeletion(entry)) {
+                @if (canRestore() && isPendingDeletion(entry)) {
                   <button
                     type="button"
                     class="rounded px-2 py-1 text-xs font-medium text-positive hover:bg-positive/10 disabled:opacity-50"
@@ -348,6 +348,8 @@
                   >
                     {{ 'Rejesha' | t }}
                   </button>
+                }
+                @if (canPurge() && isPendingDeletion(entry)) {
                   <button
                     type="button"
                     class="rounded px-2 py-1 text-xs text-negative hover:bg-negative/10 disabled:opacity-50"
@@ -462,7 +464,7 @@
       </div>
 
       <footer class="flex flex-wrap justify-end gap-2 border-t border-line px-5 py-3">
-        @if (isAdmin() && isPendingDeletion(entry)) {
+        @if (canPurge() && isPendingDeletion(entry)) {
           <button
             type="button"
             class="rounded px-3 py-2 text-sm text-negative hover:bg-negative/10 disabled:opacity-50"
@@ -471,6 +473,8 @@
           >
             {{ 'Futa kabisa' | t }}
           </button>
+        }
+        @if (canRestore() && isPendingDeletion(entry)) {
           <button
             type="button"
             class="rounded bg-positive px-4 py-2 text-sm font-medium text-canvas hover:opacity-90 disabled:opacity-50"

@@ -25,7 +25,9 @@ export class Roles {
   private readonly auth = inject(AuthService);
   private readonly confirm = inject(ConfirmService);
 
-  protected readonly isAdmin = this.auth.isAdmin;
+  protected readonly canCreate = computed(() => this.auth.can('users', 'create'));
+  protected readonly canUpdate = computed(() => this.auth.can('users', 'update'));
+  protected readonly canDelete = computed(() => this.auth.can('users', 'delete'));
   protected readonly previewCount = PREVIEW_MEMBERS;
   protected readonly skeletonCards = [1, 2, 3];
 

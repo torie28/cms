@@ -4,9 +4,11 @@ import {
   ChangeDetectionStrategy,
   Component,
   computed,
+  effect,
   inject,
   signal,
 } from '@angular/core';
+import { AuthService } from '../../../../core/auth';
 import { ConfirmService } from '../../../../core/confirm';
 import { httpErrorMessage } from '../../../../core/http-error';
 import { I18nService, translate, TranslatePipe } from '../../../../core/i18n';
@@ -57,7 +59,9 @@ const PICKER_LIMIT = 60;
 export class NotificationsPage {
   private readonly messages = inject(MessagesService);
   private readonly confirm = inject(ConfirmService);
+  private readonly auth = inject(AuthService);
   protected readonly i18n = inject(I18nService);
+  protected readonly canCreate = computed(() => this.auth.can('notifications', 'create'));
 
   protected readonly tab = signal<Tab>('compose');
   protected readonly channelLabels = CHANNEL_LABELS;
@@ -437,6 +441,12 @@ export class NotificationsPage {
   });
 
   constructor() {
+    effect(() => {
+      if (!this.canCreate() && this.tab() === 'compose') {
+        this.tab.set('history');
+      }
+    });
+
     afterNextRender(() => {
       void this.loadContacts();
       void this.loadHistory();
@@ -444,7 +454,7 @@ export class NotificationsPage {
   }
 
   protected setTab(tab: Tab): void {
-    this.tab.set(tab);
+    this.tab.set(tab === 'compose' && !this.canCreate() ? 'history' : tab);
   }
 
   protected setAudience(audience: AudienceType): void {

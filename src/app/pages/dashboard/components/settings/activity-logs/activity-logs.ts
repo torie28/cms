@@ -66,7 +66,9 @@ export class ActivityLogs {
   protected readonly i18n = inject(I18nService);
   private polling = false;
 
-  protected readonly isAdmin = inject(AuthService).isAdmin;
+  private readonly auth = inject(AuthService);
+  protected readonly canRestore = computed(() => this.auth.can('activity_logs', 'update'));
+  protected readonly canPurge = computed(() => this.auth.can('activity_logs', 'delete'));
   protected readonly retentionDays = RETENTION_DAYS;
   protected readonly pendingCount = computed(
     () => this.deletedLogs().filter((entry) => isPendingDeletion(entry, this.now())).length,

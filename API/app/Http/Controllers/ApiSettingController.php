@@ -29,8 +29,7 @@ class ApiSettingController extends Controller
      */
     public function update(Request $request, string $service): JsonResponse
     {
-        $this->ensureModule($request);
-        $this->ensureAdmin($request);
+        $this->ensureCan($request, 'api_settings', 'update');
         abort_unless(ApiSettings::exists($service), 404);
 
         $fields = ApiSettings::DEFINITIONS[$service]['fields'];
@@ -106,8 +105,7 @@ class ApiSettingController extends Controller
 
     public function test(Request $request, string $service): JsonResponse
     {
-        $this->ensureModule($request);
-        $this->ensureAdmin($request);
+        $this->ensureCan($request, 'api_settings', 'update');
         abort_unless(ApiSettings::exists($service), 404);
 
         $appName = (string) config('app.name');

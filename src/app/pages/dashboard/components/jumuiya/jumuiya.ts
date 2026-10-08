@@ -11,6 +11,7 @@ import { ActivatedRoute } from '@angular/router';
 import { FilterPanel, parseBound, withinNumberRange } from '../../../../shared/filter-panel';
 import { matchesSearch, SearchBox } from '../../../../shared/search-box';
 import { ActivityService } from '../../../../core/activity';
+import { AuthService } from '../../../../core/auth';
 import { ConfirmService } from '../../../../core/confirm';
 import { httpErrorMessage } from '../../../../core/http-error';
 import { translate, TranslatePipe } from '../../../../core/i18n';
@@ -57,6 +58,10 @@ export class JumuiyaPage {
   private readonly parish = inject(ParishService);
   private readonly fb = inject(FormBuilder);
   private readonly confirm = inject(ConfirmService);
+  private readonly auth = inject(AuthService);
+  protected readonly canCreate = computed(() => this.auth.can('jumuiya', 'create'));
+  protected readonly canUpdate = computed(() => this.auth.can('jumuiya', 'update'));
+  protected readonly canDelete = computed(() => this.auth.can('jumuiya', 'delete'));
 
   protected readonly jumuiyas = signal<Jumuiya[]>([]);
   protected readonly kandas = signal<Kanda[]>([]);

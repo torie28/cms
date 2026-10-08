@@ -22,6 +22,8 @@ class KandaController extends Controller
 
     public function store(Request $request): JsonResponse
     {
+        $this->ensureCan($request, 'kanda', 'create');
+
         $data = $request->validate([
             'name' => ['required', 'string', 'max:255', 'unique:kandas,name'],
             'leader' => ['nullable', 'string', 'max:255'],
@@ -44,6 +46,8 @@ class KandaController extends Controller
 
     public function import(Request $request): JsonResponse
     {
+        $this->ensureCan($request, 'kanda', 'create');
+
         $data = $request->validate([
             'kandas' => ['required', 'array', 'min:1', 'max:500'],
             'kandas.*.name' => ['required', 'string', 'max:255', 'distinct:ignore_case'],

@@ -19,6 +19,8 @@ class JumuiyaMemberController extends Controller
 
     public function store(Request $request, Jumuiya $jumuiya): JsonResponse
     {
+        $this->ensureCan($request, 'jumuiya', 'create');
+
         if ($request->exists('members')) {
             return $this->storeMany($request, $jumuiya);
         }
@@ -41,6 +43,7 @@ class JumuiyaMemberController extends Controller
 
     public function update(Request $request, Jumuiya $jumuiya, JumuiyaMember $member): JsonResponse
     {
+        $this->ensureCan($request, 'jumuiya', 'update');
         $this->ensureMember($jumuiya, $member);
         $member->update($this->validated($request));
         $changes = ActivityLogger::changes($member, ['name' => 'Jina', 'phone' => 'Simu', 'gender' => 'Jinsia']);
@@ -63,6 +66,7 @@ class JumuiyaMemberController extends Controller
 
     public function destroy(Request $request, Jumuiya $jumuiya, JumuiyaMember $member): JsonResponse
     {
+        $this->ensureCan($request, 'jumuiya', 'delete');
         $this->ensureMember($jumuiya, $member);
         $snapshot = Recycle::snapshot($member);
         $member->delete();

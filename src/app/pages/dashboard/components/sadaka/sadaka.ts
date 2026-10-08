@@ -14,6 +14,7 @@ import {
 import { FormBuilder, ReactiveFormsModule, Validators } from '@angular/forms';
 import { ActivatedRoute } from '@angular/router';
 import { ActivityService } from '../../../../core/activity';
+import { AuthService } from '../../../../core/auth';
 import { ConfirmService } from '../../../../core/confirm';
 import { httpErrorMessage } from '../../../../core/http-error';
 import { I18nService, translate, TranslatePipe } from '../../../../core/i18n';
@@ -112,7 +113,11 @@ export class Sadaka {
   private readonly fb = inject(FormBuilder);
   private readonly route = inject(ActivatedRoute);
   private readonly confirm = inject(ConfirmService);
+  private readonly auth = inject(AuthService);
   protected readonly i18n = inject(I18nService);
+  protected readonly canCreate = computed(() => this.auth.can('sadaka', 'create'));
+  protected readonly canUpdate = computed(() => this.auth.can('sadaka', 'update'));
+  protected readonly canDelete = computed(() => this.auth.can('sadaka', 'delete'));
 
   protected readonly categories = OFFERING_CATEGORIES;
   protected readonly paymentMethods = PAYMENT_METHODS;

@@ -9,6 +9,7 @@ import {
 import { FormBuilder, ReactiveFormsModule, Validators } from '@angular/forms';
 import { ActivatedRoute } from '@angular/router';
 import { ActivityService } from '../../../../core/activity';
+import { AuthService } from '../../../../core/auth';
 import { httpErrorMessage } from '../../../../core/http-error';
 import { translate, TranslatePipe } from '../../../../core/i18n';
 import {
@@ -44,6 +45,8 @@ interface KandaImportPlan {
 export class KandaPage {
   private readonly parish = inject(ParishService);
   private readonly activity = inject(ActivityService);
+  private readonly auth = inject(AuthService);
+  protected readonly canCreate = computed(() => this.auth.can('kanda', 'create'));
 
   protected readonly exportFormats = EXPORT_FORMATS;
   protected readonly spreadsheetAccept = SPREADSHEET_ACCEPT;

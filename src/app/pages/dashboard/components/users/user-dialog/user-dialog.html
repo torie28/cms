@@ -22,7 +22,10 @@
         }
       </h2>
       <p class="mt-1 text-sm text-muted">
-        {{ 'Ataweza kuingia kwa jina la mtumiaji na nenosiri hili, na ataona moduli utakazomchagulia tu.' | t }}
+        {{
+          'Ataweza kuingia kwa jina la mtumiaji na nenosiri hili, na ataona moduli utakazomchagulia tu. Ndani ya kila moduli, chagua kama anaweza kuongeza, kuhariri au kufuta.'
+            | t
+        }}
       </p>
     </header>
 
@@ -120,7 +123,7 @@
               class="filter-input w-full"
               (change)="onRoleChange($any($event.target).value)"
             >
-              @for (role of roles(); track role.id) {
+              @for (role of assignableRoles(); track role.id) {
                 <option [value]="role.name">{{ role.label | t }}</option>
               }
             </select>
@@ -139,37 +142,58 @@
 
           @if (isAdminRole()) {
             <p class="mb-2 rounded border border-line bg-sunken px-3 py-2 text-xs text-muted">
-              {{ 'Msimamizi anafikia moduli zote moja kwa moja.' | t }}
+              {{ 'Msimamizi anafikia moduli zote moja kwa moja, na anaweza kuongeza, kuhariri na kufuta ndani ya kila moduli.' | t }}
             </p>
           }
 
           <div class="grid gap-2 sm:grid-cols-2">
             @for (module of availableModules(); track module.key) {
               @let locked = module.key === alwaysOn || isAdminRole();
-              <label
-                class="flex items-start gap-3 rounded border px-3 py-2.5 text-sm"
-                [class.cursor-pointer]="!locked"
+              <div
+                class="rounded border px-3 py-2.5 text-sm"
                 [class.opacity-70]="locked"
                 [class.border-brass]="isSelected(module.key)"
                 [class.bg-brass-tint]="isSelected(module.key)"
                 [class.border-line]="!isSelected(module.key)"
               >
-                <input
-                  type="checkbox"
-                  class="mt-0.5 accent-[var(--brass-strong)]"
-                  [checked]="isSelected(module.key)"
-                  [disabled]="locked"
-                  (change)="toggleModule(module.key)"
-                />
-                <span class="min-w-0">
-                  <span class="block font-medium">{{ module.label | t }}</span>
-                  @if (module.key === alwaysOn) {
-                    <span class="block text-xs text-faint">{{ 'Kila mtumiaji anaiona' | t }}</span>
-                  } @else if (module.description) {
-                    <span class="block text-xs text-muted">{{ module.description | t }}</span>
-                  }
-                </span>
-              </label>
+                <label class="flex items-start gap-3" [class.cursor-pointer]="!locked">
+                  <input
+                    type="checkbox"
+                    class="mt-0.5 accent-[var(--brass-strong)]"
+                    [checked]="isSelected(module.key)"
+                    [disabled]="locked"
+                    (change)="toggleModule(module.key)"
+                  />
+                  <span class="min-w-0">
+                    <span class="block font-medium">{{ module.label | t }}</span>
+                    @if (module.key === alwaysOn) {
+                      <span class="block text-xs text-faint">{{ 'Kila mtumiaji anaiona' | t }}</span>
+                    } @else if (module.description) {
+                      <span class="block text-xs text-muted">{{ module.description | t }}</span>
+                    }
+                  </span>
+                </label>
+                @if (!locked && isSelected(module.key) && actionsFor(module.key).length) {
+                  <div class="mt-2 flex flex-wrap gap-x-3 gap-y-1 pl-7">
+                    @for (option of actionsFor(module.key); track option.action) {
+                      <label
+                        class="inline-flex items-center gap-1.5 text-xs"
+                        [class.cursor-pointer]="!privilegeLocked(module.key, option.action)"
+                        [class.opacity-50]="privilegeLocked(module.key, option.action)"
+                      >
+                        <input
+                          type="checkbox"
+                          class="accent-[var(--brass-strong)]"
+                          [checked]="hasPrivilege(module.key, option.action)"
+                          [disabled]="privilegeLocked(module.key, option.action)"
+                          (change)="togglePrivilege(module.key, option.action)"
+                        />
+                        {{ option.label | t }}
+                      </label>
+                    }
+                  </div>
+                }
+              </div>
             }
           </div>
         </fieldset>

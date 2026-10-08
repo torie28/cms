@@ -5,7 +5,9 @@ namespace App\Http\Controllers;
 use App\Models\Module;
 use App\Models\User;
 use App\Support\ActivityLogger;
+use App\Support\Modules;
 use App\Support\Recycle;
+use App\Support\Roles;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
@@ -35,7 +37,7 @@ class UserController extends Controller
 
     public function store(Request $request): JsonResponse
     {
-        $this->ensureAdmin($request);
+        $this->ensureCan($request, 'users', 'create');
 
         $data = $request->validate([
             ...$this->rules(),
@@ -44,9 +46,11 @@ class UserController extends Controller
             'password' => ['required', 'string', 'min:4'],
         ]);
 
+        $this->guardAssignment($request, $data);
+
         $user = DB::transaction(function () use ($data) {
-            $user = User::query()->create(collect($data)->except('modules')->all());
-            $this->syncModules($user, $data['modules'] ?? []);
+            $user = User::query()->create(collect($data)->except(['modules', 'privileges'])->all());
+            $this->syncModules($user, $data['modules'] ?? [], $data['privileges'] ?? []);
 
             return $user;
         });
@@ -65,7 +69,7 @@ class UserController extends Controller
 
     public function update(Request $request, User $user): JsonResponse
     {
-        $this->ensureAdmin($request);
+        $this->ensureCan($request, 'users', 'update');
 
         $data = $request->validate([
             ...$this->rules(),
@@ -78,11 +82,13 @@ class UserController extends Controller
             unset($data['password']);
         }
 
+        $this->guardAssignment($request, $data, $user);
+
         $modulesBefore = $this->moduleLabels($user);
 
         DB::transaction(function () use ($user, $data) {
-            $user->update(collect($data)->except('modules')->all());
-            $this->syncModules($user, $data['modules'] ?? []);
+            $user->update(collect($data)->except(['modules', 'privileges'])->all());
+            $this->syncModules($user, $data['modules'] ?? [], $data['privileges'] ?? []);
         });
 
         $changes = ActivityLogger::changes($user, self::FIELD_LABELS);
@@ -106,9 +112,14 @@ class UserController extends Controller
 
     public function destroy(Request $request, User $user): JsonResponse
     {
-        $this->ensureAdmin($request);
+        $this->ensureCan($request, 'users', 'delete');
 
         abort_if($user->is($request->user()), 422, 'Huwezi kufuta akaunti yako mwenyewe.');
+        abort_if(
+            $user->role === Roles::ADMIN && $request->user()->role !== Roles::ADMIN,
+            403,
+            'Ni msimamizi pekee anayeweza kufuta msimamizi.',
+        );
 
         $subject = $user->name.' ('.$user->username.')';
         $snapshot = Recycle::snapshot($user);
@@ -140,23 +151,95 @@ class UserController extends Controller
             'role' => ['required', 'string', Rule::exists('roles', 'name')->whereNull('deleted_at')],
             'modules' => ['sometimes', 'array'],
             'modules.*' => ['string', 'distinct', 'exists:modules,key'],
+            'privileges' => ['sometimes', 'array'],
+            'privileges.*' => ['array'],
+            'privileges.*.create' => ['sometimes', 'boolean'],
+            'privileges.*.update' => ['sometimes', 'boolean'],
+            'privileges.*.delete' => ['sometimes', 'boolean'],
         ];
     }
 
     /**
-     * @param  list<string>  $keys
+     * A non-admin may grant only modules and actions they already have, and may not
+     * create or edit an administrator. Privileges the account already has can stay.
+     *
+     * @param  array<string, mixed>  $data
      */
-    private function syncModules(User $user, array $keys): void
+    private function guardAssignment(Request $request, array $data, ?User $target = null): void
     {
-        $user->modules()->sync(Module::query()->whereIn('key', $keys)->pluck('id'));
+        $actor = $request->user();
+
+        if ($actor->role === Roles::ADMIN) {
+            return;
+        }
+
+        abort_if($target?->is($actor), 403, 'Huwezi kujihariri mwenyewe kupitia orodha hii.');
+        abort_if(
+            $target?->role === Roles::ADMIN || ($data['role'] ?? null) === Roles::ADMIN,
+            403,
+            'Ni msimamizi pekee anayeweza kugawa wadhifa wa msimamizi.',
+        );
+
+        $target?->loadMissing('modules');
+        $privileges = $data['privileges'] ?? [];
+
+        foreach ($data['modules'] ?? [] as $key) {
+            $existing = $target?->modules->firstWhere('key', $key);
+
+            abort_if(
+                $existing === null && ! Modules::canAccess($actor, $key),
+                403,
+                'Huwezi kumpa moduli usiyo nayo.',
+            );
+
+            $given = is_array($privileges[$key] ?? null) ? $privileges[$key] : [];
+
+            foreach (Modules::ACTIONS[$key] ?? [] as $action) {
+                $wanted = array_key_exists($action, $given)
+                    ? (bool) $given[$action]
+                    : ($existing === null);
+                $had = $existing !== null && (bool) $existing->pivot->{'can_'.$action};
+
+                abort_if(
+                    $wanted && ! $had && ! Modules::can($actor, $key, $action),
+                    403,
+                    'Huwezi kumpa ruhusa usiyo nayo.',
+                );
+            }
+        }
+    }
+
+    /**
+     * @param  list<string>  $keys
+     * @param  array<string, mixed>  $privileges
+     */
+    private function syncModules(User $user, array $keys, array $privileges): void
+    {
+        $modules = Module::query()->whereIn('key', $keys)->get();
+        $sync = [];
+
+        foreach ($modules as $module) {
+            $given = is_array($privileges[$module->key] ?? null) ? $privileges[$module->key] : [];
+            $sync[$module->id] = Modules::flags($module->key, $given, $given === []);
+        }
+
+        $user->modules()->sync($sync);
     }
 
     private function moduleLabels(User $user): string
     {
-        return Module::query()
-            ->whereIn('id', $user->modules()->pluck('modules.id'))
+        return $user->modules()
             ->orderBy('sort_order')
-            ->pluck('label')
+            ->get()
+            ->map(function (Module $module) {
+                $parts = array_filter([
+                    $module->pivot->can_create ? 'ongeza' : null,
+                    $module->pivot->can_update ? 'hariri' : null,
+                    $module->pivot->can_delete ? 'futa' : null,
+                ]);
+
+                return $module->label.' ('.($parts === [] ? 'kuona tu' : implode(', ', $parts)).')';
+            })
             ->join(', ');
     }
 
@@ -171,6 +254,7 @@ class UserController extends Controller
             'gender' => $user->gender,
             'role' => $user->role,
             'modules' => $user->modules->pluck('key')->values(),
+            'privileges' => Modules::privilegesFor($user),
             'created_at' => $user->created_at,
         ];
     }

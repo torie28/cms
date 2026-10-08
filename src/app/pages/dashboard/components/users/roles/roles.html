@@ -1,7 +1,7 @@
 <div class="space-y-6">
   <div class="flex flex-wrap items-center justify-between gap-4">
     <app-search-box class="w-full sm:w-80" [placeholder]="'Tafuta wadhifa…' | t" [(value)]="search" />
-    @if (isAdmin()) {
+    @if (canCreate()) {
       <button
         type="button"
         class="rounded bg-brass-strong px-4 py-2 text-sm font-medium text-canvas hover:opacity-90"
@@ -65,24 +65,28 @@
             }
           </div>
 
-          @if (isAdmin()) {
+          @if (canCreate() || canUpdate() || canDelete()) {
             <div class="mt-5 flex flex-wrap items-center gap-2 border-t border-line pt-4">
-              <button
-                type="button"
-                class="rounded bg-brass-tint px-3 py-1.5 text-xs font-medium text-brass-strong hover:opacity-90"
-                (click)="openAssign(role)"
-              >
-                {{ 'Mpe mtumiaji wadhifa huu' | t }}
-              </button>
+              @if (canCreate()) {
+                <button
+                  type="button"
+                  class="rounded bg-brass-tint px-3 py-1.5 text-xs font-medium text-brass-strong hover:opacity-90"
+                  (click)="openAssign(role)"
+                >
+                  {{ 'Mpe mtumiaji wadhifa huu' | t }}
+                </button>
+              }
               <span class="flex-1"></span>
-              <button
-                type="button"
-                class="rounded px-2 py-1 text-xs text-muted hover:bg-sunken hover:text-ink"
-                (click)="openEditRole(role)"
-              >
-                {{ 'Hariri' | t }}
-              </button>
-              @if (!role.is_system) {
+              @if (canUpdate()) {
+                <button
+                  type="button"
+                  class="rounded px-2 py-1 text-xs text-muted hover:bg-sunken hover:text-ink"
+                  (click)="openEditRole(role)"
+                >
+                  {{ 'Hariri' | t }}
+                </button>
+              }
+              @if (canDelete() && !role.is_system) {
                 <button
                   type="button"
                   class="rounded px-2 py-1 text-xs text-negative hover:bg-negative/10 disabled:opacity-40"

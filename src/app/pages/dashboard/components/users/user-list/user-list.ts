@@ -12,7 +12,7 @@ import { AuthService } from '../../../../../core/auth';
 import { ConfirmService } from '../../../../../core/confirm';
 import { httpErrorMessage } from '../../../../../core/http-error';
 import { I18nService, translate, TranslatePipe } from '../../../../../core/i18n';
-import { AppModule, ModulesService } from '../../../../../core/modules';
+import { AppModule, MODULE_ACTIONS, ModulesService } from '../../../../../core/modules';
 import { Role, roleLabel, RolesService } from '../../../../../core/roles';
 import { genderLabel, ManagedUser, UsersService } from '../../../../../core/users';
 import { FilterPanel, withinDateRange } from '../../../../../shared/filter-panel';
@@ -36,7 +36,9 @@ export class UserList {
   private readonly confirm = inject(ConfirmService);
   protected readonly i18n = inject(I18nService);
 
-  protected readonly isAdmin = this.auth.isAdmin;
+  protected readonly canCreate = computed(() => this.auth.can('users', 'create'));
+  protected readonly canUpdate = computed(() => this.auth.can('users', 'update'));
+  protected readonly canDelete = computed(() => this.auth.can('users', 'delete'));
   protected readonly currentUserId = computed(() => this.auth.user()?.id);
   protected readonly genderLabel = genderLabel;
   protected readonly skeletonRows = [1, 2, 3, 4, 5];
@@ -119,7 +121,18 @@ export class UserList {
 
     const labels = this.modules()
       .filter((module) => person.modules.includes(module.key))
-      .map((module) => translate(module.label));
+      .map((module) => {
+        const options = MODULE_ACTIONS[module.key] ?? [];
+        const granted = options.filter((option) => person.privileges?.[module.key]?.[option.action]);
+        const label = translate(module.label);
+        if (options.length === 0 || granted.length === options.length) {
+          return label;
+        }
+        if (granted.length === 0) {
+          return `${label} (${translate('kuona tu')})`;
+        }
+        return `${label} (${granted.map((option) => translate(option.label)).join(', ')})`;
+      });
 
     return labels.length ? labels.join(', ') : translate('Muhtasari tu');
   }

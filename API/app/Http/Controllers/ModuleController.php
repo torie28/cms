@@ -24,7 +24,7 @@ class ModuleController extends Controller
 
     public function update(Request $request, Module $module): JsonResponse
     {
-        $this->ensureAdmin($request);
+        $this->ensureCan($request, 'settings', 'update');
 
         $data = $request->validate([
             'label' => ['sometimes', 'required', 'string', 'max:255'],

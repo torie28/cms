@@ -36,7 +36,7 @@ class OfferingController extends Controller
 
     public function store(Request $request): JsonResponse
     {
-        $this->ensureAccess($request);
+        $this->ensureCan($request, 'sadaka', 'create');
 
         $offering = Offering::query()->create([
             ...$this->validated($request),
@@ -60,7 +60,7 @@ class OfferingController extends Controller
 
     public function update(Request $request, Offering $offering): JsonResponse
     {
-        $this->ensureAccess($request);
+        $this->ensureCan($request, 'sadaka', 'update');
 
         $offering->update($this->validated($request));
         $changes = ActivityLogger::changes($offering, [
@@ -94,7 +94,7 @@ class OfferingController extends Controller
 
     public function destroy(Request $request, Offering $offering): JsonResponse
     {
-        $this->ensureAccess($request);
+        $this->ensureCan($request, 'sadaka', 'delete');
 
         $snapshot = Recycle::snapshot($offering);
         $offering->delete();

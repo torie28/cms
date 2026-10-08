@@ -28,8 +28,8 @@ export const USERS: Record<string, string> = {
   // User dialog
   'Hariri mtumiaji': 'Edit user',
   'Mpe mtumiaji wadhifa wa {role}': 'Assign a user the role of {role}',
-  'Ataweza kuingia kwa jina la mtumiaji na nenosiri hili, na ataona moduli utakazomchagulia tu.':
-    'They will sign in with this username and password, and will only see the modules you choose for them.',
+  'Ataweza kuingia kwa jina la mtumiaji na nenosiri hili, na ataona moduli utakazomchagulia tu. Ndani ya kila moduli, chagua kama anaweza kuongeza, kuhariri au kufuta.':
+    'They will sign in with this username and password, and will only see the modules you choose. For each module, choose whether they can add, edit or delete.',
   'Jina linahitajika.': 'Name is required.',
   'Tumia herufi, namba, _ au - tu.': 'Use only letters, numbers, _ or -.',
   '(acha wazi kubaki na la zamani)': '(leave blank to keep the current one)',
@@ -42,7 +42,16 @@ export const USERS: Record<string, string> = {
   'Moduli anazoweza kufikia': 'Modules they can access',
   'Chagua/ondoa zote': 'Select/clear all',
   'Msimamizi anafikia moduli zote moja kwa moja.': 'An administrator automatically has access to all modules.',
+  'Msimamizi anafikia moduli zote moja kwa moja, na anaweza kuongeza, kuhariri na kufuta ndani ya kila moduli.':
+    'An administrator automatically has every module, and can add, edit and delete in each of them.',
+  'Huna ruhusa ya kufanya hivi katika moduli hii.': 'You do not have permission to do this in this module.',
+  'Huwezi kujihariri mwenyewe kupitia orodha hii.': 'You cannot edit your own account from this list.',
+  'Ni msimamizi pekee anayeweza kugawa wadhifa wa msimamizi.': 'Only an administrator can assign the administrator role.',
+  'Huwezi kumpa moduli usiyo nayo.': 'You cannot grant a module you do not have.',
+  'Huwezi kumpa ruhusa usiyo nayo.': 'You cannot grant a permission you do not have.',
+  'Ni msimamizi pekee anayeweza kufuta msimamizi.': 'Only an administrator can delete an administrator.',
   'Kila mtumiaji anaiona': 'Visible to every user',
+  'kuona tu': 'view only',
   'Hifadhi mtumiaji': 'Save user',
   'Imeshindwa kuhifadhi mtumiaji huyo.': 'Could not save that user.',
 

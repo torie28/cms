@@ -44,20 +44,22 @@
   </section>
 
   <nav class="flex gap-1 border-b border-line" role="tablist" [attr.aria-label]="'Sehemu za arifa' | t">
-    <button
-      type="button"
-      role="tab"
-      class="-mb-px border-b-2 px-4 py-2 text-sm"
-      [class.border-brass-strong]="tab() === 'compose'"
-      [class.font-medium]="tab() === 'compose'"
-      [class.text-brass-strong]="tab() === 'compose'"
-      [class.border-transparent]="tab() !== 'compose'"
-      [class.text-muted]="tab() !== 'compose'"
-      [attr.aria-selected]="tab() === 'compose'"
-      (click)="setTab('compose')"
-    >
-      {{ 'Tuma ujumbe' | t }}
-    </button>
+    @if (canCreate()) {
+      <button
+        type="button"
+        role="tab"
+        class="-mb-px border-b-2 px-4 py-2 text-sm"
+        [class.border-brass-strong]="tab() === 'compose'"
+        [class.font-medium]="tab() === 'compose'"
+        [class.text-brass-strong]="tab() === 'compose'"
+        [class.border-transparent]="tab() !== 'compose'"
+        [class.text-muted]="tab() !== 'compose'"
+        [attr.aria-selected]="tab() === 'compose'"
+        (click)="setTab('compose')"
+      >
+        {{ 'Tuma ujumbe' | t }}
+      </button>
+    }
     <button
       type="button"
       role="tab"
@@ -88,7 +90,7 @@
     </div>
   }
 
-  @if (tab() === 'compose') {
+  @if (tab() === 'compose' && canCreate()) {
     <div class="grid items-start gap-6 lg:grid-cols-[minmax(0,1fr)_22rem]">
       <section class="divide-y divide-line rounded border border-line bg-surface">
         <!-- 1. Channel -->
@@ -609,7 +611,9 @@
               <tr>
                 <td colspan="6" class="px-4 py-8 text-center text-muted">
                   {{ 'Bado hujatuma ujumbe wowote.' | t }}
-                  <button type="button" class="text-brass-strong hover:underline" (click)="setTab('compose')">{{ 'Tuma wa kwanza' | t }}</button>
+                  @if (canCreate()) {
+                    <button type="button" class="text-brass-strong hover:underline" (click)="setTab('compose')">{{ 'Tuma wa kwanza' | t }}</button>
+                  }
                 </td>
               </tr>
             } @else {
@@ -801,10 +805,12 @@
       </div>
 
       <footer class="flex flex-wrap justify-end gap-2 border-t border-line px-5 py-3">
-        <button type="button" class="rounded border border-line px-3 py-2 text-sm hover:bg-sunken" (click)="sendAgain(message)">
-          {{ 'Tumia tena ujumbe huu' | t }}
-        </button>
-        @if (message.sms_failed > 0) {
+        @if (canCreate()) {
+          <button type="button" class="rounded border border-line px-3 py-2 text-sm hover:bg-sunken" (click)="sendAgain(message)">
+            {{ 'Tumia tena ujumbe huu' | t }}
+          </button>
+        }
+        @if (canCreate() && message.sms_failed > 0) {
           <button
             type="button"
             class="rounded bg-brass-strong px-4 py-2 text-sm font-medium text-canvas hover:opacity-90 disabled:opacity-50"

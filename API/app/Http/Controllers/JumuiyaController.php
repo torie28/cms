@@ -24,6 +24,8 @@ class JumuiyaController extends Controller
 
     public function store(Request $request): JsonResponse
     {
+        $this->ensureCan($request, 'jumuiya', 'create');
+
         $data = $request->validate([
             'name' => ['required', 'string', 'max:255'],
             'kanda_id' => ['required', 'integer', 'exists:kandas,id'],
@@ -77,6 +79,8 @@ class JumuiyaController extends Controller
 
     public function update(Request $request, Jumuiya $jumuiya): JsonResponse
     {
+        $this->ensureCan($request, 'jumuiya', 'update');
+
         $data = $request->validate([
             'name' => ['required', 'string', 'max:255'],
             'kanda_id' => ['required', 'integer', 'exists:kandas,id'],
@@ -109,6 +113,8 @@ class JumuiyaController extends Controller
 
     public function destroy(Request $request, Jumuiya $jumuiya): JsonResponse
     {
+        $this->ensureCan($request, 'jumuiya', 'delete');
+
         $snapshot = Recycle::snapshot($jumuiya);
         $jumuiya->delete();
 

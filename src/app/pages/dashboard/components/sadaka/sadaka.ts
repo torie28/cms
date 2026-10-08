@@ -22,6 +22,7 @@ import { displayPhone, normalizePhone } from '../../../../core/messages';
 import {
   downloadOfferingTemplate,
   OfferingImportPlan,
+  offeringsSheet,
   readOfferingSheet,
 } from '../../../../core/offering-transfer';
 import {
@@ -773,24 +774,23 @@ export class Sadaka {
 
     try {
       const { from, to } = this.range();
-      const title = translate('Sadaka na michango');
-      const subtitle = translate('Kuanzia {from} hadi {to}', { from, to });
-      const ledger: SheetData = {
-        name: translate('Orodha ya michango'),
-        head: ['Tarehe', 'Aina', 'Mtoaji', 'Jumuiya', 'Njia ya malipo', 'Namba ya risiti', 'Kiasi (TSh)', 'Maelezo'].map(
-          (label) => translate(label),
-        ),
-        rows: rows.map((item) => [
-          item.received_on,
-          translate(this.categoryLabel(item.category)),
-          item.contributor ?? '',
-          item.jumuiya?.name ?? '',
-          translate(this.methodLabel(item.payment_method)),
-          item.reference ?? '',
-          Number(item.amount).toFixed(2),
-          item.notes ?? '',
-        ]),
-      };
+      const jumuiya = this.jumuiyas().find((group) => group.id === this.jumuiyaFilter());
+      const category = this.categoryFilter();
+      const method = this.methodFilter();
+      const title = [
+        category ? translate(this.categoryLabel(category)) : translate('Sadaka na michango'),
+        jumuiya?.name,
+      ]
+        .filter(Boolean)
+        .join(' — ');
+      const subtitle = [
+        translate('Kuanzia {from} hadi {to}', { from, to }),
+        method ? translate(this.methodLabel(method)) : '',
+        this.search() ? translate('Utafutaji: "{query}"', { query: this.search() }) : '',
+      ]
+        .filter(Boolean)
+        .join(' · ');
+      const ledger = offeringsSheet(rows, translate('Orodha ya michango'));
       const summary: SheetData = {
         name: translate('Muhtasari'),
         head: [translate('Aina'), translate('Idadi'), translate('Jumla (TSh)')],
@@ -807,20 +807,26 @@ export class Sadaka {
             .filter((row) => row[1] !== '0'),
           [translate('Jumla kuu'), String(rows.length), this.filteredTotal().toFixed(2)],
         ],
+        totalRow: true,
       };
       const filename = datedFilename(title);
 
       if (format === 'xlsx') {
-        await saveWorkbook([summary, ledger], `${filename}.xlsx`);
+        await saveWorkbook([summary, ledger], `${filename}.xlsx`, { title, subtitle });
       } else if (format === 'csv') {
-        await saveCsv(ledger, `${filename}.csv`);
+        await saveCsv({ ...ledger, rows: ledger.rows.slice(0, rows.length) }, `${filename}.csv`);
       } else {
         await savePdf(
           title,
           subtitle,
           [
-            { heading: summary.name, head: summary.head, rows: summary.rows },
-            { heading: ledger.name, head: ledger.head.slice(0, 7), rows: ledger.rows.map((row) => row.slice(0, 7)) },
+            { heading: summary.name, head: summary.head, rows: summary.rows, totalRow: true },
+            {
+              heading: ledger.name,
+              head: ledger.head.slice(0, 7),
+              rows: ledger.rows.map((row) => row.slice(0, 7)),
+              totalRow: ledger.totalRow,
+            },
           ],
           `${filename}.pdf`,
           format === 'print',
@@ -829,7 +835,7 @@ export class Sadaka {
 
       void this.activity.record({
         action: 'exported',
-        subject: `${rows.length} offerings (${from} – ${to}) as ${FORMAT_NAMES[format]}`,
+        subject: `${rows.length} offerings${jumuiya ? ` of ${jumuiya.name}` : ''} (${from} – ${to}) as ${FORMAT_NAMES[format]}`,
         subject_type: 'offering',
       });
     } catch (error) {

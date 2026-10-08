@@ -1,6 +1,18 @@
 import { translate } from './i18n';
+import { offeringsSheet, sumOfferings } from './offering-transfer';
+import { Offering } from './offerings';
 import { Jumuiya } from './parish';
-import { datedFilename, ExportFormat, readSheet, saveCsv, savePdf, saveWorkbook, slug } from './spreadsheet';
+import {
+  datedFilename,
+  ExportFormat,
+  readSheet,
+  saveCsv,
+  savePdf,
+  saveReport,
+  saveWorkbook,
+  SheetData,
+  slug,
+} from './spreadsheet';
 
 export type { ExportFormat } from './spreadsheet';
 
@@ -70,6 +82,11 @@ export async function readSpreadsheet(file: File): Promise<ImportedRow[]> {
   return rows.filter((row) => row.jumuiya || row.member || row.phone);
 }
 
+const GENDER_CHOICES = ['Mwanamke', 'Mwanaume'];
+
+const jumuiyaTitle = (name: string) =>
+  /^jumuiya\b/i.test(name) ? name : translate('Jumuiya ya {name}', { name });
+
 export async function downloadTemplate(forJumuiya?: string): Promise<void> {
   if (forJumuiya) {
     await saveWorkbook(
@@ -81,9 +98,15 @@ export async function downloadTemplate(forJumuiya?: string): Promise<void> {
             ['Maria Joseph', '0712345678', 'Mwanamke'],
             ['Petro Paulo', '0754321098', 'Mwanaume'],
           ],
+          choices: { 2: GENDER_CHOICES },
         },
       ],
       `kiolezo-${slug(forJumuiya, 'jumuiya')}.xlsx`,
+      {
+        title: jumuiyaTitle(forJumuiya),
+        subtitle: translate('Kiolezo cha kuingiza wanajumuiya'),
+        template: true,
+      },
     );
     return;
   }
@@ -97,10 +120,77 @@ export async function downloadTemplate(forJumuiya?: string): Promise<void> {
           ['Mt. Yosefu', 'Kanda ya Kati', 'Yohana Petro', 'Maria Joseph', '0712345678', 'Mwanamke'],
           ['Mt. Yosefu', 'Kanda ya Kati', 'Yohana Petro', 'Petro Paulo', '0754321098', 'Mwanaume'],
         ],
+        choices: { 5: GENDER_CHOICES },
       },
     ],
     'kiolezo-jumuiya.xlsx',
+    {
+      title: translate('Kiolezo cha Jumuiya'),
+      subtitle: translate('Jumuiya na wanajumuiya wake'),
+      template: true,
+    },
   );
+}
+
+export interface JumuiyaProfileExtras {
+  /** All offerings recorded for the jumuiya, or null when the user cannot see Sadaka. */
+  offerings: Offering[] | null;
+  /** Jumuiyas that were split off from this one. */
+  children: Jumuiya[];
+}
+
+/** Everything known about one jumuiya: details, members and its offerings. */
+export async function exportJumuiyaProfile(
+  group: Jumuiya,
+  format: ExportFormat,
+  { offerings, children }: JumuiyaProfileExtras,
+): Promise<void> {
+  const members = group.members ?? [];
+  const count = (gender: string | null) => members.filter((member) => member.gender === gender).length;
+  const unknown = members.length - count('male') - count('female');
+
+  const details: SheetData = {
+    name: translate('Taarifa'),
+    head: [translate('Kipengele'), translate('Taarifa')],
+    labelColumn: true,
+    rows: [
+      [translate('Jina la jumuiya'), group.name],
+      [translate('Kanda'), group.kanda?.name ?? ''],
+      [translate('Mwenyekiti'), group.chairperson ?? ''],
+      ...(group.parent ? [[translate('Imetokana na'), group.parent.name]] : []),
+      ...(children.length > 0
+        ? [[translate('Jumuiya zilizotokana nayo'), children.map((child) => child.name).join(', ')]]
+        : []),
+      [translate('Wanajumuiya'), String(members.length)],
+      [translate('Wanaume'), String(count('male'))],
+      [translate('Wanawake'), String(count('female'))],
+      ...(unknown > 0 ? [[translate('Jinsia haijajazwa'), String(unknown)]] : []),
+      ...(offerings
+        ? [
+            [translate('Idadi ya michango'), String(offerings.length)],
+            [translate('Jumla ya michango (TSh)'), sumOfferings(offerings).toFixed(2)],
+          ]
+        : []),
+      [translate('Maelezo'), group.notes ?? ''],
+    ],
+  };
+
+  const memberSheet: SheetData = {
+    name: translate('Wanajumuiya'),
+    head: ['#', HEADERS.member, HEADERS.phone, HEADERS.gender],
+    rows: members.map((member, index) => [
+      String(index + 1),
+      member.name,
+      member.phone ?? '',
+      genderText(member.gender),
+    ]),
+  };
+
+  await saveReport(format, [details, memberSheet, ...(offerings ? [offeringsSheet(offerings)] : [])], {
+    title: jumuiyaTitle(group.name),
+    subtitle: [group.kanda?.name, translate('Taarifa kamili ya jumuiya')].filter(Boolean).join(' · '),
+    csvSheet: 1,
+  });
 }
 
 export async function exportJumuiyas(
@@ -136,6 +226,10 @@ export async function exportJumuiyas(
   };
 
   const filename = datedFilename(title);
+  const subtitle = translate('Jumuiya {groups} · Wanajumuiya {members}', {
+    groups: jumuiyas.length,
+    members: members.rows.length,
+  });
 
   if (format === 'csv') {
     await saveCsv(members, `${filename}.csv`);
@@ -143,7 +237,7 @@ export async function exportJumuiyas(
   }
 
   if (format === 'xlsx') {
-    await saveWorkbook([summary, members], `${filename}.xlsx`);
+    await saveWorkbook([summary, members], `${filename}.xlsx`, { title, subtitle });
     return;
   }
 
@@ -166,10 +260,7 @@ export async function exportJumuiyas(
 
   await savePdf(
     title,
-    translate('Jumuiya {groups} · Wanajumuiya {members}', {
-      groups: jumuiyas.length,
-      members: members.rows.length,
-    }),
+    subtitle,
     sections,
     `${filename}.pdf`,
     format === 'print',

@@ -22,22 +22,59 @@
           class="rounded border border-line px-4 py-2 text-sm hover:bg-sunken disabled:opacity-50"
           aria-haspopup="menu"
           [attr.aria-expanded]="exportMenu() === 'page'"
-          [disabled]="filteredJumuiyas().length === 0 || exporting()"
+          [disabled]="(filteredJumuiyas().length === 0 && !selected()) || exporting()"
           (click)="toggleExportMenu('page', $event)"
         >
           {{ (exporting() ? 'Inaandaa…' : 'Pakua ▾') | t }}
         </button>
         @if (exportMenu() === 'page') {
           <div
-            class="absolute right-0 z-30 mt-1 w-44 overflow-hidden rounded border border-line bg-surface shadow-lg"
+            class="absolute right-0 z-30 mt-1 w-64 overflow-hidden rounded border border-line bg-surface shadow-lg"
             role="menu"
+            (click)="$event.stopPropagation()"
           >
+            @if (selected(); as group) {
+              <div class="border-b border-line bg-sunken p-2" role="radiogroup" [attr.aria-label]="'Nini cha kupakua' | t">
+                <p class="px-1 pb-1.5 text-[0.7rem] tracking-[0.12em] text-faint uppercase">{{ 'Nini cha kupakua' | t }}</p>
+                <div class="grid grid-cols-2 gap-1">
+                  <button
+                    type="button"
+                    role="radio"
+                    [attr.aria-checked]="exportScope() === 'selected'"
+                    class="truncate rounded px-2 py-1.5 text-xs"
+                    [class]="exportScope() === 'selected' ? 'bg-brass-strong text-canvas' : 'hover:bg-surface'"
+                    [title]="group.name"
+                    (click)="exportScope.set('selected')"
+                  >
+                    {{ group.name }}
+                  </button>
+                  <button
+                    type="button"
+                    role="radio"
+                    [attr.aria-checked]="exportScope() === 'all'"
+                    class="truncate rounded px-2 py-1.5 text-xs disabled:opacity-50"
+                    [class]="exportScope() === 'all' ? 'bg-brass-strong text-canvas' : 'hover:bg-surface'"
+                    [disabled]="filteredJumuiyas().length === 0"
+                    (click)="exportScope.set('all')"
+                  >
+                    {{ 'Zote ({count})' | t: { count: filteredJumuiyas().length } }}
+                  </button>
+                </div>
+                <p class="px-1 pt-1.5 text-[0.7rem] text-muted">
+                  {{
+                    (exportScope() === 'selected'
+                      ? 'Taarifa, wanajumuiya na michango ya jumuiya hii.'
+                      : 'Jumuiya zote zinazoonekana kwenye orodha.') | t
+                  }}
+                </p>
+              </div>
+            }
             @for (format of exportFormats; track format.value) {
               <button
                 type="button"
                 role="menuitem"
                 class="block w-full px-3 py-2 text-left text-sm hover:bg-sunken"
-                (click)="exportAll(format.value)"
+                (click)="exportPage(format.value)"
               >
                 {{ format.label | t }}
               </button>

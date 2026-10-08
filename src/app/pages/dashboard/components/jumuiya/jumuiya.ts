@@ -21,11 +21,13 @@ import { EXPORT_FORMATS, FORMAT_NAMES, SPREADSHEET_ACCEPT } from '../../../../co
 import {
   downloadTemplate,
   ExportFormat,
+  exportJumuiyaProfile,
   exportJumuiyas,
   ImportedRow,
   normalizeGender,
   readSpreadsheet,
 } from '../../../../core/jumuiya-transfer';
+import { OfferingService } from '../../../../core/offerings';
 import {
   Jumuiya,
   JumuiyaMember,
@@ -58,6 +60,7 @@ interface ImportPlan {
 })
 export class JumuiyaPage {
   private readonly parish = inject(ParishService);
+  private readonly offeringsApi = inject(OfferingService);
   private readonly fb = inject(FormBuilder);
   private readonly confirm = inject(ConfirmService);
   private readonly auth = inject(AuthService);
@@ -145,6 +148,7 @@ export class JumuiyaPage {
   protected readonly importing = signal(false);
   protected readonly notice = signal<string | null>(null);
   protected readonly exportMenu = signal<'page' | 'view' | null>(null);
+  protected readonly exportScope = signal<'selected' | 'all'>('selected');
   protected readonly exporting = signal(false);
   protected readonly exportFormats = EXPORT_FORMATS;
   protected readonly spreadsheetAccept = SPREADSHEET_ACCEPT;
@@ -646,6 +650,7 @@ export class JumuiyaPage {
 
   protected toggleExportMenu(menu: 'page' | 'view', event: Event): void {
     event.stopPropagation();
+    this.exportScope.set('selected');
     this.exportMenu.update((current) => (current === menu ? null : menu));
   }
 
@@ -667,7 +672,12 @@ export class JumuiyaPage {
       const detailed = await Promise.all(
         this.filteredJumuiyas().map((group) => this.parish.getJumuiya(group.id)),
       );
-      await exportJumuiyas(detailed, format, translate('Jumuiya zote'));
+      const kanda = this.kandas().find((item) => item.id === this.kandaFilter());
+      await exportJumuiyas(
+        detailed,
+        format,
+        kanda ? translate('Jumuiya za {kanda}', { kanda: kanda.name }) : translate('Jumuiya zote'),
+      );
       void this.activity.record({
         action: 'exported',
         subject: `${detailed.length} jumuiyas as ${FORMAT_NAMES[format]}`,
@@ -680,6 +690,11 @@ export class JumuiyaPage {
     }
   }
 
+  /** The page "Pakua" menu exports the selected jumuiya unless the user switches it to the whole list. */
+  protected async exportPage(format: ExportFormat): Promise<void> {
+    await (this.selected() && this.exportScope() === 'selected' ? this.exportSelected(format) : this.exportAll(format));
+  }
+
   protected async exportSelected(format: ExportFormat): Promise<void> {
     this.exportMenu.set(null);
     const group = this.selected();
@@ -689,17 +704,25 @@ export class JumuiyaPage {
     }
 
     this.exporting.set(true);
+    this.error.set(null);
 
     try {
-      await exportJumuiyas(
-        [{ ...group, members: this.members() }],
-        format,
-        translate('Jumuiya {name}', { name: group.name }),
-      );
+      const [detail, offerings] = await Promise.all([
+        this.parish.getJumuiya(group.id),
+        this.auth.canAccess('sadaka')
+          ? this.offeringsApi.list({ from: '', to: '', jumuiyaIds: [group.id] }).catch(() => null)
+          : Promise.resolve(null),
+      ]);
+      await exportJumuiyaProfile({ ...group, ...detail, parent: group.parent ?? null }, format, {
+        offerings,
+        children: this.jumuiyas().filter((item) => (item.parent_id ?? item.parent?.id) === group.id),
+      });
       void this.activity.record({
         action: 'exported',
-        subject: `${group.name} members as ${FORMAT_NAMES[format]}`,
-        subject_type: 'jumuiya_member',
+        subject: `${group.name} (details, ${detail.members?.length ?? 0} members${
+          offerings ? `, ${offerings.length} offerings` : ''
+        }) as ${FORMAT_NAMES[format]}`,
+        subject_type: 'jumuiya',
       });
     } catch (error) {
       this.error.set(httpErrorMessage(error, 'Imeshindwa kuandaa faili la kupakua.'));

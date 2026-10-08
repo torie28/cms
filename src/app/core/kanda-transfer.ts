@@ -1,6 +1,18 @@
 import { translate } from './i18n';
-import { Jumuiya, Kanda } from './parish';
-import { datedFilename, ExportFormat, readSheet, saveCsv, savePdf, saveWorkbook } from './spreadsheet';
+import { genderText } from './jumuiya-transfer';
+import { offeringsSheet, sumOfferings } from './offering-transfer';
+import { Offering } from './offerings';
+import { Jumuiya, Kanda, KandaDetail } from './parish';
+import {
+  datedFilename,
+  ExportFormat,
+  readSheet,
+  saveCsv,
+  savePdf,
+  saveReport,
+  saveWorkbook,
+  SheetData,
+} from './spreadsheet';
 
 export type KandaRow = { line: number; name: string; leader: string; notes: string };
 
@@ -37,6 +49,110 @@ export async function downloadKandaTemplate(): Promise<void> {
       },
     ],
     'kiolezo-kanda.xlsx',
+    { title: translate('Kiolezo cha Kanda'), subtitle: translate('Kanda za parokia'), template: true },
+  );
+}
+
+/**
+ * Everything known about one kanda: details, its jumuiyas, every member and the jumuiyas' offerings.
+ * `groups` are the kanda's jumuiyas loaded with members; `offerings` is null when the user cannot see Sadaka.
+ */
+export async function exportKandaProfile(
+  kanda: KandaDetail,
+  groups: Jumuiya[],
+  offerings: Offering[] | null,
+  format: ExportFormat,
+): Promise<void> {
+  const showYear = kanda.offerings_year !== null;
+  const membersOf = new Map(groups.map((group) => [group.id, group.members ?? []]));
+  const jumuiyas = kanda.jumuiyas;
+
+  const details: SheetData = {
+    name: translate('Taarifa'),
+    head: [translate('Kipengele'), translate('Taarifa')],
+    labelColumn: true,
+    rows: [
+      [translate('Jina la kanda'), kanda.name],
+      [translate('Kiongozi'), kanda.leader ?? ''],
+      [translate('Jumuiya'), String(jumuiyas.length)],
+      [translate('Jumuiya zilizogawanywa'), String(jumuiyas.filter((group) => group.parent).length)],
+      [translate('Wanajumuiya'), String(kanda.members_count)],
+      [translate('Wanaume'), String(kanda.male_count)],
+      [translate('Wanawake'), String(kanda.female_count)],
+      ...(showYear ? [[translate('Michango ya jumuiya mwaka huu (TSh)'), Number(kanda.offerings_year).toFixed(2)]] : []),
+      ...(offerings
+        ? [
+            [translate('Idadi ya michango yote'), String(offerings.length)],
+            [translate('Jumla ya michango yote (TSh)'), sumOfferings(offerings).toFixed(2)],
+          ]
+        : []),
+      [translate('Maelezo'), kanda.notes ?? ''],
+    ],
+  };
+
+  const sum = (pick: (group: (typeof jumuiyas)[number]) => number) =>
+    jumuiyas.reduce((total, group) => total + pick(group), 0);
+
+  const jumuiyaSheet: SheetData = {
+    name: translate('Jumuiya'),
+    head: [
+      translate('Jumuiya'),
+      translate('Mwenyekiti'),
+      translate('Imetokana na'),
+      translate('Wanajumuiya'),
+      translate('Wanaume'),
+      translate('Wanawake'),
+      ...(showYear ? [translate('Michango mwaka huu (TSh)')] : []),
+    ],
+    rows: [
+      ...jumuiyas.map((group) => [
+        group.name,
+        group.chairperson ?? '',
+        group.parent?.name ?? '',
+        String(group.members_count),
+        String(group.male_count),
+        String(group.female_count),
+        ...(showYear ? [Number(group.offerings_year ?? 0).toFixed(2)] : []),
+      ]),
+      ...(jumuiyas.length > 0
+        ? [
+            [
+              translate('Jumla kuu'),
+              '',
+              '',
+              String(sum((group) => group.members_count)),
+              String(sum((group) => group.male_count)),
+              String(sum((group) => group.female_count)),
+              ...(showYear ? [sum((group) => Number(group.offerings_year ?? 0)).toFixed(2)] : []),
+            ],
+          ]
+        : []),
+    ],
+    totalRow: jumuiyas.length > 0,
+  };
+
+  const memberSheet: SheetData = {
+    name: translate('Wanajumuiya'),
+    head: ['#', 'Jumuiya', 'Mwanajumuiya', 'Simu', 'Jinsia'],
+    rows: jumuiyas
+      .flatMap((group) => (membersOf.get(group.id) ?? []).map((member) => ({ group, member })))
+      .map(({ group, member }, index) => [
+        String(index + 1),
+        group.name,
+        member.name,
+        member.phone ?? '',
+        genderText(member.gender),
+      ]),
+  };
+
+  await saveReport(
+    format,
+    [details, jumuiyaSheet, memberSheet, ...(offerings ? [offeringsSheet(offerings)] : [])],
+    {
+      title: /^kanda\b/i.test(kanda.name) ? kanda.name : translate('Kanda ya {name}', { name: kanda.name }),
+      subtitle: translate('Taarifa kamili ya kanda'),
+      csvSheet: 2,
+    },
   );
 }
 
@@ -80,6 +196,7 @@ export async function exportKandas(
   };
 
   const filename = datedFilename(title);
+  const subtitle = `Kanda ${kandas.length} · Jumuiya ${detail.rows.length}`;
 
   if (format === 'csv') {
     await saveCsv(summary, `${filename}.csv`);
@@ -87,7 +204,7 @@ export async function exportKandas(
   }
 
   if (format === 'xlsx') {
-    await saveWorkbook([summary, detail], `${filename}.xlsx`);
+    await saveWorkbook([summary, detail], `${filename}.xlsx`, { title, subtitle });
     return;
   }
 
@@ -110,7 +227,7 @@ export async function exportKandas(
 
   await savePdf(
     title,
-    `Kanda ${kandas.length} · Jumuiya ${detail.rows.length}`,
+    subtitle,
     sections,
     `${filename}.pdf`,
     format === 'print',

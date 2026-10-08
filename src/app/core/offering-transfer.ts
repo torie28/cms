@@ -1,8 +1,47 @@
 import { translate } from './i18n';
 import { normalizePhone } from './messages';
-import { OfferingCategory, OfferingPayload, PaymentMethod } from './offerings';
+import {
+  Offering,
+  OFFERING_CATEGORIES,
+  OfferingCategory,
+  OfferingPayload,
+  PAYMENT_METHODS,
+  PaymentMethod,
+} from './offerings';
 import { Jumuiya } from './parish';
-import { readSheet, saveWorkbook, slug } from './spreadsheet';
+import { readSheet, saveWorkbook, SheetData, slug } from './spreadsheet';
+
+export const sumOfferings = (offerings: Offering[]) =>
+  offerings.reduce((total, offering) => total + Number(offering.amount), 0);
+
+/** Ledger of offerings closed by a grand-total row, as used by every module's export. */
+export function offeringsSheet(offerings: Offering[], name = translate('Michango')): SheetData {
+  const label = (list: readonly { value: string; label: string }[], value: string) =>
+    translate(list.find((item) => item.value === value)?.label ?? value);
+
+  return {
+    name,
+    head: ['Tarehe', 'Aina', 'Mtoaji', 'Jumuiya', 'Njia ya malipo', 'Namba ya risiti', 'Kiasi (TSh)', 'Maelezo'].map(
+      (heading) => translate(heading),
+    ),
+    rows: [
+      ...offerings.map((item) => [
+        item.received_on,
+        label(OFFERING_CATEGORIES, item.category),
+        item.contributor ?? '',
+        item.jumuiya?.name ?? '',
+        label(PAYMENT_METHODS, item.payment_method),
+        item.reference ?? '',
+        Number(item.amount).toFixed(2),
+        item.notes ?? '',
+      ]),
+      ...(offerings.length > 0
+        ? [[translate('Jumla kuu'), '', '', '', '', '', sumOfferings(offerings).toFixed(2), '']]
+        : []),
+    ],
+    totalRow: offerings.length > 0,
+  };
+}
 
 const HEADERS = {
   contributor: 'Jina',
@@ -209,8 +248,14 @@ export async function downloadOfferingTemplate(categoryLabel: string, today: str
           ['Maria Joseph', '20000', today, '0712345678', 'Mt. Yosefu', 'Taslimu', '', ''],
           ['Petro Paulo', '15000', today, '0754321098', '', 'Pesa kwa simu', 'QK12AB34CD', 'Septemba'],
         ],
+        choices: { 5: ['Taslimu', 'Pesa kwa simu', 'Benki', 'Hundi'] },
       },
     ],
     `kiolezo-${slug(categoryLabel, 'michango')}.xlsx`,
+    {
+      title: categoryLabel,
+      subtitle: translate('Kiolezo cha kuingiza michango · Tarehe kwa mfumo {format}', { format: 'YYYY-MM-DD' }),
+      template: true,
+    },
   );
 }

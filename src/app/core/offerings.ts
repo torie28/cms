@@ -85,13 +85,16 @@ export interface OfferingPayload {
 export class OfferingService {
   private readonly http = inject(HttpClient);
 
-  list(range: { from: string; to: string }): Promise<Offering[]> {
-    const params: Record<string, string> = {};
+  list(range: { from: string; to: string; jumuiyaIds?: number[] }): Promise<Offering[]> {
+    const params: Record<string, string | string[]> = {};
     if (range.from) {
       params['from'] = range.from;
     }
     if (range.to) {
       params['to'] = range.to;
+    }
+    if (range.jumuiyaIds?.length) {
+      params['jumuiya_ids[]'] = range.jumuiyaIds.map(String);
     }
 
     return firstValueFrom(this.http.get<Offering[]>(`${API_BASE}/offerings`, { params }));

@@ -14,10 +14,12 @@ import { httpErrorMessage } from '../../../../core/http-error';
 import { I18nService, translate, TranslatePipe } from '../../../../core/i18n';
 import {
   downloadKandaTemplate,
+  exportKandaProfile,
   exportKandas,
   KandaRow,
   readKandaSpreadsheet,
 } from '../../../../core/kanda-transfer';
+import { OfferingService } from '../../../../core/offerings';
 import { Jumuiya, Kanda, KandaDetail, ParishService } from '../../../../core/parish';
 import {
   EXPORT_FORMATS,
@@ -56,6 +58,7 @@ interface KandaImportPlan {
 })
 export class KandaPage {
   private readonly parish = inject(ParishService);
+  private readonly offeringsApi = inject(OfferingService);
   private readonly activity = inject(ActivityService);
   private readonly auth = inject(AuthService);
   private readonly i18n = inject(I18nService);
@@ -161,7 +164,9 @@ export class KandaPage {
   protected readonly importing = signal(false);
   protected readonly notice = signal<string | null>(null);
   protected readonly exportMenuOpen = signal(false);
+  protected readonly detailExportOpen = signal(false);
   protected readonly exporting = signal(false);
+  protected readonly exportingKandaId = signal<number | null>(null);
 
   protected readonly kandas = signal<Kanda[]>([]);
   protected readonly search = signal(inject(ActivatedRoute).snapshot.queryParamMap.get('q') ?? '');
@@ -401,6 +406,47 @@ export class KandaPage {
       this.error.set(httpErrorMessage(error, 'Imeshindwa kuandaa faili la kupakua.'));
     } finally {
       this.exporting.set(false);
+    }
+  }
+
+  /** Exports one kanda in full: its details, jumuiyas, every member and the jumuiyas' offerings. */
+  protected async exportKanda(kanda: Kanda, format: ExportFormat): Promise<void> {
+    this.detailExportOpen.set(false);
+
+    if (this.exporting()) {
+      return;
+    }
+
+    this.exporting.set(true);
+    this.exportingKandaId.set(kanda.id);
+    this.error.set(null);
+    this.detailError.set(null);
+
+    try {
+      const detail = this.detail()?.id === kanda.id ? this.detail()! : await this.parish.getKanda(kanda.id);
+      const ids = detail.jumuiyas.map((group) => group.id);
+      const [groups, offerings] = await Promise.all([
+        Promise.all(ids.map((id) => this.parish.getJumuiya(id))),
+        this.auth.canAccess('sadaka')
+          ? ids.length > 0
+            ? this.offeringsApi.list({ from: '', to: '', jumuiyaIds: ids }).catch(() => null)
+            : Promise.resolve([])
+          : Promise.resolve(null),
+      ]);
+      await exportKandaProfile(detail, groups, offerings, format);
+      void this.activity.record({
+        action: 'exported',
+        subject: `${kanda.name} (details, ${groups.length} jumuiyas${
+          offerings ? `, ${offerings.length} offerings` : ''
+        }) as ${FORMAT_NAMES[format]}`,
+        subject_type: 'kanda',
+      });
+    } catch (error) {
+      const message = httpErrorMessage(error, 'Imeshindwa kuandaa faili la kupakua.');
+      (this.detailOpen() ? this.detailError : this.error).set(message);
+    } finally {
+      this.exporting.set(false);
+      this.exportingKandaId.set(null);
     }
   }
 

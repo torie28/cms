@@ -314,6 +314,15 @@
             <button type="button" class="text-sm text-brass-strong hover:underline" (click)="openDetail(kanda)">
               {{ 'Tazama' | t }}
             </button>
+            <button
+              type="button"
+              class="text-sm text-brass-strong hover:underline disabled:opacity-50"
+              [disabled]="exporting()"
+              [title]="'Pakua taarifa zote za {name} kwa Excel' | t: { name: kanda.name }"
+              (click)="exportKanda(kanda, 'xlsx')"
+            >
+              {{ (exportingKandaId() === kanda.id ? 'Inaandaa…' : 'Pakua Excel') | t }}
+            </button>
             @if (canUpdate()) {
               <button type="button" class="text-sm text-brass-strong hover:underline" (click)="openForm(kanda, $event)">
                 {{ 'Hariri' | t }}
@@ -551,6 +560,39 @@
         }
         <div class="flex shrink-0 items-center gap-2">
           @if (detail(); as kanda) {
+            <div class="relative">
+              <button
+                type="button"
+                class="rounded border border-line px-3 py-1.5 text-sm hover:bg-sunken disabled:opacity-50"
+                aria-haspopup="menu"
+                [attr.aria-expanded]="detailExportOpen()"
+                [disabled]="exporting()"
+                (click)="$event.stopPropagation(); detailExportOpen.set(!detailExportOpen())"
+              >
+                {{ (exporting() ? 'Inaandaa…' : 'Pakua ▾') | t }}
+              </button>
+              @if (detailExportOpen()) {
+                <div class="fixed inset-0 z-20" (click)="detailExportOpen.set(false)"></div>
+                <div
+                  class="absolute right-0 z-30 mt-1 w-60 overflow-hidden rounded border border-line bg-surface shadow-lg"
+                  role="menu"
+                >
+                  <p class="border-b border-line bg-sunken px-3 py-2 text-[0.7rem] text-muted">
+                    {{ 'Taarifa, jumuiya, wanajumuiya na michango ya {name}.' | t: { name: kanda.name } }}
+                  </p>
+                  @for (format of exportFormats; track format.value) {
+                    <button
+                      type="button"
+                      role="menuitem"
+                      class="block w-full px-3 py-2 text-left text-sm hover:bg-sunken"
+                      (click)="exportKanda(kanda, format.value)"
+                    >
+                      {{ format.label | t }}
+                    </button>
+                  }
+                </div>
+              }
+            </div>
             @if (canUpdate()) {
               <button
                 type="button"

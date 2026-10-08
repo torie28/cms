@@ -94,10 +94,7 @@ export async function downloadTemplate(forJumuiya?: string): Promise<void> {
         {
           name: 'Wanajumuiya',
           head: [HEADERS.member, HEADERS.phone, HEADERS.gender],
-          rows: [
-            ['Maria Joseph', '0712345678', 'Mwanamke'],
-            ['Petro Paulo', '0754321098', 'Mwanaume'],
-          ],
+          rows: [],
           choices: { 2: GENDER_CHOICES },
         },
       ],
@@ -116,10 +113,7 @@ export async function downloadTemplate(forJumuiya?: string): Promise<void> {
       {
         name: 'Wanajumuiya',
         head: MEMBER_COLUMNS.map((key) => HEADERS[key]),
-        rows: [
-          ['Mt. Yosefu', 'Kanda ya Kati', 'Yohana Petro', 'Maria Joseph', '0712345678', 'Mwanamke'],
-          ['Mt. Yosefu', 'Kanda ya Kati', 'Yohana Petro', 'Petro Paulo', '0754321098', 'Mwanaume'],
-        ],
+        rows: [],
         choices: { 5: GENDER_CHOICES },
       },
     ],

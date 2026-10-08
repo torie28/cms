@@ -180,8 +180,8 @@ export const COMMON: Record<string, string> = {
   'Imetolewa {date}': 'Generated {date}',
   'Jumla ya rekodi: {count}': 'Total records: {count}',
   'Chagua moja ya: {values}': 'Choose one of: {values}',
-  'Jaza taarifa chini ya vichwa vya safu. Usibadilishe majina ya vichwa; futa mistari ya mfano (iliyoandikwa kwa italiki) kabla ya kupakia.':
-    'Fill in the rows below the column headings. Do not rename the headings; delete the example rows (in italics) before uploading.',
+  'Jaza taarifa chini ya vichwa vya safu. Usibadilishe majina ya vichwa.':
+    'Fill in the rows below the column headings. Do not rename the headings.',
   'Kiolezo cha Jumuiya': 'Community template',
   'Jumuiya ya {name}': '{name} Community',
   'Kiolezo cha kuingiza wanajumuiya': 'Member import template',

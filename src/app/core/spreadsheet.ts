@@ -36,7 +36,7 @@ export interface SheetData {
 export interface WorkbookOptions {
   title: string;
   subtitle?: string;
-  /** Adds fill-in instructions, marks the rows as examples and appends blank rows to fill. */
+  /** Adds fill-in instructions, styles any given rows as examples and appends blank rows to fill. */
   template?: boolean;
 }
 
@@ -218,7 +218,7 @@ export async function saveWorkbook(sheets: SheetData[], filename: string, option
     if (options.template) {
       banner(
         translate(
-          'Jaza taarifa chini ya vichwa vya safu. Usibadilishe majina ya vichwa; futa mistari ya mfano (iliyoandikwa kwa italiki) kabla ya kupakia.',
+          'Jaza taarifa chini ya vichwa vya safu. Usibadilishe majina ya vichwa.',
         ),
         34,
         {

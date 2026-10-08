@@ -4,6 +4,10 @@ import { computed, inject, Injectable, PLATFORM_ID, signal } from '@angular/core
 import { firstValueFrom } from 'rxjs';
 import { API_BASE } from './api';
 import { I18nService, isLang, Lang } from './i18n';
+import { ModuleAction, ModulePrivileges } from './modules';
+
+/** Modules whose access used to include every write, before privileges were stored. */
+const LEGACY_WRITE = new Set(['sadaka', 'jumuiya', 'kanda', 'notifications']);
 
 export interface AuthenticatedUser {
   id: number;
@@ -15,6 +19,7 @@ export interface AuthenticatedUser {
   role: string;
   role_label?: string | null;
   modules?: string[];
+  privileges?: Record<string, ModulePrivileges>;
   /** Preferred UI language; null until the user has chosen one. */
   locale?: Lang | null;
 }
@@ -50,6 +55,25 @@ export class AuthService {
     const modules = this.currentUser()?.modules;
     const wanted = typeof module === 'string' ? [module] : module;
     return !modules || wanted.some((key) => key === 'dashboard' || modules.includes(key));
+  }
+
+  /**
+   * Whether the signed-in user may create, edit or delete inside a module.
+   * Administrators always may. A session saved before privileges existed keeps
+   * the old rule until it is refreshed: full write on parish modules, none elsewhere.
+   */
+  can(module: string, action: ModuleAction): boolean {
+    const user = this.currentUser();
+    if (!user) {
+      return false;
+    }
+    if (user.role === 'admin') {
+      return true;
+    }
+    if (!user.privileges) {
+      return LEGACY_WRITE.has(module) && this.canAccess(module);
+    }
+    return !!user.privileges[module]?.[action];
   }
 
   constructor() {

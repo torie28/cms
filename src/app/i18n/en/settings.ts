@@ -13,6 +13,7 @@ export const SETTINGS: Record<string, string> = {
   'Moduli za msingi haziwezi kuzimwa.': 'Core modules cannot be disabled.',
   'Zimewashwa {enabled} kati ya {total}': '{enabled} of {total} enabled',
   'Ni msimamizi pekee anayeweza kubadilisha moduli.': 'Only an administrator can change modules.',
+  'Huna ruhusa ya kubadilisha moduli.': 'You do not have permission to change modules.',
   Msingi: 'Core',
   'watumiaji {count} wamepewa': '{count} users assigned',
   'Zima {label}': 'Disable {label}',
@@ -42,6 +43,7 @@ export const SETTINGS: Record<string, string> = {
     'Set the keys for SMS, email and other services here without editing the .env file.',
   'Sehemu usiyoijaza hapa hutumia thamani ya .env.': 'Any field you leave unset here uses the value from .env.',
   'Ni msimamizi pekee anayeweza kubadilisha mipangilio ya API.': 'Only an administrator can change API settings.',
+  'Huna ruhusa ya kubadilisha mipangilio ya API.': 'You do not have permission to change API settings.',
   'Inatuma kweli': 'Live',
   'Majaribio tu': 'Test mode',
   Haijakamilika: 'Incomplete',
@@ -104,6 +106,7 @@ export const SETTINGS: Record<string, string> = {
     'After that the system deletes it permanently, but its details stay here for reference (it can no longer be restored).',
   'Msimamizi pekee ndiye anayeweza kurejesha au kufuta kabisa.':
     'Only an administrator can restore or delete permanently.',
+  'Huna ruhusa ya kurejesha au kufuta kabisa.': 'You do not have permission to restore or delete permanently.',
   'Shughuli ya karibuni': 'Latest activity',
   'imesasishwa {time}': 'updated {time}',
 
@@ -147,6 +150,8 @@ export const SETTINGS: Record<string, string> = {
   Aliwasha: 'Enabled',
   Alizima: 'Disabled',
   'Alituma ujumbe': 'Sent a message',
+  Aligawanya: 'Split',
+  Alihamisha: 'Moved',
 
   // Subject type labels
   Ujumbe: 'Message',

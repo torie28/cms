@@ -8,6 +8,7 @@ export const SADAKA: Record<string, string> = {
   Kipindi: 'Period',
   'Wiki hii': 'This week',
   'Mwezi huu': 'This month',
+  'Mwezi uliopita': 'Last month',
   'Mwaka huu': 'This year',
   'Chagua tarehe': 'Pick dates',
   'Jumla ya makusanyo': 'Total collected',

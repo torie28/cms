@@ -14,7 +14,7 @@ export class SystemSettings {
   private readonly modulesApi = inject(ModulesService);
   private readonly auth = inject(AuthService);
 
-  protected readonly isAdmin = this.auth.isAdmin;
+  protected readonly canUpdate = computed(() => this.auth.can('settings', 'update'));
   protected readonly skeletonRows = [1, 2, 3, 4];
   protected readonly modules = signal<AppModule[]>([]);
   protected readonly loading = signal(true);
@@ -34,7 +34,7 @@ export class SystemSettings {
   }
 
   protected async toggle(module: AppModule): Promise<void> {
-    if (!this.isAdmin() || module.is_core || this.isPending(module)) {
+    if (!this.canUpdate() || module.is_core || this.isPending(module)) {
       return;
     }
 

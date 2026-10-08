@@ -61,15 +61,15 @@ class MessageController extends Controller
 
     public function store(Request $request): JsonResponse
     {
-        $this->ensureModule($request);
+        $this->ensureCan($request, 'notifications', 'create');
 
         $data = $request->validate([
             'channel' => ['required', Rule::in(self::CHANNELS)],
             'audience' => ['required', Rule::in(Audience::TYPES)],
             'kanda_ids' => ['required_if:audience,kanda', 'array'],
-            'kanda_ids.*' => ['integer', 'exists:kandas,id'],
+            'kanda_ids.*' => ['integer', Rule::exists('kandas', 'id')->withoutTrashed()],
             'jumuiya_ids' => ['required_if:audience,jumuiya', 'array'],
-            'jumuiya_ids.*' => ['integer', 'exists:jumuiyas,id'],
+            'jumuiya_ids.*' => ['integer', Rule::exists('jumuiyas', 'id')->withoutTrashed()],
             'member_ids' => ['sometimes', 'array'],
             'member_ids.*' => ['integer'],
             'user_ids' => ['sometimes', 'array'],
@@ -148,7 +148,7 @@ class MessageController extends Controller
     /** Sends the failed SMS of a message again. */
     public function retry(Request $request, Message $message): JsonResponse
     {
-        $this->ensureModule($request);
+        $this->ensureCan($request, 'notifications', 'create');
 
         $failed = $message->recipients()->where('channel', 'sms')->where('status', 'failed')->get();
         abort_if($failed->isEmpty(), 422, 'Hakuna SMS iliyoshindwa kwenye ujumbe huu.');

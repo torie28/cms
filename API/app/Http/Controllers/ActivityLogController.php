@@ -48,7 +48,7 @@ class ActivityLogController extends Controller
 
     public function restore(Request $request, ActivityLog $log): JsonResponse
     {
-        $this->ensureAdmin($request);
+        $this->ensureCan($request, 'activity_logs', 'update');
         $model = $this->deletedModel($log);
 
         if ($blocker = Recycle::restoreBlocker($model)) {
@@ -76,7 +76,7 @@ class ActivityLogController extends Controller
     /** Removes a deleted record for good; the snapshot in the log is kept. */
     public function purge(Request $request, ActivityLog $log): JsonResponse
     {
-        $this->ensureAdmin($request);
+        $this->ensureCan($request, 'activity_logs', 'delete');
         $model = $this->deletedModel($log);
 
         try {

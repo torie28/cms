@@ -1,4 +1,4 @@
-import { afterNextRender, ChangeDetectionStrategy, Component, inject, signal } from '@angular/core';
+import { afterNextRender, ChangeDetectionStrategy, Component, computed, inject, signal } from '@angular/core';
 import { DatePipe } from '@angular/common';
 import { ApiField, ApiService, ApiServiceStatus, ApiSettingsService } from '../../../../../core/api-settings';
 import { AuthService } from '../../../../../core/auth';
@@ -35,7 +35,7 @@ export class ApiSettings {
   private readonly confirm = inject(ConfirmService);
   protected readonly i18n = inject(I18nService);
 
-  protected readonly isAdmin = this.auth.isAdmin;
+  protected readonly canUpdate = computed(() => this.auth.can('api_settings', 'update'));
   protected readonly services = signal<ApiService[]>([]);
   protected readonly states = signal<Record<string, ServiceState>>({});
   protected readonly loading = signal(true);
@@ -101,7 +101,7 @@ export class ApiSettings {
   }
 
   protected async save(service: ApiService): Promise<void> {
-    if (!this.isAdmin() || !this.isDirty(service) || this.state(service).saving) {
+    if (!this.canUpdate() || !this.isDirty(service) || this.state(service).saving) {
       return;
     }
 
@@ -118,7 +118,7 @@ export class ApiSettings {
 
   protected async resetToEnv(service: ApiService): Promise<void> {
     const reset = service.fields.filter((field) => field.source === 'database').map((field) => field.key);
-    if (!this.isAdmin() || reset.length === 0) {
+    if (!this.canUpdate() || reset.length === 0) {
       return;
     }
 
@@ -143,7 +143,7 @@ export class ApiSettings {
   protected async sendTest(service: ApiService): Promise<void> {
     const state = this.state(service);
     const to = state.testTo.trim();
-    if (!this.isAdmin() || !to || state.testing || this.isDirty(service)) {
+    if (!this.canUpdate() || !to || state.testing || this.isDirty(service)) {
       return;
     }
 

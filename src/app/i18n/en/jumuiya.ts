@@ -106,6 +106,59 @@ export const JUMUIYA: Record<string, string> = {
   'Uingizaji umekamilika: jumuiya mpya {created}, wanajumuiya {added}.':
     'Import complete: {created} new communities, {added} members.',
 
+  // Split
+  Gawanya: 'Split',
+  'Gawanya jumuiya': 'Split community',
+  'Inagawanya…': 'Splitting…',
+  'Unagawanya {name} ({kanda}) kuwa jumuiya mbili.': 'You are splitting {name} ({kanda}) into two communities.',
+  'Jumuiya mama': 'Parent community',
+  'Jumuiya mpya': 'New community',
+  'Wanajumuiya {count} watabaki': '{count} members will stay',
+  'Itakuwa kanda gani?': 'Which zone will it be in?',
+  'Ibaki kwenye kanda yake ({kanda})': 'Stay in its zone ({kanda})',
+  'Ihamie kanda mpya': 'Move to a new zone',
+  'Kanda mpya ya jumuiya mama': 'New zone for the parent community',
+  'Kanda moja na jumuiya mama ({kanda})': 'Same zone as the parent ({kanda})',
+  'Kanda nyingine': 'Another zone',
+  'Kanda ya jumuiya mpya': 'Zone for the new community',
+  'Wanajumuiya watakaohamia jumuiya mpya': 'Members moving to the new community',
+  'Umechagua {moving} kati ya {total}': '{moving} of {total} selected',
+  'Chagua wote': 'Select all',
+  'Chagua wote walioonyeshwa': 'Select all shown',
+  'Jumuiya hii haina wanajumuiya bado; jumuiya mpya itaanza bila wanajumuiya.':
+    'This community has no members yet; the new community will start empty.',
+  'Tahadhari: jumuiya mama itabaki bila wanajumuiya.': 'Warning: the parent community will be left with no members.',
+  'Baada ya kugawanya': 'After the split',
+  'inahamia kanda mpya': 'moving to a new zone',
+  'Imegawanywa kutoka {name}.': 'Split from {name}.',
+  'kutoka {parent}': 'from {parent}',
+  'Chagua kanda ambayo jumuiya mama itahamia.': 'Choose the zone the parent community will move to.',
+  'Chagua kanda ya jumuiya mpya.': 'Choose a zone for the new community.',
+  'Chagua angalau mwanajumuiya mmoja atakayehamia jumuiya mpya.':
+    'Choose at least one member to move to the new community.',
+  'Imeshindwa kugawanya jumuiya hiyo.': 'Could not split that community.',
+  'Jumuiya mpya inahitaji jina tofauti na jumuiya mama.': 'The new community needs a different name from the parent.',
+  '{parent} imegawanywa: {child} imeundwa ndani ya {kanda} ikiwa na wanajumuiya {count}.':
+    '{parent} was split: {child} was created in {kanda} with {count} members.',
+
+  // Move to another kanda
+  Hamisha: 'Move',
+  'Hamisha kanda': 'Move zone',
+  'Inahamisha…': 'Moving…',
+  'Hamisha jumuiya kanda nyingine': 'Move community to another zone',
+  'Unahamisha {name} kutoka {kanda}.': 'You are moving {name} from {kanda}.',
+  'Kanda ya sasa': 'Current zone',
+  'Kanda mpya': 'New zone',
+  'Chagua kanda mpya': 'Choose the new zone',
+  'Hakuna kanda nyingine. Ongeza kanda mpya kwanza.': 'There is no other zone. Add a new zone first.',
+  'Wanajumuiya wote {count} wa {name} watahamia kanda mpya pamoja nayo.':
+    'All {count} members of {name} will move to the new zone with it.',
+  'Jumuiya hii haina wanajumuiya bado.': 'This community has no members yet.',
+  '{name} imehamishiwa {kanda} pamoja na wanajumuiya wake {count}.':
+    '{name} was moved to {kanda} together with its {count} members.',
+  'Imeshindwa kuhamisha jumuiya hiyo.': 'Could not move that community.',
+  'Jumuiya hii tayari iko kwenye kanda hiyo.': 'This community is already in that zone.',
+
   // Export
   'Jumuiya zote': 'All communities',
   'Jumuiya {name}': 'Community {name}',

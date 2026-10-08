@@ -5,37 +5,76 @@
       <p class="mt-1 text-sm text-muted">{{ 'Jumuiya ndogo ndogo za Kikristo, kila moja ikiwa ndani ya kanda.' | t }}</p>
     </div>
     <div class="flex flex-wrap items-center gap-2">
-      <button
-        type="button"
-        class="rounded border border-line px-4 py-2 text-sm hover:bg-sunken disabled:opacity-50"
-        [disabled]="kandas().length === 0"
-        [title]="(kandas().length === 0 ? 'Ongeza kanda kwanza' : 'Ingiza jumuiya na wanajumuiya kutoka Excel') | t"
-        (click)="openImport()"
-      >
-        {{ 'Ingiza kutoka Excel' | t }}
-      </button>
+      @if (canCreate()) {
+        <button
+          type="button"
+          class="rounded border border-line px-4 py-2 text-sm hover:bg-sunken disabled:opacity-50"
+          [disabled]="kandas().length === 0"
+          [title]="(kandas().length === 0 ? 'Ongeza kanda kwanza' : 'Ingiza jumuiya na wanajumuiya kutoka Excel') | t"
+          (click)="openImport()"
+        >
+          {{ 'Ingiza kutoka Excel' | t }}
+        </button>
+      }
       <div class="relative">
         <button
           type="button"
           class="rounded border border-line px-4 py-2 text-sm hover:bg-sunken disabled:opacity-50"
           aria-haspopup="menu"
           [attr.aria-expanded]="exportMenu() === 'page'"
-          [disabled]="filteredJumuiyas().length === 0 || exporting()"
+          [disabled]="(filteredJumuiyas().length === 0 && !selected()) || exporting()"
           (click)="toggleExportMenu('page', $event)"
         >
           {{ (exporting() ? 'Inaandaa…' : 'Pakua ▾') | t }}
         </button>
         @if (exportMenu() === 'page') {
           <div
-            class="absolute right-0 z-30 mt-1 w-44 overflow-hidden rounded border border-line bg-surface shadow-lg"
+            class="absolute right-0 z-30 mt-1 w-64 overflow-hidden rounded border border-line bg-surface shadow-lg"
             role="menu"
+            (click)="$event.stopPropagation()"
           >
+            @if (selected(); as group) {
+              <div class="border-b border-line bg-sunken p-2" role="radiogroup" [attr.aria-label]="'Nini cha kupakua' | t">
+                <p class="px-1 pb-1.5 text-[0.7rem] tracking-[0.12em] text-faint uppercase">{{ 'Nini cha kupakua' | t }}</p>
+                <div class="grid grid-cols-2 gap-1">
+                  <button
+                    type="button"
+                    role="radio"
+                    [attr.aria-checked]="exportScope() === 'selected'"
+                    class="truncate rounded px-2 py-1.5 text-xs"
+                    [class]="exportScope() === 'selected' ? 'bg-brass-strong text-canvas' : 'hover:bg-surface'"
+                    [title]="group.name"
+                    (click)="exportScope.set('selected')"
+                  >
+                    {{ group.name }}
+                  </button>
+                  <button
+                    type="button"
+                    role="radio"
+                    [attr.aria-checked]="exportScope() === 'all'"
+                    class="truncate rounded px-2 py-1.5 text-xs disabled:opacity-50"
+                    [class]="exportScope() === 'all' ? 'bg-brass-strong text-canvas' : 'hover:bg-surface'"
+                    [disabled]="filteredJumuiyas().length === 0"
+                    (click)="exportScope.set('all')"
+                  >
+                    {{ 'Zote ({count})' | t: { count: filteredJumuiyas().length } }}
+                  </button>
+                </div>
+                <p class="px-1 pt-1.5 text-[0.7rem] text-muted">
+                  {{
+                    (exportScope() === 'selected'
+                      ? 'Taarifa, wanajumuiya na michango ya jumuiya hii.'
+                      : 'Jumuiya zote zinazoonekana kwenye orodha.') | t
+                  }}
+                </p>
+              </div>
+            }
             @for (format of exportFormats; track format.value) {
               <button
                 type="button"
                 role="menuitem"
                 class="block w-full px-3 py-2 text-left text-sm hover:bg-sunken"
-                (click)="exportAll(format.value)"
+                (click)="exportPage(format.value)"
               >
                 {{ format.label | t }}
               </button>
@@ -43,15 +82,17 @@
           </div>
         }
       </div>
-      <button
-        type="button"
-        class="rounded bg-brass-strong px-4 py-2 text-sm font-medium text-canvas hover:opacity-90 disabled:opacity-50"
-        [disabled]="kandas().length === 0"
-        [title]="(kandas().length === 0 ? 'Ongeza kanda kwanza' : 'Ongeza jumuiya') | t"
-        (click)="openJumuiyaForm()"
-      >
-        {{ 'Ongeza jumuiya' | t }}
-      </button>
+      @if (canCreate()) {
+        <button
+          type="button"
+          class="rounded bg-brass-strong px-4 py-2 text-sm font-medium text-canvas hover:opacity-90 disabled:opacity-50"
+          [disabled]="kandas().length === 0"
+          [title]="(kandas().length === 0 ? 'Ongeza kanda kwanza' : 'Ongeza jumuiya') | t"
+          (click)="openJumuiyaForm()"
+        >
+          {{ 'Ongeza jumuiya' | t }}
+        </button>
+      }
     </div>
   </div>
 
@@ -101,30 +142,56 @@
         >
           {{ 'Tazama' | t }}
         </button>
-        <button
-          type="button"
-          class="rounded border border-line px-3 py-1.5 text-sm hover:bg-sunken disabled:opacity-50"
-          [disabled]="!selected()"
-          (click)="selected() && openEditJumuiya(selected()!)"
-        >
-          {{ 'Hariri' | t }}
-        </button>
-        <button
-          type="button"
-          class="rounded border border-line px-3 py-1.5 text-sm text-negative hover:bg-sunken disabled:opacity-50"
-          [disabled]="!selected() || saving()"
-          (click)="selected() && removeJumuiya(selected()!)"
-        >
-          {{ 'Futa' | t }}
-        </button>
-        <button
-          type="button"
-          class="rounded bg-brass-strong px-3 py-1.5 text-sm font-medium text-canvas hover:opacity-90 disabled:opacity-50"
-          [disabled]="!selected()"
-          (click)="openMemberForm()"
-        >
-          {{ 'Ongeza wanajumuiya' | t }}
-        </button>
+        @if (canUpdate()) {
+          <button
+            type="button"
+            class="rounded border border-line px-3 py-1.5 text-sm hover:bg-sunken disabled:opacity-50"
+            [disabled]="!selected()"
+            (click)="selected() && openEditJumuiya(selected()!)"
+          >
+            {{ 'Hariri' | t }}
+          </button>
+        }
+        @if (canUpdate()) {
+          <button
+            type="button"
+            class="rounded border border-line px-3 py-1.5 text-sm hover:bg-sunken disabled:opacity-50"
+            [disabled]="!selected()"
+            (click)="selected() && openMove(selected()!)"
+          >
+            {{ 'Hamisha kanda' | t }}
+          </button>
+        }
+        @if (canSplit()) {
+          <button
+            type="button"
+            class="rounded border border-line px-3 py-1.5 text-sm hover:bg-sunken disabled:opacity-50"
+            [disabled]="!selected()"
+            (click)="selected() && openSplit(selected()!)"
+          >
+            {{ 'Gawanya' | t }}
+          </button>
+        }
+        @if (canDelete()) {
+          <button
+            type="button"
+            class="rounded border border-line px-3 py-1.5 text-sm text-negative hover:bg-sunken disabled:opacity-50"
+            [disabled]="!selected() || saving()"
+            (click)="selected() && removeJumuiya(selected()!)"
+          >
+            {{ 'Futa' | t }}
+          </button>
+        }
+        @if (canCreate()) {
+          <button
+            type="button"
+            class="rounded bg-brass-strong px-3 py-1.5 text-sm font-medium text-canvas hover:opacity-90 disabled:opacity-50"
+            [disabled]="!selected()"
+            (click)="openMemberForm()"
+          >
+            {{ 'Ongeza wanajumuiya' | t }}
+          </button>
+        }
       </div>
     </div>
   }
@@ -239,7 +306,12 @@
               [style.animation-delay.ms]="i * 40"
               (click)="select(group)"
             >
-              <td class="px-4 py-3 font-medium">{{ group.name }}</td>
+              <td class="px-4 py-3">
+                <span class="font-medium">{{ group.name }}</span>
+                @if (group.parent) {
+                  <span class="block text-xs text-muted">{{ 'kutoka {parent}' | t: { parent: group.parent.name } }}</span>
+                }
+              </td>
               <td class="px-4 py-3 text-muted">{{ group.kanda?.name }}</td>
               <td class="px-4 py-3 text-muted">{{ group.chairperson || '—' }}</td>
               <td class="px-4 py-3 text-muted">{{ group.members_count ?? 0 }}</td>
@@ -252,28 +324,52 @@
                   >
                     {{ 'Tazama' | t }}
                   </button>
-                  <button
-                    type="button"
-                    class="text-sm text-brass-strong hover:underline"
-                    (click)="openEditJumuiya(group, $event)"
-                  >
-                    {{ 'Hariri' | t }}
-                  </button>
-                  <button
-                    type="button"
-                    class="text-sm text-negative hover:underline"
-                    [disabled]="saving()"
-                    (click)="removeJumuiya(group, $event)"
-                  >
-                    {{ 'Futa' | t }}
-                  </button>
-                  <button
-                    type="button"
-                    class="text-sm text-brass-strong hover:underline"
-                    (click)="openMemberForm(group, $event)"
-                  >
-                    {{ 'Ongeza wanajumuiya' | t }}
-                  </button>
+                  @if (canUpdate()) {
+                    <button
+                      type="button"
+                      class="text-sm text-brass-strong hover:underline"
+                      (click)="openEditJumuiya(group, $event)"
+                    >
+                      {{ 'Hariri' | t }}
+                    </button>
+                  }
+                  @if (canUpdate()) {
+                    <button
+                      type="button"
+                      class="text-sm text-brass-strong hover:underline"
+                      (click)="openMove(group, $event)"
+                    >
+                      {{ 'Hamisha kanda' | t }}
+                    </button>
+                  }
+                  @if (canSplit()) {
+                    <button
+                      type="button"
+                      class="text-sm text-brass-strong hover:underline"
+                      (click)="openSplit(group, $event)"
+                    >
+                      {{ 'Gawanya' | t }}
+                    </button>
+                  }
+                  @if (canDelete()) {
+                    <button
+                      type="button"
+                      class="text-sm text-negative hover:underline"
+                      [disabled]="saving()"
+                      (click)="removeJumuiya(group, $event)"
+                    >
+                      {{ 'Futa' | t }}
+                    </button>
+                  }
+                  @if (canCreate()) {
+                    <button
+                      type="button"
+                      class="text-sm text-brass-strong hover:underline"
+                      (click)="openMemberForm(group, $event)"
+                    >
+                      {{ 'Ongeza wanajumuiya' | t }}
+                    </button>
+                  }
                 </div>
               </td>
             </tr>
@@ -307,16 +403,21 @@
           <p class="mt-1 text-sm text-muted">
             {{ group.kanda?.name || ('Hakuna kanda' | t) }} ·
             {{ 'Mwenyekiti {name}' | t: { name: group.chairperson || '—' } }}
+            @if (group.parent) {
+              · {{ 'kutoka {parent}' | t: { parent: group.parent.name } }}
+            }
           </p>
         </div>
         <div class="flex flex-wrap gap-2">
-          <button
-            type="button"
-            class="rounded border border-line px-3 py-1.5 text-sm hover:bg-sunken"
-            (click)="openImport(group)"
-          >
-            {{ 'Ingiza Excel' | t }}
-          </button>
+          @if (canCreate()) {
+            <button
+              type="button"
+              class="rounded border border-line px-3 py-1.5 text-sm hover:bg-sunken"
+              (click)="openImport(group)"
+            >
+              {{ 'Ingiza Excel' | t }}
+            </button>
+          }
           <div class="relative">
             <button
               type="button"
@@ -346,20 +447,42 @@
               </div>
             }
           </div>
-          <button
-            type="button"
-            class="rounded border border-line px-3 py-1.5 text-sm hover:bg-sunken"
-            (click)="openEditJumuiya(group)"
-          >
-            {{ 'Hariri' | t }}
-          </button>
-          <button
-            type="button"
-            class="rounded bg-brass-strong px-3 py-1.5 text-sm font-medium text-canvas hover:opacity-90"
-            (click)="openMemberForm(group)"
-          >
-            {{ 'Ongeza wanajumuiya' | t }}
-          </button>
+          @if (canUpdate()) {
+            <button
+              type="button"
+              class="rounded border border-line px-3 py-1.5 text-sm hover:bg-sunken"
+              (click)="openEditJumuiya(group)"
+            >
+              {{ 'Hariri' | t }}
+            </button>
+          }
+          @if (canUpdate()) {
+            <button
+              type="button"
+              class="rounded border border-line px-3 py-1.5 text-sm hover:bg-sunken"
+              (click)="openMove(group)"
+            >
+              {{ 'Hamisha kanda' | t }}
+            </button>
+          }
+          @if (canSplit()) {
+            <button
+              type="button"
+              class="rounded border border-line px-3 py-1.5 text-sm hover:bg-sunken"
+              (click)="openSplit(group)"
+            >
+              {{ 'Gawanya' | t }}
+            </button>
+          }
+          @if (canCreate()) {
+            <button
+              type="button"
+              class="rounded bg-brass-strong px-3 py-1.5 text-sm font-medium text-canvas hover:opacity-90"
+              (click)="openMemberForm(group)"
+            >
+              {{ 'Ongeza wanajumuiya' | t }}
+            </button>
+          }
         </div>
       </div>
 
@@ -424,21 +547,25 @@
                 <td class="py-2 pr-3 text-muted">{{ genderLabel(member.gender) }}</td>
                 <td class="py-2">
                   <div class="flex flex-wrap gap-x-3">
-                    <button
-                      type="button"
-                      class="text-sm text-brass-strong hover:underline"
-                      (click)="openEditMember(member)"
-                    >
-                      {{ 'Hariri' | t }}
-                    </button>
-                    <button
-                      type="button"
-                      class="text-sm text-negative hover:underline"
-                      [disabled]="saving()"
-                      (click)="removeMember(member)"
-                    >
-                      {{ 'Futa' | t }}
-                    </button>
+                    @if (canUpdate()) {
+                      <button
+                        type="button"
+                        class="text-sm text-brass-strong hover:underline"
+                        (click)="openEditMember(member)"
+                      >
+                        {{ 'Hariri' | t }}
+                      </button>
+                    }
+                    @if (canDelete()) {
+                      <button
+                        type="button"
+                        class="text-sm text-negative hover:underline"
+                        [disabled]="saving()"
+                        (click)="removeMember(member)"
+                      >
+                        {{ 'Futa' | t }}
+                      </button>
+                    }
                   </div>
                 </td>
               </tr>
@@ -962,4 +1089,22 @@
       </div>
     </section>
   </div>
+}
+
+@if (moveTarget(); as group) {
+  <app-jumuiya-move-dialog
+    [jumuiya]="group"
+    [kandas]="kandas()"
+    (closed)="moveTarget.set(null)"
+    (done)="onMoveDone($event)"
+  />
+}
+
+@if (splitTarget(); as group) {
+  <app-jumuiya-split-dialog
+    [jumuiya]="group"
+    [kandas]="kandas()"
+    (closed)="splitTarget.set(null)"
+    (done)="onSplitDone($event)"
+  />
 }

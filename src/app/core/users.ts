@@ -2,6 +2,7 @@ import { HttpClient } from '@angular/common/http';
 import { inject, Injectable } from '@angular/core';
 import { firstValueFrom } from 'rxjs';
 import { API_BASE } from './api';
+import { ModulePrivileges } from './modules';
 
 export type Gender = 'male' | 'female';
 
@@ -14,6 +15,7 @@ export interface ManagedUser {
   gender: Gender | null;
   role: string;
   modules: string[];
+  privileges: Record<string, ModulePrivileges>;
   created_at: string;
 }
 
@@ -26,6 +28,7 @@ export interface UserPayload {
   password: string;
   role: string;
   modules: string[];
+  privileges: Record<string, ModulePrivileges>;
 }
 
 export const GENDERS: readonly { value: Gender; label: string }[] = [

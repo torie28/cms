@@ -7,17 +7,20 @@ import {
   signal,
 } from '@angular/core';
 import { FormBuilder, ReactiveFormsModule, Validators } from '@angular/forms';
-import { ActivatedRoute } from '@angular/router';
+import { ActivatedRoute, RouterLink } from '@angular/router';
 import { ActivityService } from '../../../../core/activity';
+import { AuthService } from '../../../../core/auth';
 import { httpErrorMessage } from '../../../../core/http-error';
-import { translate, TranslatePipe } from '../../../../core/i18n';
+import { I18nService, translate, TranslatePipe } from '../../../../core/i18n';
 import {
   downloadKandaTemplate,
+  exportKandaProfile,
   exportKandas,
   KandaRow,
   readKandaSpreadsheet,
 } from '../../../../core/kanda-transfer';
-import { Kanda, ParishService } from '../../../../core/parish';
+import { OfferingService } from '../../../../core/offerings';
+import { Jumuiya, Kanda, KandaDetail, ParishService } from '../../../../core/parish';
 import {
   EXPORT_FORMATS,
   ExportFormat,
@@ -25,9 +28,13 @@ import {
   SPREADSHEET_ACCEPT,
 } from '../../../../core/spreadsheet';
 import { FilterPanel, parseBound, withinNumberRange } from '../../../../shared/filter-panel';
+import { JumuiyaMoveDialog } from '../../../../shared/jumuiya-move-dialog';
+import { JumuiyaSplitDialog, JumuiyaSplitResult } from '../../../../shared/jumuiya-split-dialog';
 import { matchesSearch, SearchBox } from '../../../../shared/search-box';
 
-type KandaSort = 'name' | 'name-desc' | 'jumuiyas-desc' | 'jumuiyas-asc';
+type KandaSort = 'name' | 'name-desc' | 'jumuiyas-desc' | 'jumuiyas-asc' | 'members-desc';
+
+const CHART_LIMIT = 8;
 
 interface KandaImportPlan {
   fresh: { name: string; leader: string; notes: string }[];
@@ -38,12 +45,115 @@ interface KandaImportPlan {
 @Component({
   selector: 'app-kanda',
   changeDetection: ChangeDetectionStrategy.OnPush,
-  imports: [ReactiveFormsModule, SearchBox, FilterPanel, TranslatePipe],
+  imports: [
+    ReactiveFormsModule,
+    RouterLink,
+    SearchBox,
+    FilterPanel,
+    JumuiyaSplitDialog,
+    JumuiyaMoveDialog,
+    TranslatePipe,
+  ],
   templateUrl: './kanda.html',
 })
 export class KandaPage {
   private readonly parish = inject(ParishService);
+  private readonly offeringsApi = inject(OfferingService);
   private readonly activity = inject(ActivityService);
+  private readonly auth = inject(AuthService);
+  private readonly i18n = inject(I18nService);
+  protected readonly canCreate = computed(() => this.auth.can('kanda', 'create'));
+  protected readonly canUpdate = computed(() => this.auth.can('kanda', 'update'));
+  protected readonly canDelete = computed(() => this.auth.can('kanda', 'delete'));
+  protected readonly editingKanda = signal<Kanda | null>(null);
+  protected readonly deleteTarget = signal<Kanda | null>(null);
+  protected readonly deleteMoveTo = signal(0);
+  protected readonly deleting = signal(false);
+  protected readonly deleteError = signal<string | null>(null);
+  protected readonly deleteMoveOptions = computed(() =>
+    this.kandas().filter((kanda) => kanda.id !== this.deleteTarget()?.id),
+  );
+  protected readonly canSplit = computed(
+    () => this.auth.can('jumuiya', 'create') && this.auth.can('jumuiya', 'update'),
+  );
+
+  protected readonly jumuiyas = signal<Jumuiya[]>([]);
+  protected readonly detailOpen = signal(false);
+  protected readonly detail = signal<KandaDetail | null>(null);
+  protected readonly detailLoading = signal(false);
+  protected readonly detailError = signal<string | null>(null);
+  protected readonly splitTarget = signal<Jumuiya | null>(null);
+  protected readonly moveTarget = signal<Jumuiya | null>(null);
+  protected readonly canMove = computed(() => this.auth.can('jumuiya', 'update'));
+
+  protected readonly totals = computed(() => {
+    const kandas = this.kandas();
+    const jumuiyas = kandas.reduce((sum, kanda) => sum + kanda.jumuiyas_count, 0);
+    const members = kandas.reduce((sum, kanda) => sum + (kanda.members_count ?? 0), 0);
+
+    return {
+      kandas: kandas.length,
+      jumuiyas,
+      members,
+      withoutLeader: kandas.filter((kanda) => !kanda.leader?.trim()).length,
+      jumuiyasPerKanda: kandas.length ? jumuiyas / kandas.length : 0,
+      membersPerJumuiya: jumuiyas ? members / jumuiyas : 0,
+    };
+  });
+
+  private readonly largestKanda = computed(() =>
+    Math.max(1, ...this.kandas().map((kanda) => kanda.members_count ?? 0)),
+  );
+
+  protected readonly sizeChart = computed(() => {
+    const largest = this.largestKanda();
+
+    return [...this.kandas()]
+      .sort((a, b) => (b.members_count ?? 0) - (a.members_count ?? 0) || a.name.localeCompare(b.name))
+      .slice(0, CHART_LIMIT)
+      .map((kanda) => ({ kanda, share: ((kanda.members_count ?? 0) / largest) * 100 }));
+  });
+
+  protected readonly chartOverflow = computed(() => Math.max(0, this.kandas().length - CHART_LIMIT));
+
+  protected readonly attention = computed(() => {
+    const items: { kanda: Kanda; reason: string }[] = [];
+
+    for (const kanda of this.kandas()) {
+      if (kanda.jumuiyas_count === 0) {
+        items.push({ kanda, reason: 'Haina jumuiya' });
+      } else if (!kanda.leader?.trim()) {
+        items.push({ kanda, reason: 'Haina kiongozi' });
+      } else if ((kanda.members_count ?? 0) === 0) {
+        items.push({ kanda, reason: 'Haina wanajumuiya' });
+      }
+    }
+
+    return items.slice(0, 6);
+  });
+
+  private readonly splitJumuiyas = computed(() => this.jumuiyas().filter((group) => group.parent));
+  protected readonly splitCount = computed(() => this.splitJumuiyas().length);
+  protected readonly recentSplits = computed(() =>
+    [...this.splitJumuiyas()].sort((a, b) => b.id - a.id).slice(0, 5),
+  );
+
+  protected readonly detailSplitCount = computed(
+    () => (this.detail()?.jumuiyas ?? []).filter((group) => group.parent).length,
+  );
+
+  protected readonly detailLargestJumuiya = computed(() =>
+    Math.max(1, ...(this.detail()?.jumuiyas ?? []).map((group) => group.members_count)),
+  );
+
+  private readonly currency = computed(
+    () =>
+      new Intl.NumberFormat(this.i18n.intlLocale(), {
+        style: 'currency',
+        currency: 'TZS',
+        maximumFractionDigits: 0,
+      }),
+  );
 
   protected readonly exportFormats = EXPORT_FORMATS;
   protected readonly spreadsheetAccept = SPREADSHEET_ACCEPT;
@@ -54,7 +164,9 @@ export class KandaPage {
   protected readonly importing = signal(false);
   protected readonly notice = signal<string | null>(null);
   protected readonly exportMenuOpen = signal(false);
+  protected readonly detailExportOpen = signal(false);
   protected readonly exporting = signal(false);
+  protected readonly exportingKandaId = signal<number | null>(null);
 
   protected readonly kandas = signal<Kanda[]>([]);
   protected readonly search = signal(inject(ActivatedRoute).snapshot.queryParamMap.get('q') ?? '');
@@ -83,6 +195,10 @@ export class KandaPage {
           matchesSearch(this.search(), [kanda.name, kanda.leader, kanda.notes]),
       )
       .sort((a, b) => {
+        if (sort === 'members-desc') {
+          return (b.members_count ?? 0) - (a.members_count ?? 0);
+        }
+
         if (sort === 'jumuiyas-desc' || sort === 'jumuiyas-asc') {
           const diff = a.jumuiyas_count - b.jumuiyas_count;
           return sort === 'jumuiyas-desc' ? -diff : diff;
@@ -119,10 +235,68 @@ export class KandaPage {
     });
   }
 
-  protected openForm(): void {
-    this.form.reset({ name: '', leader: '', notes: '' });
+  protected openForm(kanda?: Kanda, event?: Event): void {
+    event?.stopPropagation();
+    this.editingKanda.set(kanda ?? null);
+    this.form.reset({ name: kanda?.name ?? '', leader: kanda?.leader ?? '', notes: kanda?.notes ?? '' });
     this.error.set(null);
     this.formOpen.set(true);
+  }
+
+  protected openDelete(kanda: Kanda, event?: Event): void {
+    event?.stopPropagation();
+    this.deleteTarget.set(kanda);
+    this.deleteError.set(null);
+    this.deleteMoveTo.set(0);
+  }
+
+  protected closeDelete(): void {
+    if (!this.deleting()) {
+      this.deleteTarget.set(null);
+    }
+  }
+
+  protected async confirmDelete(): Promise<void> {
+    const kanda = this.deleteTarget();
+
+    if (!kanda || this.deleting()) {
+      return;
+    }
+
+    const needsMove = kanda.jumuiyas_count > 0;
+    if (needsMove && !this.deleteMoveTo()) {
+      this.deleteError.set(translate('Chagua kanda ya kuhamishia jumuiya zake.'));
+      return;
+    }
+
+    this.deleting.set(true);
+    this.deleteError.set(null);
+
+    try {
+      const target = needsMove ? this.kandas().find((item) => item.id === this.deleteMoveTo()) : undefined;
+      await this.parish.deleteKanda(kanda.id, target?.id);
+      this.deleting.set(false);
+      this.deleteTarget.set(null);
+
+      if (this.detail()?.id === kanda.id) {
+        this.closeDetail();
+      }
+
+      this.notice.set(
+        target
+          ? translate('{name} imefutwa. Jumuiya zake {count} zimehamishiwa {target}.', {
+              name: kanda.name,
+              count: kanda.jumuiyas_count,
+              target: target.name,
+            })
+          : translate('{name} imefutwa. Unaweza kuirejesha kutoka kumbukumbu za shughuli.', { name: kanda.name }),
+      );
+      await this.refresh();
+    } catch (error) {
+      this.deleteError.set(httpErrorMessage(error, 'Imeshindwa kufuta kanda hiyo.'));
+    } finally {
+      this.deleting.set(false);
+    }
   }
 
   protected openImport(): void {
@@ -235,6 +409,47 @@ export class KandaPage {
     }
   }
 
+  /** Exports one kanda in full: its details, jumuiyas, every member and the jumuiyas' offerings. */
+  protected async exportKanda(kanda: Kanda, format: ExportFormat): Promise<void> {
+    this.detailExportOpen.set(false);
+
+    if (this.exporting()) {
+      return;
+    }
+
+    this.exporting.set(true);
+    this.exportingKandaId.set(kanda.id);
+    this.error.set(null);
+    this.detailError.set(null);
+
+    try {
+      const detail = this.detail()?.id === kanda.id ? this.detail()! : await this.parish.getKanda(kanda.id);
+      const ids = detail.jumuiyas.map((group) => group.id);
+      const [groups, offerings] = await Promise.all([
+        Promise.all(ids.map((id) => this.parish.getJumuiya(id))),
+        this.auth.canAccess('sadaka')
+          ? ids.length > 0
+            ? this.offeringsApi.list({ from: '', to: '', jumuiyaIds: ids }).catch(() => null)
+            : Promise.resolve([])
+          : Promise.resolve(null),
+      ]);
+      await exportKandaProfile(detail, groups, offerings, format);
+      void this.activity.record({
+        action: 'exported',
+        subject: `${kanda.name} (details, ${groups.length} jumuiyas${
+          offerings ? `, ${offerings.length} offerings` : ''
+        }) as ${FORMAT_NAMES[format]}`,
+        subject_type: 'kanda',
+      });
+    } catch (error) {
+      const message = httpErrorMessage(error, 'Imeshindwa kuandaa faili la kupakua.');
+      (this.detailOpen() ? this.detailError : this.error).set(message);
+    } finally {
+      this.exporting.set(false);
+      this.exportingKandaId.set(null);
+    }
+  }
+
   protected clearFilters(): void {
     this.leaderFilter.set('');
     this.minJumuiyas.set('');
@@ -283,6 +498,7 @@ export class KandaPage {
 
   protected closeForm(): void {
     this.formOpen.set(false);
+    this.editingKanda.set(null);
   }
 
   protected async refresh(): Promise<void> {
@@ -290,11 +506,87 @@ export class KandaPage {
     this.error.set(null);
 
     try {
-      this.kandas.set(await this.parish.listKandas());
+      const [kandas, jumuiyas] = await Promise.all([
+        this.parish.listKandas(),
+        this.parish.listJumuiyas().catch(() => [] as Jumuiya[]),
+      ]);
+      this.kandas.set(kandas);
+      this.jumuiyas.set(jumuiyas);
     } catch (error) {
       this.error.set(httpErrorMessage(error, 'Imeshindwa kupakia kanda.'));
     } finally {
       this.loading.set(false);
+    }
+  }
+
+  protected async openDetail(kanda: Kanda): Promise<void> {
+    this.detail.set(null);
+    this.detailError.set(null);
+    this.detailOpen.set(true);
+    await this.loadDetail(kanda.id);
+  }
+
+  protected closeDetail(): void {
+    this.detailOpen.set(false);
+    this.detail.set(null);
+  }
+
+  protected openSplit(group: Jumuiya): void {
+    this.splitTarget.set(group);
+  }
+
+  protected async onMoveDone(moved: Jumuiya): Promise<void> {
+    this.moveTarget.set(null);
+    this.notice.set(
+      translate('{name} imehamishiwa {kanda} pamoja na wanajumuiya wake {count}.', {
+        name: moved.name,
+        kanda: moved.kanda?.name ?? '—',
+        count: moved.members_count ?? 0,
+      }),
+    );
+
+    const current = this.detail();
+    await Promise.all([this.refresh(), current ? this.loadDetail(current.id) : Promise.resolve()]);
+  }
+
+  protected async onSplitDone(result: JumuiyaSplitResult): Promise<void> {
+    const { parent, jumuiya } = result;
+    this.splitTarget.set(null);
+    this.notice.set(
+      translate('{parent} imegawanywa: {child} imeundwa ndani ya {kanda} ikiwa na wanajumuiya {count}.', {
+        parent: parent.name,
+        child: jumuiya.name,
+        kanda: jumuiya.kanda?.name ?? '—',
+        count: jumuiya.members_count ?? 0,
+      }),
+    );
+
+    const current = this.detail();
+    await Promise.all([this.refresh(), current ? this.loadDetail(current.id) : Promise.resolve()]);
+  }
+
+  protected money(value: number | string | null | undefined): string {
+    return this.currency().format(Number(value ?? 0));
+  }
+
+  protected percent(part: number, whole: number): number {
+    return whole > 0 ? (part / whole) * 100 : 0;
+  }
+
+  protected decimal(value: number): string {
+    return value.toLocaleString(this.i18n.intlLocale(), { maximumFractionDigits: 1 });
+  }
+
+  private async loadDetail(id: number): Promise<void> {
+    this.detailLoading.set(true);
+    this.detailError.set(null);
+
+    try {
+      this.detail.set(await this.parish.getKanda(id));
+    } catch (error) {
+      this.detailError.set(httpErrorMessage(error, 'Imeshindwa kupakia dashibodi ya kanda.'));
+    } finally {
+      this.detailLoading.set(false);
     }
   }
 
@@ -311,14 +603,35 @@ export class KandaPage {
     this.saving.set(true);
     this.error.set(null);
 
+    const editing = this.editingKanda();
+
     try {
-      const created = await this.parish.createKanda(this.form.getRawValue());
+      const saved = editing
+        ? await this.parish.updateKanda(editing.id, this.form.getRawValue())
+        : await this.parish.createKanda(this.form.getRawValue());
       this.kandas.update((current) =>
-        [...current, created].sort((a, b) => a.name.localeCompare(b.name)),
+        [...current.filter((kanda) => kanda.id !== saved.id), saved].sort((a, b) =>
+          a.name.localeCompare(b.name),
+        ),
       );
+
+      const detail = this.detail();
+      if (detail && detail.id === saved.id) {
+        this.detail.set({ ...detail, name: saved.name, leader: saved.leader, notes: saved.notes });
+      }
+      if (editing) {
+        this.jumuiyas.update((current) =>
+          current.map((group) =>
+            group.kanda_id === saved.id ? { ...group, kanda: { id: saved.id, name: saved.name } } : group,
+          ),
+        );
+      }
+
       this.closeForm();
     } catch (error) {
-      this.error.set(httpErrorMessage(error, 'Imeshindwa kuongeza kanda hiyo.'));
+      this.error.set(
+        httpErrorMessage(error, editing ? 'Imeshindwa kuhariri kanda hiyo.' : 'Imeshindwa kuongeza kanda hiyo.'),
+      );
     } finally {
       this.saving.set(false);
     }

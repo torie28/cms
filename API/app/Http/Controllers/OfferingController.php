@@ -21,12 +21,15 @@ class OfferingController extends Controller
         $range = $request->validate([
             'from' => ['nullable', 'date_format:Y-m-d'],
             'to' => ['nullable', 'date_format:Y-m-d', 'after_or_equal:from'],
+            'jumuiya_ids' => ['nullable', 'array'],
+            'jumuiya_ids.*' => ['integer'],
         ]);
 
         $offerings = Offering::query()
             ->with(['jumuiya:id,name', 'thankYouMessage:id,status'])
             ->when($range['from'] ?? null, fn ($query, $from) => $query->whereDate('received_on', '>=', $from))
             ->when($range['to'] ?? null, fn ($query, $to) => $query->whereDate('received_on', '<=', $to))
+            ->when($range['jumuiya_ids'] ?? null, fn ($query, $ids) => $query->whereIn('jumuiya_id', $ids))
             ->orderByDesc('received_on')
             ->orderByDesc('id')
             ->get();
@@ -36,7 +39,7 @@ class OfferingController extends Controller
 
     public function store(Request $request): JsonResponse
     {
-        $this->ensureAccess($request);
+        $this->ensureCan($request, 'sadaka', 'create');
 
         $offering = Offering::query()->create([
             ...$this->validated($request),
@@ -60,7 +63,7 @@ class OfferingController extends Controller
 
     public function update(Request $request, Offering $offering): JsonResponse
     {
-        $this->ensureAccess($request);
+        $this->ensureCan($request, 'sadaka', 'update');
 
         $offering->update($this->validated($request));
         $changes = ActivityLogger::changes($offering, [
@@ -94,7 +97,7 @@ class OfferingController extends Controller
 
     public function destroy(Request $request, Offering $offering): JsonResponse
     {
-        $this->ensureAccess($request);
+        $this->ensureCan($request, 'sadaka', 'delete');
 
         $snapshot = Recycle::snapshot($offering);
         $offering->delete();

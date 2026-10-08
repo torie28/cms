@@ -25,7 +25,7 @@ class RoleController extends Controller
 
     public function store(Request $request): JsonResponse
     {
-        $this->ensureAdmin($request);
+        $this->ensureCan($request, 'users', 'create');
 
         $data = $request->validate([
             'label' => ['required', 'string', 'max:255'],
@@ -54,7 +54,7 @@ class RoleController extends Controller
 
     public function update(Request $request, Role $role): JsonResponse
     {
-        $this->ensureAdmin($request);
+        $this->ensureCan($request, 'users', 'update');
 
         $data = $request->validate([
             'label' => ['required', 'string', 'max:255'],
@@ -81,7 +81,7 @@ class RoleController extends Controller
 
     public function destroy(Request $request, Role $role): JsonResponse
     {
-        $this->ensureAdmin($request);
+        $this->ensureCan($request, 'users', 'delete');
 
         abort_if($role->is_system, 422, 'Wadhifa huu wa mfumo hauwezi kufutwa.');
         abort_if($role->users()->exists(), 422, 'Wadhifa huu una watumiaji. Wahamishie wadhifa mwingine kwanza.');

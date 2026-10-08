@@ -5,6 +5,7 @@ namespace App\Support;
 use App\Models\ActivityLog;
 use App\Models\Jumuiya;
 use App\Models\JumuiyaMember;
+use App\Models\Kanda;
 use App\Models\Module;
 use App\Models\Offering;
 use App\Models\Role;
@@ -27,6 +28,7 @@ class Recycle
         'role' => Role::class,
         'jumuiya' => Jumuiya::class,
         'jumuiya_member' => JumuiyaMember::class,
+        'kanda' => Kanda::class,
         'offering' => Offering::class,
     ];
 
@@ -136,6 +138,13 @@ class Recycle
                 'Idadi ya wanajumuiya' => $model->members()->count(),
                 'Wanajumuiya' => $model->members()->orderBy('name')->pluck('name')->join(', '),
             ],
+            $model instanceof Kanda => [
+                'Jina' => $model->name,
+                'Kiongozi' => $model->leader,
+                'Maelezo' => $model->notes,
+                'Idadi ya jumuiya' => $model->jumuiyas()->count(),
+                'Jumuiya' => $model->jumuiyas()->orderBy('name')->pluck('name')->join(', '),
+            ],
             $model instanceof JumuiyaMember => [
                 'Jina' => $model->name,
                 'Simu' => $model->phone,
@@ -171,6 +180,14 @@ class Recycle
             if (Role::onlyTrashed()->where('name', $model->role)->exists()) {
                 return 'Wadhifa wa mtumiaji huyu ulifutwa. Urejeshe wadhifa huo kwanza.';
             }
+        }
+
+        if ($model instanceof Kanda && Kanda::query()->where('name', $model->name)->exists()) {
+            return "Kanda nyingine yenye jina \"{$model->name}\" ipo sasa. Ibadilishe jina kwanza.";
+        }
+
+        if ($model instanceof Jumuiya && Kanda::onlyTrashed()->whereKey($model->kanda_id)->exists()) {
+            return 'Kanda yake ilifutwa. Rejesha kanda hiyo kwanza.';
         }
 
         if ($model instanceof JumuiyaMember && Jumuiya::onlyTrashed()->whereKey($model->jumuiya_id)->exists()) {

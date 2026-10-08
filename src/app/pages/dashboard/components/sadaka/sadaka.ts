@@ -14,6 +14,7 @@ import {
 import { FormBuilder, ReactiveFormsModule, Validators } from '@angular/forms';
 import { ActivatedRoute } from '@angular/router';
 import { ActivityService } from '../../../../core/activity';
+import { AuthService } from '../../../../core/auth';
 import { ConfirmService } from '../../../../core/confirm';
 import { httpErrorMessage } from '../../../../core/http-error';
 import { I18nService, translate, TranslatePipe } from '../../../../core/i18n';
@@ -21,6 +22,7 @@ import { displayPhone, normalizePhone } from '../../../../core/messages';
 import {
   downloadOfferingTemplate,
   OfferingImportPlan,
+  offeringsSheet,
   readOfferingSheet,
 } from '../../../../core/offering-transfer';
 import {
@@ -48,7 +50,7 @@ import {
 import { FilterPanel, withinDateRange } from '../../../../shared/filter-panel';
 import { matchesSearch, SearchBox } from '../../../../shared/search-box';
 
-type Period = 'today' | 'week' | 'month' | 'year' | 'custom';
+type Period = 'today' | 'week' | 'month' | 'last-month' | 'year' | 'custom';
 type Sort = 'date-desc' | 'date-asc' | 'amount-desc' | 'amount-asc';
 
 /** 0 means "show everything on one page". */
@@ -89,6 +91,7 @@ const PERIODS: readonly { value: Period; label: string }[] = [
   { value: 'today', label: 'Leo' },
   { value: 'week', label: 'Wiki hii' },
   { value: 'month', label: 'Mwezi huu' },
+  { value: 'last-month', label: 'Mwezi uliopita' },
   { value: 'year', label: 'Mwaka huu' },
   { value: 'custom', label: 'Chagua tarehe' },
 ];
@@ -112,7 +115,11 @@ export class Sadaka {
   private readonly fb = inject(FormBuilder);
   private readonly route = inject(ActivatedRoute);
   private readonly confirm = inject(ConfirmService);
+  private readonly auth = inject(AuthService);
   protected readonly i18n = inject(I18nService);
+  protected readonly canCreate = computed(() => this.auth.can('sadaka', 'create'));
+  protected readonly canUpdate = computed(() => this.auth.can('sadaka', 'update'));
+  protected readonly canDelete = computed(() => this.auth.can('sadaka', 'delete'));
 
   protected readonly categories = OFFERING_CATEGORIES;
   protected readonly paymentMethods = PAYMENT_METHODS;
@@ -164,6 +171,11 @@ export class Sadaka {
         monday.setDate(now.getDate() - ((now.getDay() + 6) % 7));
         return { from: isoDay(monday), to: this.today };
       }
+      case 'last-month':
+        return {
+          from: isoDay(new Date(now.getFullYear(), now.getMonth() - 1, 1)),
+          to: isoDay(new Date(now.getFullYear(), now.getMonth(), 0)),
+        };
       case 'year':
         return { from: `${now.getFullYear()}-01-01`, to: this.today };
       case 'custom':
@@ -762,24 +774,23 @@ export class Sadaka {
 
     try {
       const { from, to } = this.range();
-      const title = translate('Sadaka na michango');
-      const subtitle = translate('Kuanzia {from} hadi {to}', { from, to });
-      const ledger: SheetData = {
-        name: translate('Orodha ya michango'),
-        head: ['Tarehe', 'Aina', 'Mtoaji', 'Jumuiya', 'Njia ya malipo', 'Namba ya risiti', 'Kiasi (TSh)', 'Maelezo'].map(
-          (label) => translate(label),
-        ),
-        rows: rows.map((item) => [
-          item.received_on,
-          translate(this.categoryLabel(item.category)),
-          item.contributor ?? '',
-          item.jumuiya?.name ?? '',
-          translate(this.methodLabel(item.payment_method)),
-          item.reference ?? '',
-          Number(item.amount).toFixed(2),
-          item.notes ?? '',
-        ]),
-      };
+      const jumuiya = this.jumuiyas().find((group) => group.id === this.jumuiyaFilter());
+      const category = this.categoryFilter();
+      const method = this.methodFilter();
+      const title = [
+        category ? translate(this.categoryLabel(category)) : translate('Sadaka na michango'),
+        jumuiya?.name,
+      ]
+        .filter(Boolean)
+        .join(' — ');
+      const subtitle = [
+        translate('Kuanzia {from} hadi {to}', { from, to }),
+        method ? translate(this.methodLabel(method)) : '',
+        this.search() ? translate('Utafutaji: "{query}"', { query: this.search() }) : '',
+      ]
+        .filter(Boolean)
+        .join(' · ');
+      const ledger = offeringsSheet(rows, translate('Orodha ya michango'));
       const summary: SheetData = {
         name: translate('Muhtasari'),
         head: [translate('Aina'), translate('Idadi'), translate('Jumla (TSh)')],
@@ -796,20 +807,26 @@ export class Sadaka {
             .filter((row) => row[1] !== '0'),
           [translate('Jumla kuu'), String(rows.length), this.filteredTotal().toFixed(2)],
         ],
+        totalRow: true,
       };
       const filename = datedFilename(title);
 
       if (format === 'xlsx') {
-        await saveWorkbook([summary, ledger], `${filename}.xlsx`);
+        await saveWorkbook([summary, ledger], `${filename}.xlsx`, { title, subtitle });
       } else if (format === 'csv') {
-        await saveCsv(ledger, `${filename}.csv`);
+        await saveCsv({ ...ledger, rows: ledger.rows.slice(0, rows.length) }, `${filename}.csv`);
       } else {
         await savePdf(
           title,
           subtitle,
           [
-            { heading: summary.name, head: summary.head, rows: summary.rows },
-            { heading: ledger.name, head: ledger.head.slice(0, 7), rows: ledger.rows.map((row) => row.slice(0, 7)) },
+            { heading: summary.name, head: summary.head, rows: summary.rows, totalRow: true },
+            {
+              heading: ledger.name,
+              head: ledger.head.slice(0, 7),
+              rows: ledger.rows.map((row) => row.slice(0, 7)),
+              totalRow: ledger.totalRow,
+            },
           ],
           `${filename}.pdf`,
           format === 'print',
@@ -818,7 +835,7 @@ export class Sadaka {
 
       void this.activity.record({
         action: 'exported',
-        subject: `${rows.length} offerings (${from} – ${to}) as ${FORMAT_NAMES[format]}`,
+        subject: `${rows.length} offerings${jumuiya ? ` of ${jumuiya.name}` : ''} (${from} – ${to}) as ${FORMAT_NAMES[format]}`,
         subject_type: 'offering',
       });
     } catch (error) {

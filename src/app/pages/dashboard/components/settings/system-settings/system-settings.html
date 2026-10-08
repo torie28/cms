@@ -20,9 +20,9 @@
     </p>
   }
 
-  @if (!isAdmin()) {
+  @if (!canUpdate()) {
     <p class="rounded border border-line bg-sunken px-3 py-2 text-xs text-muted">
-      {{ 'Ni msimamizi pekee anayeweza kubadilisha moduli.' | t }}
+      {{ 'Huna ruhusa ya kubadilisha moduli.' | t }}
     </p>
   }
 
@@ -62,10 +62,10 @@
             class="relative h-6 w-11 shrink-0 rounded-full transition-colors disabled:cursor-not-allowed"
             [class.bg-brass-strong]="module.enabled"
             [class.bg-line-strong]="!module.enabled"
-            [class.opacity-50]="module.is_core || !isAdmin()"
+            [class.opacity-50]="module.is_core || !canUpdate()"
             [attr.aria-checked]="module.enabled"
             [attr.aria-label]="(module.enabled ? 'Zima {label}' : 'Washa {label}') | t: { label: (module.label | t) }"
-            [disabled]="module.is_core || !isAdmin() || isPending(module)"
+            [disabled]="module.is_core || !canUpdate() || isPending(module)"
             (click)="toggle(module)"
           >
             <span

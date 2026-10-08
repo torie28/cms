@@ -1,7 +1,7 @@
 <div class="space-y-6">
   <div class="flex flex-wrap items-center justify-between gap-4">
     <p class="text-sm text-muted">{{ 'Ongeza mtumiaji, mpe wadhifa na uchague moduli atakazoziona.' | t }}</p>
-    @if (isAdmin()) {
+    @if (canCreate()) {
       <button
         type="button"
         class="rounded bg-brass-strong px-4 py-2 text-sm font-medium text-canvas hover:opacity-90"
@@ -81,7 +81,7 @@
           <th class="px-4 py-3 font-medium">{{ 'Wadhifa' | t }}</th>
           <th class="px-4 py-3 font-medium">{{ 'Moduli' | t }}</th>
           <th class="px-4 py-3 font-medium">{{ 'Aliongezwa' | t }}</th>
-          @if (isAdmin()) {
+          @if (canUpdate() || canDelete()) {
             <th class="px-4 py-3"><span class="sr-only">{{ 'Vitendo' | t }}</span></th>
           }
         </tr>
@@ -97,7 +97,7 @@
               <td class="px-4 py-3.5"><span class="skeleton h-5 w-20"></span></td>
               <td class="px-4 py-3.5"><span class="skeleton h-4 w-32"></span></td>
               <td class="px-4 py-3.5"><span class="skeleton h-4 w-20"></span></td>
-              @if (isAdmin()) {
+              @if (canUpdate() || canDelete()) {
                 <td></td>
               }
             </tr>
@@ -129,20 +129,22 @@
                   {{ roleName(person.role) }}
                 </span>
               </td>
-              <td class="max-w-56 px-4 py-3 text-xs text-muted">{{ moduleNames(person) }}</td>
+              <td class="max-w-72 px-4 py-3 text-xs text-muted">{{ moduleNames(person) }}</td>
               <td class="px-4 py-3 whitespace-nowrap text-faint">
                 {{ person.created_at | date: 'd MMM y' : undefined : i18n.dateLocale() }}
               </td>
-              @if (isAdmin()) {
+              @if (canUpdate() || canDelete()) {
                 <td class="px-4 py-3 text-right whitespace-nowrap">
-                  <button
-                    type="button"
-                    class="rounded px-2 py-1 text-xs text-brass-strong hover:bg-brass-tint"
-                    (click)="openEdit(person)"
-                  >
-                    {{ 'Hariri' | t }}
-                  </button>
-                  @if (person.id !== currentUserId()) {
+                  @if (canUpdate()) {
+                    <button
+                      type="button"
+                      class="rounded px-2 py-1 text-xs text-brass-strong hover:bg-brass-tint"
+                      (click)="openEdit(person)"
+                    >
+                      {{ 'Hariri' | t }}
+                    </button>
+                  }
+                  @if (canDelete() && person.id !== currentUserId()) {
                     <button
                       type="button"
                       class="rounded px-2 py-1 text-xs text-negative hover:bg-negative/10"

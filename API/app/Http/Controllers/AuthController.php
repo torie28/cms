@@ -88,6 +88,7 @@ class AuthController extends Controller
             'role' => $user->role,
             'role_label' => Role::query()->where('name', $user->role)->value('label'),
             'modules' => Modules::accessibleBy($user),
+            'privileges' => Modules::privilegesFor($user),
         ];
     }
 }

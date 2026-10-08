@@ -1,0 +1,255 @@
+<div
+  class="fixed inset-0 z-[60] flex items-center justify-center bg-black/40 p-4"
+  animate.enter="backdrop-in"
+  animate.leave="backdrop-out"
+  (click)="close()"
+>
+  <section
+    class="max-h-[92vh] w-full max-w-3xl overflow-y-auto rounded border border-line bg-surface p-5"
+    role="dialog"
+    aria-modal="true"
+    aria-labelledby="split-title"
+    (click)="$event.stopPropagation()"
+  >
+    <h2 id="split-title" class="font-serif text-xl">{{ 'Gawanya jumuiya' | t }}</h2>
+    <p class="mt-1 text-sm text-muted">
+      {{ 'Unagawanya {name} ({kanda}) kuwa jumuiya mbili.' | t: { name: jumuiya().name, kanda: currentKanda()?.name || '—' } }}
+    </p>
+
+    @if (error()) {
+      <p class="alert-in mt-4 rounded border border-negative/40 bg-negative/10 px-3 py-2 text-sm text-negative" role="alert">
+        {{ error() }}
+      </p>
+    }
+
+    <form [formGroup]="form" (ngSubmit)="submit()" class="mt-5 space-y-5">
+      <div class="grid gap-4 md:grid-cols-2">
+        <fieldset class="rounded border border-line p-4">
+          <legend class="px-1 text-xs tracking-[0.12em] text-faint uppercase">{{ 'Jumuiya mama' | t }}</legend>
+          <p class="font-serif text-lg">{{ jumuiya().name }}</p>
+          <p class="text-xs text-muted">{{ 'Wanajumuiya {count} watabaki' | t: { count: stayingCount() } }}</p>
+
+          <p class="mt-4 mb-2 text-xs tracking-[0.12em] text-muted uppercase">{{ 'Itakuwa kanda gani?' | t }}</p>
+          <div class="space-y-2 text-sm">
+            <label class="flex cursor-pointer items-start gap-2">
+              <input
+                type="radio"
+                name="parent-placement"
+                class="mt-0.5 h-4 w-4 accent-[var(--brass)]"
+                [checked]="parentPlacement() === 'stay'"
+                (change)="setParentPlacement('stay')"
+              />
+              <span>{{ 'Ibaki kwenye kanda yake ({kanda})' | t: { kanda: currentKanda()?.name || '—' } }}</span>
+            </label>
+            <label class="flex items-start gap-2" [class.cursor-pointer]="parentMoveOptions().length > 0" [class.opacity-50]="parentMoveOptions().length === 0">
+              <input
+                type="radio"
+                name="parent-placement"
+                class="mt-0.5 h-4 w-4 accent-[var(--brass)]"
+                [checked]="parentPlacement() === 'move'"
+                [disabled]="parentMoveOptions().length === 0"
+                (change)="setParentPlacement('move')"
+              />
+              <span>{{ 'Ihamie kanda mpya' | t }}</span>
+            </label>
+          </div>
+          @if (parentPlacement() === 'move') {
+            <label for="split-parent-kanda" class="sr-only">{{ 'Kanda mpya ya jumuiya mama' | t }}</label>
+            <select
+              id="split-parent-kanda"
+              class="alert-in mt-2 w-full rounded border border-line bg-canvas px-3 py-2 text-sm focus:border-brass focus:ring-1 focus:ring-brass focus:outline-none"
+              [value]="parentMoveKandaId()"
+              (change)="setParentMoveKanda($any($event.target).value)"
+            >
+              <option value="0" disabled>{{ 'Chagua kanda' | t }}</option>
+              @for (kanda of parentMoveOptions(); track kanda.id) {
+                <option [value]="kanda.id">{{ kanda.name }}</option>
+              }
+            </select>
+          }
+        </fieldset>
+
+        <fieldset class="rounded border border-brass/50 bg-brass-tint/30 p-4">
+          <legend class="px-1 text-xs tracking-[0.12em] text-brass-strong uppercase">{{ 'Jumuiya mpya' | t }}</legend>
+          <div class="space-y-3">
+            <div>
+              <label for="split-name" class="mb-1 block text-xs tracking-[0.12em] text-muted uppercase">{{ 'Jina' | t }}</label>
+              <input
+                id="split-name"
+                type="text"
+                formControlName="name"
+                [placeholder]="'Jumuiya ya Mt. Yosefu' | t"
+                class="w-full rounded border border-line bg-canvas px-3 py-2 text-sm focus:border-brass focus:ring-1 focus:ring-brass focus:outline-none"
+                [class.border-negative]="form.controls.name.invalid && form.controls.name.touched"
+              />
+            </div>
+            <div>
+              <label for="split-chair" class="mb-1 block text-xs tracking-[0.12em] text-muted uppercase">{{ 'Mwenyekiti' | t }}</label>
+              <input
+                id="split-chair"
+                type="text"
+                formControlName="chairperson"
+                class="w-full rounded border border-line bg-canvas px-3 py-2 text-sm focus:border-brass focus:ring-1 focus:ring-brass focus:outline-none"
+              />
+            </div>
+          </div>
+
+          <p class="mt-4 mb-2 text-xs tracking-[0.12em] text-muted uppercase">{{ 'Itakuwa kanda gani?' | t }}</p>
+          <div class="space-y-2 text-sm">
+            <label class="flex cursor-pointer items-start gap-2">
+              <input
+                type="radio"
+                name="child-placement"
+                class="mt-0.5 h-4 w-4 accent-[var(--brass)]"
+                [checked]="childPlacement() === 'same'"
+                (change)="setChildPlacement('same')"
+              />
+              <span>{{ 'Kanda moja na jumuiya mama ({kanda})' | t: { kanda: kandaName(parentKandaId()) } }}</span>
+            </label>
+            <label class="flex items-start gap-2" [class.cursor-pointer]="childOtherOptions().length > 0" [class.opacity-50]="childOtherOptions().length === 0">
+              <input
+                type="radio"
+                name="child-placement"
+                class="mt-0.5 h-4 w-4 accent-[var(--brass)]"
+                [checked]="childPlacement() === 'other'"
+                [disabled]="childOtherOptions().length === 0"
+                (change)="setChildPlacement('other')"
+              />
+              <span>{{ 'Kanda nyingine' | t }}</span>
+            </label>
+          </div>
+          @if (childPlacement() === 'other') {
+            <label for="split-child-kanda" class="sr-only">{{ 'Kanda ya jumuiya mpya' | t }}</label>
+            <select
+              id="split-child-kanda"
+              class="alert-in mt-2 w-full rounded border border-line bg-canvas px-3 py-2 text-sm focus:border-brass focus:ring-1 focus:ring-brass focus:outline-none"
+              [value]="childOtherKandaId()"
+              (change)="setChildOtherKanda($any($event.target).value)"
+            >
+              <option value="0" disabled>{{ 'Chagua kanda' | t }}</option>
+              @for (kanda of childOtherOptions(); track kanda.id) {
+                <option [value]="kanda.id">{{ kanda.name }}</option>
+              }
+            </select>
+          }
+        </fieldset>
+      </div>
+
+      <div>
+        <div class="flex flex-wrap items-center justify-between gap-3">
+          <div>
+            <h3 class="text-xs tracking-[0.12em] text-faint uppercase">{{ 'Wanajumuiya watakaohamia jumuiya mpya' | t }}</h3>
+            <p class="mt-0.5 text-sm text-muted">
+              {{ 'Umechagua {moving} kati ya {total}' | t: { moving: movingCount(), total: members().length } }}
+            </p>
+          </div>
+          @if (members().length > 0) {
+            <app-search-box class="w-full sm:w-64" [placeholder]="'Tafuta jina au simu…' | t" [(value)]="memberSearch" />
+          }
+        </div>
+
+        @if (membersLoading()) {
+          <div class="mt-3 space-y-2" aria-busy="true" [attr.aria-label]="'Inapakia wanajumuiya' | t">
+            @for (row of [1, 2, 3, 4]; track row) {
+              <span class="skeleton h-8 w-full"></span>
+            }
+          </div>
+        } @else if (members().length === 0) {
+          <p class="mt-3 rounded border border-dashed border-line px-3 py-4 text-sm text-muted">
+            {{ 'Jumuiya hii haina wanajumuiya bado; jumuiya mpya itaanza bila wanajumuiya.' | t }}
+          </p>
+        } @else {
+          <div class="mt-3 overflow-hidden rounded border border-line">
+            <label class="flex cursor-pointer items-center gap-3 border-b border-line bg-sunken px-3 py-2 text-xs tracking-[0.12em] text-faint uppercase">
+              <input
+                type="checkbox"
+                class="h-4 w-4 accent-[var(--brass)]"
+                [checked]="allFilteredSelected()"
+                (change)="toggleAllFiltered()"
+              />
+              {{ (memberSearch() ? 'Chagua wote walioonyeshwa' : 'Chagua wote') | t }}
+            </label>
+            <ul class="max-h-64 divide-y divide-line overflow-y-auto">
+              @for (member of filteredMembers(); track member.id) {
+                <li>
+                  <label
+                    class="flex cursor-pointer items-center gap-3 px-3 py-2 text-sm hover:bg-sunken"
+                    [class.bg-brass-tint]="selectedIds().has(member.id)"
+                  >
+                    <input
+                      type="checkbox"
+                      class="h-4 w-4 accent-[var(--brass)]"
+                      [checked]="selectedIds().has(member.id)"
+                      (change)="toggleMember(member.id)"
+                    />
+                    <span class="min-w-0 flex-1 truncate font-medium">{{ member.name }}</span>
+                    <span class="text-xs text-muted">{{ member.phone || '—' }}</span>
+                  </label>
+                </li>
+              } @empty {
+                <li class="px-3 py-4 text-center text-sm text-muted">
+                  {{ 'Hakuna mwanajumuiya anayelingana na "{query}".' | t: { query: memberSearch() } }}
+                </li>
+              }
+            </ul>
+          </div>
+          @if (stayingCount() === 0) {
+            <p class="mt-2 text-xs text-negative">{{ 'Tahadhari: jumuiya mama itabaki bila wanajumuiya.' | t }}</p>
+          }
+        }
+      </div>
+
+      <div>
+        <label for="split-notes" class="mb-1 block text-xs tracking-[0.12em] text-muted uppercase">{{ 'Maelezo' | t }}</label>
+        <textarea
+          id="split-notes"
+          formControlName="notes"
+          rows="2"
+          class="w-full rounded border border-line bg-canvas px-3 py-2 text-sm focus:border-brass focus:ring-1 focus:ring-brass focus:outline-none"
+        ></textarea>
+      </div>
+
+      <div class="rounded border border-line bg-sunken/60 p-3 text-sm">
+        <p class="text-xs tracking-[0.12em] text-faint uppercase">{{ 'Baada ya kugawanya' | t }}</p>
+        <ul class="mt-2 grid gap-2 sm:grid-cols-2">
+          <li>
+            <span class="font-medium">{{ jumuiya().name }}</span>
+            <span class="block text-xs text-muted">
+              {{ kandaName(parentKandaId()) }} · {{ 'wanajumuiya {count}' | t: { count: stayingCount() } }}
+              @if (parentPlacement() === 'move' && parentMoveKandaId()) {
+                · <span class="text-brass-strong">{{ 'inahamia kanda mpya' | t }}</span>
+              }
+            </span>
+          </li>
+          <li>
+            <span class="font-medium">{{ form.controls.name.value || ('Jumuiya mpya' | t) }}</span>
+            <span class="block text-xs text-muted">
+              {{ kandaName(childKandaId()) }} · {{ 'wanajumuiya {count}' | t: { count: movingCount() } }}
+            </span>
+          </li>
+        </ul>
+      </div>
+
+      @if (submitted() && problems().length > 0) {
+        <ul class="alert-in list-disc space-y-0.5 rounded border border-negative/40 bg-negative/10 py-2 pr-3 pl-7 text-sm text-negative" role="alert">
+          @for (problem of problems(); track problem) {
+            <li>{{ problem | t }}</li>
+          }
+        </ul>
+      }
+
+      <div class="flex justify-end gap-2">
+        <button type="button" class="rounded px-3 py-2 text-sm text-muted hover:bg-sunken" [disabled]="saving()" (click)="close()">
+          {{ 'Ghairi' | t }}
+        </button>
+        <button
+          type="submit"
+          class="rounded bg-brass-strong px-4 py-2 text-sm font-medium text-canvas disabled:opacity-60"
+          [disabled]="saving() || membersLoading()"
+        >
+          {{ (saving() ? 'Inagawanya…' : 'Gawanya jumuiya') | t }}
+        </button>
+      </div>
+    </form>
+  </section>
+</div>

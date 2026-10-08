@@ -9,8 +9,11 @@ import {
 import { FormArray, FormBuilder, ReactiveFormsModule, Validators } from '@angular/forms';
 import { ActivatedRoute } from '@angular/router';
 import { FilterPanel, parseBound, withinNumberRange } from '../../../../shared/filter-panel';
+import { JumuiyaMoveDialog } from '../../../../shared/jumuiya-move-dialog';
+import { JumuiyaSplitDialog, JumuiyaSplitResult } from '../../../../shared/jumuiya-split-dialog';
 import { matchesSearch, SearchBox } from '../../../../shared/search-box';
 import { ActivityService } from '../../../../core/activity';
+import { AuthService } from '../../../../core/auth';
 import { ConfirmService } from '../../../../core/confirm';
 import { httpErrorMessage } from '../../../../core/http-error';
 import { translate, TranslatePipe } from '../../../../core/i18n';
@@ -18,11 +21,13 @@ import { EXPORT_FORMATS, FORMAT_NAMES, SPREADSHEET_ACCEPT } from '../../../../co
 import {
   downloadTemplate,
   ExportFormat,
+  exportJumuiyaProfile,
   exportJumuiyas,
   ImportedRow,
   normalizeGender,
   readSpreadsheet,
 } from '../../../../core/jumuiya-transfer';
+import { OfferingService } from '../../../../core/offerings';
 import {
   Jumuiya,
   JumuiyaMember,
@@ -50,13 +55,21 @@ interface ImportPlan {
 @Component({
   selector: 'app-jumuiya',
   changeDetection: ChangeDetectionStrategy.OnPush,
-  imports: [ReactiveFormsModule, SearchBox, FilterPanel, TranslatePipe],
+  imports: [ReactiveFormsModule, SearchBox, FilterPanel, JumuiyaSplitDialog, JumuiyaMoveDialog, TranslatePipe],
   templateUrl: './jumuiya.html',
 })
 export class JumuiyaPage {
   private readonly parish = inject(ParishService);
+  private readonly offeringsApi = inject(OfferingService);
   private readonly fb = inject(FormBuilder);
   private readonly confirm = inject(ConfirmService);
+  private readonly auth = inject(AuthService);
+  protected readonly canCreate = computed(() => this.auth.can('jumuiya', 'create'));
+  protected readonly canUpdate = computed(() => this.auth.can('jumuiya', 'update'));
+  protected readonly canDelete = computed(() => this.auth.can('jumuiya', 'delete'));
+  protected readonly canSplit = computed(() => this.canCreate() && this.canUpdate());
+  protected readonly splitTarget = signal<Jumuiya | null>(null);
+  protected readonly moveTarget = signal<Jumuiya | null>(null);
 
   protected readonly jumuiyas = signal<Jumuiya[]>([]);
   protected readonly kandas = signal<Kanda[]>([]);
@@ -135,6 +148,7 @@ export class JumuiyaPage {
   protected readonly importing = signal(false);
   protected readonly notice = signal<string | null>(null);
   protected readonly exportMenu = signal<'page' | 'view' | null>(null);
+  protected readonly exportScope = signal<'selected' | 'all'>('selected');
   protected readonly exporting = signal(false);
   protected readonly exportFormats = EXPORT_FORMATS;
   protected readonly spreadsheetAccept = SPREADSHEET_ACCEPT;
@@ -272,6 +286,47 @@ export class JumuiyaPage {
 
   protected closeView(): void {
     this.viewOpen.set(false);
+  }
+
+  protected openSplit(group: Jumuiya, event?: Event): void {
+    event?.stopPropagation();
+    this.selected.set(group);
+    this.viewOpen.set(false);
+    this.splitTarget.set(group);
+  }
+
+  protected openMove(group: Jumuiya, event?: Event): void {
+    event?.stopPropagation();
+    this.selected.set(group);
+    this.viewOpen.set(false);
+    this.moveTarget.set(group);
+  }
+
+  protected async onMoveDone(moved: Jumuiya): Promise<void> {
+    this.moveTarget.set(null);
+    this.upsertJumuiya(moved);
+    this.notice.set(
+      translate('{name} imehamishiwa {kanda} pamoja na wanajumuiya wake {count}.', {
+        name: moved.name,
+        kanda: moved.kanda?.name ?? '—',
+        count: moved.members_count ?? 0,
+      }),
+    );
+    await this.refresh();
+  }
+
+  protected async onSplitDone({ parent, jumuiya }: JumuiyaSplitResult): Promise<void> {
+    this.splitTarget.set(null);
+    this.notice.set(
+      translate('{parent} imegawanywa: {child} imeundwa ndani ya {kanda} ikiwa na wanajumuiya {count}.', {
+        parent: parent.name,
+        child: jumuiya.name,
+        kanda: jumuiya.kanda?.name ?? '—',
+        count: jumuiya.members_count ?? 0,
+      }),
+    );
+    await this.refresh();
+    this.selected.set(this.jumuiyas().find((group) => group.id === jumuiya.id) ?? jumuiya);
   }
 
   protected async refresh(): Promise<void> {
@@ -595,6 +650,7 @@ export class JumuiyaPage {
 
   protected toggleExportMenu(menu: 'page' | 'view', event: Event): void {
     event.stopPropagation();
+    this.exportScope.set('selected');
     this.exportMenu.update((current) => (current === menu ? null : menu));
   }
 
@@ -616,7 +672,12 @@ export class JumuiyaPage {
       const detailed = await Promise.all(
         this.filteredJumuiyas().map((group) => this.parish.getJumuiya(group.id)),
       );
-      await exportJumuiyas(detailed, format, translate('Jumuiya zote'));
+      const kanda = this.kandas().find((item) => item.id === this.kandaFilter());
+      await exportJumuiyas(
+        detailed,
+        format,
+        kanda ? translate('Jumuiya za {kanda}', { kanda: kanda.name }) : translate('Jumuiya zote'),
+      );
       void this.activity.record({
         action: 'exported',
         subject: `${detailed.length} jumuiyas as ${FORMAT_NAMES[format]}`,
@@ -629,6 +690,11 @@ export class JumuiyaPage {
     }
   }
 
+  /** The page "Pakua" menu exports the selected jumuiya unless the user switches it to the whole list. */
+  protected async exportPage(format: ExportFormat): Promise<void> {
+    await (this.selected() && this.exportScope() === 'selected' ? this.exportSelected(format) : this.exportAll(format));
+  }
+
   protected async exportSelected(format: ExportFormat): Promise<void> {
     this.exportMenu.set(null);
     const group = this.selected();
@@ -638,17 +704,25 @@ export class JumuiyaPage {
     }
 
     this.exporting.set(true);
+    this.error.set(null);
 
     try {
-      await exportJumuiyas(
-        [{ ...group, members: this.members() }],
-        format,
-        translate('Jumuiya {name}', { name: group.name }),
-      );
+      const [detail, offerings] = await Promise.all([
+        this.parish.getJumuiya(group.id),
+        this.auth.canAccess('sadaka')
+          ? this.offeringsApi.list({ from: '', to: '', jumuiyaIds: [group.id] }).catch(() => null)
+          : Promise.resolve(null),
+      ]);
+      await exportJumuiyaProfile({ ...group, ...detail, parent: group.parent ?? null }, format, {
+        offerings,
+        children: this.jumuiyas().filter((item) => (item.parent_id ?? item.parent?.id) === group.id),
+      });
       void this.activity.record({
         action: 'exported',
-        subject: `${group.name} members as ${FORMAT_NAMES[format]}`,
-        subject_type: 'jumuiya_member',
+        subject: `${group.name} (details, ${detail.members?.length ?? 0} members${
+          offerings ? `, ${offerings.length} offerings` : ''
+        }) as ${FORMAT_NAMES[format]}`,
+        subject_type: 'jumuiya',
       });
     } catch (error) {
       this.error.set(httpErrorMessage(error, 'Imeshindwa kuandaa faili la kupakua.'));

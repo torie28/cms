@@ -22,7 +22,7 @@ class User extends Authenticatable
 
     public function modules(): BelongsToMany
     {
-        return $this->belongsToMany(Module::class);
+        return $this->belongsToMany(Module::class)->withPivot(['can_create', 'can_update', 'can_delete']);
     }
 
     /**

@@ -5,13 +5,15 @@
       <p class="mt-1 text-sm text-muted">{{ 'Kanda za parokia. Kila kanda ina jumuiya moja au zaidi.' | t }}</p>
     </div>
     <div class="flex flex-wrap items-center gap-2">
-      <button
-        type="button"
-        class="rounded border border-line px-4 py-2 text-sm hover:bg-sunken"
-        (click)="openImport()"
-      >
-        {{ 'Ingiza kutoka Excel' | t }}
-      </button>
+      @if (canCreate()) {
+        <button
+          type="button"
+          class="rounded border border-line px-4 py-2 text-sm hover:bg-sunken"
+          (click)="openImport()"
+        >
+          {{ 'Ingiza kutoka Excel' | t }}
+        </button>
+      }
       <div class="relative">
         <button
           type="button"
@@ -41,13 +43,15 @@
           </div>
         }
       </div>
-      <button
-        type="button"
-        class="rounded bg-brass-strong px-4 py-2 text-sm font-medium text-canvas hover:opacity-90"
-        (click)="openForm()"
-      >
-        {{ 'Ongeza kanda' | t }}
-      </button>
+      @if (canCreate()) {
+        <button
+          type="button"
+          class="rounded bg-brass-strong px-4 py-2 text-sm font-medium text-canvas hover:opacity-90"
+          (click)="openForm()"
+        >
+          {{ 'Ongeza kanda' | t }}
+        </button>
+      }
     </div>
   </div>
 
@@ -69,6 +73,125 @@
     <p class="alert-in rounded border border-negative/40 bg-negative/10 px-3 py-2 text-sm text-negative" role="alert">
       {{ error() }}
     </p>
+  }
+
+  @if (loading() && kandas().length === 0) {
+    <section class="grid gap-4 sm:grid-cols-2 xl:grid-cols-4" aria-hidden="true">
+      @for (card of [1, 2, 3, 4]; track card) {
+        <div class="rounded border border-line bg-surface p-4">
+          <span class="skeleton h-3 w-20"></span>
+          <span class="skeleton mt-3 h-7 w-16"></span>
+          <span class="skeleton mt-2.5 h-3 w-28"></span>
+        </div>
+      }
+    </section>
+  } @else if (kandas().length > 0) {
+    <section class="grid gap-4 sm:grid-cols-2 xl:grid-cols-4">
+      <div class="rounded border border-line bg-surface p-4">
+        <p class="text-xs tracking-[0.15em] text-faint uppercase">{{ 'Kanda' | t }}</p>
+        <p class="mt-2 font-serif text-2xl tabular-nums">{{ totals().kandas }}</p>
+        <p class="mt-1 text-xs text-faint">
+          @if (totals().withoutLeader > 0) {
+            <span class="text-negative">{{ '{count} hazina kiongozi' | t: { count: totals().withoutLeader } }}</span>
+          } @else {
+            {{ 'Zote zina viongozi' | t }}
+          }
+        </p>
+      </div>
+      <div class="rounded border border-line bg-surface p-4">
+        <p class="text-xs tracking-[0.15em] text-faint uppercase">{{ 'Jumuiya' | t }}</p>
+        <p class="mt-2 font-serif text-2xl tabular-nums">{{ totals().jumuiyas }}</p>
+        <p class="mt-1 text-xs text-faint">{{ 'Wastani {avg} kwa kila kanda' | t: { avg: decimal(totals().jumuiyasPerKanda) } }}</p>
+      </div>
+      <div class="rounded border border-line bg-surface p-4">
+        <p class="text-xs tracking-[0.15em] text-faint uppercase">{{ 'Wanajumuiya' | t }}</p>
+        <p class="mt-2 font-serif text-2xl tabular-nums">{{ totals().members }}</p>
+        <p class="mt-1 text-xs text-faint">{{ 'Wastani {avg} kwa kila jumuiya' | t: { avg: decimal(totals().membersPerJumuiya) } }}</p>
+      </div>
+      <div class="rounded border border-line bg-surface p-4">
+        <p class="text-xs tracking-[0.15em] text-faint uppercase">{{ 'Migawanyo ya jumuiya' | t }}</p>
+        <p class="mt-2 font-serif text-2xl tabular-nums">{{ splitCount() }}</p>
+        <p class="mt-1 text-xs text-faint">{{ 'Jumuiya zilizotokana na kugawanywa' | t }}</p>
+      </div>
+    </section>
+
+    <div class="grid gap-6 xl:grid-cols-3">
+      <section class="rounded border border-line bg-surface p-5 xl:col-span-2">
+        <div class="flex items-baseline justify-between gap-3">
+          <h2 class="font-serif text-lg">{{ 'Ukubwa wa kanda' | t }}</h2>
+          <span class="text-xs text-faint">{{ 'Kwa idadi ya wanajumuiya' | t }}</span>
+        </div>
+        <ul class="mt-4 space-y-3">
+          @for (row of sizeChart(); track row.kanda.id; let i = $index) {
+            <li>
+              <button type="button" class="group block w-full text-left" (click)="openDetail(row.kanda)">
+                <div class="flex items-baseline justify-between gap-3 text-sm">
+                  <span class="truncate group-hover:text-brass-strong">{{ row.kanda.name }}</span>
+                  <span class="text-xs whitespace-nowrap text-muted tabular-nums">
+                    {{ 'jumuiya {count}' | t: { count: row.kanda.jumuiyas_count } }} ·
+                    <span class="font-medium text-ink">{{ row.kanda.members_count ?? 0 }}</span>
+                  </span>
+                </div>
+                <div class="mt-1 h-2 overflow-hidden rounded-full bg-sunken">
+                  <div
+                    class="h-full rounded-full bg-brass/70 transition-[width,background-color] duration-500 group-hover:bg-brass"
+                    [style.width.%]="row.share"
+                    [style.transition-delay.ms]="i * 40"
+                  ></div>
+                </div>
+              </button>
+            </li>
+          }
+        </ul>
+        @if (chartOverflow() > 0) {
+          <p class="mt-3 text-xs text-faint">{{ 'Na kanda nyingine {count} hapa chini.' | t: { count: chartOverflow() } }}</p>
+        }
+      </section>
+
+      <div class="space-y-6">
+        <section class="rounded border border-line bg-surface p-5">
+          <h2 class="font-serif text-lg">{{ 'Zinahitaji uangalizi' | t }}</h2>
+          @if (attention().length === 0) {
+            <p class="mt-3 text-sm text-muted">{{ 'Kanda zote zina kiongozi na jumuiya.' | t }}</p>
+          } @else {
+            <ul class="mt-3 divide-y divide-line">
+              @for (item of attention(); track item.kanda.id) {
+                <li>
+                  <button
+                    type="button"
+                    class="flex w-full items-baseline justify-between gap-3 py-2 text-left hover:text-brass-strong"
+                    (click)="openDetail(item.kanda)"
+                  >
+                    <span class="truncate text-sm font-medium">{{ item.kanda.name }}</span>
+                    <span class="rounded-full bg-negative/10 px-2 py-0.5 text-xs whitespace-nowrap text-negative">{{ item.reason | t }}</span>
+                  </button>
+                </li>
+              }
+            </ul>
+          }
+        </section>
+
+        <section class="rounded border border-line bg-surface p-5">
+          <h2 class="font-serif text-lg">{{ 'Migawanyo ya hivi karibuni' | t }}</h2>
+          @if (recentSplits().length === 0) {
+            <p class="mt-3 text-sm text-muted">{{ 'Bado hakuna jumuiya iliyogawanywa.' | t }}</p>
+          } @else {
+            <ul class="mt-3 divide-y divide-line">
+              @for (group of recentSplits(); track group.id) {
+                <li class="py-2">
+                  <a class="block hover:text-brass-strong" routerLink="/jumuiya" [queryParams]="{ q: group.name }">
+                    <span class="block truncate text-sm font-medium">{{ group.name }}</span>
+                    <span class="block truncate text-xs text-muted">
+                      {{ 'kutoka {parent}' | t: { parent: group.parent?.name } }} · {{ group.kanda?.name }}
+                    </span>
+                  </a>
+                </li>
+              }
+            </ul>
+          }
+        </section>
+      </div>
+    </div>
   }
 
   @if (loading()) {
@@ -137,6 +260,7 @@
           <option value="name-desc">{{ 'Jina (Z–A)' | t }}</option>
           <option value="jumuiyas-desc">{{ 'Jumuiya nyingi kwanza' | t }}</option>
           <option value="jumuiyas-asc">{{ 'Jumuiya chache kwanza' | t }}</option>
+          <option value="members-desc">{{ 'Wanajumuiya wengi kwanza' | t }}</option>
         </select>
       </div>
     </app-filter-panel>
@@ -150,17 +274,66 @@
     <section class="grid gap-4 md:grid-cols-2 xl:grid-cols-3">
       @for (kanda of filteredKandas(); track kanda.id; let i = $index) {
         <article
-          class="rounded border border-line bg-surface p-4 transition-[box-shadow,translate] hover:-translate-y-0.5 hover:shadow-md"
+          class="group flex flex-col rounded border border-line bg-surface transition-[box-shadow,translate,border-color] hover:-translate-y-0.5 hover:border-brass hover:shadow-md"
           [style.animation-delay.ms]="i * 60"
         >
-          <h2 class="font-serif text-lg">{{ kanda.name }}</h2>
-          <p class="mt-1 text-sm text-muted">{{ kanda.leader || ('Hakuna kiongozi aliyepangwa' | t) }}</p>
-          <p class="mt-3 text-xs tracking-[0.12em] text-faint uppercase">
-            {{ 'Jumuiya {count}' | t: { count: kanda.jumuiyas_count } }}
-          </p>
-          @if (kanda.notes) {
-            <p class="mt-2 text-sm text-muted">{{ kanda.notes }}</p>
-          }
+          <button
+            type="button"
+            class="flex flex-1 flex-col p-4 text-left focus-visible:outline-none"
+            [attr.aria-label]="'Fungua dashibodi ya {name}' | t: { name: kanda.name }"
+            (click)="openDetail(kanda)"
+          >
+            <div class="flex w-full items-start justify-between gap-2">
+              <h2 class="font-serif text-lg">{{ kanda.name }}</h2>
+              <span class="text-faint transition-transform group-hover:translate-x-0.5 group-hover:text-brass-strong" aria-hidden="true">→</span>
+            </div>
+            <p class="mt-1 text-sm" [class]="kanda.leader ? 'text-muted' : 'text-negative'">
+              {{ kanda.leader || ('Hakuna kiongozi aliyepangwa' | t) }}
+            </p>
+
+            <dl class="mt-4 grid w-full grid-cols-2 gap-3">
+              <div class="rounded bg-sunken px-3 py-2">
+                <dt class="text-[0.65rem] tracking-[0.12em] text-faint uppercase">{{ 'Jumuiya' | t }}</dt>
+                <dd class="font-serif text-xl tabular-nums">{{ kanda.jumuiyas_count }}</dd>
+              </div>
+              <div class="rounded bg-sunken px-3 py-2">
+                <dt class="text-[0.65rem] tracking-[0.12em] text-faint uppercase">{{ 'Wanajumuiya' | t }}</dt>
+                <dd class="font-serif text-xl tabular-nums">{{ kanda.members_count ?? 0 }}</dd>
+              </div>
+            </dl>
+
+            <div class="mt-3 h-1.5 w-full overflow-hidden rounded-full bg-sunken" [attr.title]="'Ukubwa ukilinganisha na kanda kubwa zaidi' | t">
+              <div class="h-full rounded-full bg-brass/70" [style.width.%]="percent(kanda.members_count ?? 0, sizeChart()[0]?.kanda?.members_count ?? 0)"></div>
+            </div>
+
+            @if (kanda.notes) {
+              <p class="mt-3 line-clamp-2 text-sm text-muted">{{ kanda.notes }}</p>
+            }
+          </button>
+          <div class="flex flex-wrap gap-x-4 gap-y-1 border-t border-line px-4 py-2.5">
+            <button type="button" class="text-sm text-brass-strong hover:underline" (click)="openDetail(kanda)">
+              {{ 'Tazama' | t }}
+            </button>
+            <button
+              type="button"
+              class="text-sm text-brass-strong hover:underline disabled:opacity-50"
+              [disabled]="exporting()"
+              [title]="'Pakua taarifa zote za {name} kwa Excel' | t: { name: kanda.name }"
+              (click)="exportKanda(kanda, 'xlsx')"
+            >
+              {{ (exportingKandaId() === kanda.id ? 'Inaandaa…' : 'Pakua Excel') | t }}
+            </button>
+            @if (canUpdate()) {
+              <button type="button" class="text-sm text-brass-strong hover:underline" (click)="openForm(kanda, $event)">
+                {{ 'Hariri' | t }}
+              </button>
+            }
+            @if (canDelete()) {
+              <button type="button" class="text-sm text-negative hover:underline" (click)="openDelete(kanda, $event)">
+                {{ 'Futa' | t }}
+              </button>
+            }
+          </div>
         </article>
       }
     </section>
@@ -169,7 +342,7 @@
 
 @if (formOpen()) {
   <div
-    class="fixed inset-0 z-40 flex items-center justify-center bg-black/40 p-4"
+    class="fixed inset-0 z-50 flex items-center justify-center bg-black/40 p-4"
     animate.enter="backdrop-in"
     animate.leave="backdrop-out"
     (click)="closeForm()"
@@ -178,7 +351,7 @@
       class="w-full max-w-md rounded border border-line bg-surface p-5"
       (click)="$event.stopPropagation()"
     >
-      <h2 class="font-serif text-xl">{{ 'Ongeza kanda' | t }}</h2>
+      <h2 class="font-serif text-xl">{{ (editingKanda() ? 'Hariri kanda' : 'Ongeza kanda') | t }}</h2>
 
       @if (error()) {
         <p class="alert-in mt-4 rounded border border-negative/40 bg-negative/10 px-3 py-2 text-sm text-negative" role="alert">
@@ -224,7 +397,7 @@
             class="rounded bg-brass-strong px-4 py-2 text-sm font-medium text-canvas disabled:opacity-60"
             [disabled]="saving()"
           >
-            {{ (saving() ? 'Inahifadhi…' : 'Hifadhi kanda') | t }}
+            {{ (saving() ? 'Inahifadhi…' : editingKanda() ? 'Hifadhi mabadiliko' : 'Hifadhi kanda') | t }}
           </button>
         </div>
       </form>
@@ -354,4 +527,342 @@
       </div>
     </section>
   </div>
+}
+
+@if (detailOpen()) {
+  <div
+    class="fixed inset-0 z-40 flex justify-end bg-black/40"
+    animate.enter="backdrop-in"
+    animate.leave="backdrop-out"
+    (click)="closeDetail()"
+  >
+    <section
+      class="flex h-full w-full max-w-4xl flex-col overflow-y-auto border-l border-line bg-canvas shadow-2xl"
+      role="dialog"
+      aria-modal="true"
+      aria-labelledby="kanda-detail-title"
+      (click)="$event.stopPropagation()"
+    >
+      <header class="sticky top-0 z-10 flex items-start justify-between gap-3 border-b border-line bg-surface px-5 py-4">
+        @if (detail(); as kanda) {
+          <div class="min-w-0">
+            <p class="text-xs tracking-[0.15em] text-faint uppercase">{{ 'Dashibodi ya kanda' | t }}</p>
+            <h2 id="kanda-detail-title" class="truncate font-serif text-2xl">{{ kanda.name }}</h2>
+            <p class="mt-0.5 text-sm" [class]="kanda.leader ? 'text-muted' : 'text-negative'">
+              {{ kanda.leader ? ('Kiongozi: {name}' | t: { name: kanda.leader }) : ('Hakuna kiongozi aliyepangwa' | t) }}
+            </p>
+          </div>
+        } @else {
+          <div>
+            <span class="skeleton h-3 w-24"></span>
+            <span class="skeleton mt-2 h-7 w-48"></span>
+          </div>
+        }
+        <div class="flex shrink-0 items-center gap-2">
+          @if (detail(); as kanda) {
+            <div class="relative">
+              <button
+                type="button"
+                class="rounded border border-line px-3 py-1.5 text-sm hover:bg-sunken disabled:opacity-50"
+                aria-haspopup="menu"
+                [attr.aria-expanded]="detailExportOpen()"
+                [disabled]="exporting()"
+                (click)="$event.stopPropagation(); detailExportOpen.set(!detailExportOpen())"
+              >
+                {{ (exporting() ? 'Inaandaa…' : 'Pakua ▾') | t }}
+              </button>
+              @if (detailExportOpen()) {
+                <div class="fixed inset-0 z-20" (click)="detailExportOpen.set(false)"></div>
+                <div
+                  class="absolute right-0 z-30 mt-1 w-60 overflow-hidden rounded border border-line bg-surface shadow-lg"
+                  role="menu"
+                >
+                  <p class="border-b border-line bg-sunken px-3 py-2 text-[0.7rem] text-muted">
+                    {{ 'Taarifa, jumuiya, wanajumuiya na michango ya {name}.' | t: { name: kanda.name } }}
+                  </p>
+                  @for (format of exportFormats; track format.value) {
+                    <button
+                      type="button"
+                      role="menuitem"
+                      class="block w-full px-3 py-2 text-left text-sm hover:bg-sunken"
+                      (click)="exportKanda(kanda, format.value)"
+                    >
+                      {{ format.label | t }}
+                    </button>
+                  }
+                </div>
+              }
+            </div>
+            @if (canUpdate()) {
+              <button
+                type="button"
+                class="rounded border border-line px-3 py-1.5 text-sm hover:bg-sunken"
+                (click)="openForm(kanda)"
+              >
+                {{ 'Hariri' | t }}
+              </button>
+            }
+            @if (canDelete()) {
+              <button
+                type="button"
+                class="rounded border border-line px-3 py-1.5 text-sm text-negative hover:bg-sunken"
+                (click)="openDelete(kanda)"
+              >
+                {{ 'Futa' | t }}
+              </button>
+            }
+          }
+          <button
+            type="button"
+            class="rounded-full p-1.5 text-faint hover:bg-sunken hover:text-ink"
+            [attr.aria-label]="'Funga' | t"
+            (click)="closeDetail()"
+          >
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" class="h-5 w-5" aria-hidden="true">
+              <path d="M6 6l12 12M18 6 6 18" />
+            </svg>
+          </button>
+        </div>
+      </header>
+
+      <div class="flex-1 space-y-6 p-5">
+        @if (detailError()) {
+          <p class="alert-in rounded border border-negative/40 bg-negative/10 px-3 py-2 text-sm text-negative" role="alert">
+            {{ detailError() }}
+          </p>
+        }
+
+        @if (detail(); as kanda) {
+          @if (kanda.notes) {
+            <p class="text-sm text-muted">{{ kanda.notes }}</p>
+          }
+
+          <section class="grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
+            <div class="rounded border border-line bg-surface p-4">
+              <p class="text-xs tracking-[0.15em] text-faint uppercase">{{ 'Jumuiya' | t }}</p>
+              <p class="mt-2 font-serif text-2xl tabular-nums">{{ kanda.jumuiyas_count }}</p>
+            </div>
+            <div class="rounded border border-line bg-surface p-4">
+              <p class="text-xs tracking-[0.15em] text-faint uppercase">{{ 'Wanajumuiya' | t }}</p>
+              <p class="mt-2 font-serif text-2xl tabular-nums">{{ kanda.members_count }}</p>
+              <p class="mt-1 text-xs text-faint">
+                {{ 'Wastani {avg} kwa kila jumuiya' | t: { avg: decimal(kanda.jumuiyas_count ? kanda.members_count / kanda.jumuiyas_count : 0) } }}
+              </p>
+            </div>
+            <div class="rounded border border-line bg-surface p-4">
+              <p class="text-xs tracking-[0.15em] text-faint uppercase">{{ 'Jinsia' | t }}</p>
+              <div class="mt-3 flex h-2 overflow-hidden rounded-full bg-sunken">
+                <div class="h-full bg-brass" [style.width.%]="percent(kanda.male_count, kanda.members_count)"></div>
+                <div class="h-full bg-brass/40" [style.width.%]="percent(kanda.female_count, kanda.members_count)"></div>
+              </div>
+              <p class="mt-2 flex justify-between gap-2 text-xs text-muted">
+                <span><span class="mr-1 inline-block h-2 w-2 rounded-full bg-brass"></span>{{ 'Wanaume {count}' | t: { count: kanda.male_count } }}</span>
+                <span><span class="mr-1 inline-block h-2 w-2 rounded-full bg-brass/40"></span>{{ 'Wanawake {count}' | t: { count: kanda.female_count } }}</span>
+              </p>
+            </div>
+            @if (kanda.offerings_year !== null) {
+              <div class="rounded border border-line bg-surface p-4">
+                <p class="text-xs tracking-[0.15em] text-faint uppercase">{{ 'Michango ya jumuiya mwaka huu' | t }}</p>
+                <p class="mt-2 font-serif text-2xl tabular-nums">{{ money(kanda.offerings_year) }}</p>
+              </div>
+            } @else {
+              <div class="rounded border border-line bg-surface p-4">
+                <p class="text-xs tracking-[0.15em] text-faint uppercase">{{ 'Jumuiya zilizogawanywa' | t }}</p>
+                <p class="mt-2 font-serif text-2xl tabular-nums">{{ detailSplitCount() }}</p>
+              </div>
+            }
+          </section>
+
+          <section class="rounded border border-line bg-surface">
+            <div class="flex flex-wrap items-baseline justify-between gap-3 border-b border-line px-4 py-3">
+              <h3 class="font-serif text-lg">{{ 'Jumuiya za kanda hii' | t }}</h3>
+              @if (canSplit()) {
+                <p class="text-xs text-faint">{{ 'Bofya "Gawanya" jumuiya ikiwa imekuwa kubwa na inahitaji kugawanywa.' | t }}</p>
+              }
+            </div>
+
+            @if (kanda.jumuiyas.length === 0) {
+              <p class="px-4 py-8 text-center text-sm text-muted">{{ 'Kanda hii bado haina jumuiya.' | t }}</p>
+            } @else {
+              <div class="overflow-x-auto">
+                <table class="w-full min-w-[40rem] text-left text-sm">
+                  <thead class="border-b border-line bg-sunken text-xs tracking-[0.12em] text-faint uppercase">
+                    <tr>
+                      <th class="px-4 py-2.5 font-medium">{{ 'Jumuiya' | t }}</th>
+                      <th class="px-4 py-2.5 font-medium">{{ 'Wanajumuiya' | t }}</th>
+                      <th class="px-4 py-2.5 font-medium">{{ 'Me / Ke' | t }}</th>
+                      @if (kanda.offerings_year !== null) {
+                        <th class="px-4 py-2.5 text-right font-medium">{{ 'Michango' | t }}</th>
+                      }
+                      <th class="px-4 py-2.5 font-medium"><span class="sr-only">{{ 'Vitendo' | t }}</span></th>
+                    </tr>
+                  </thead>
+                  <tbody class="divide-y divide-line">
+                    @for (group of kanda.jumuiyas; track group.id; let i = $index) {
+                      <tr class="row-slide" [style.animation-delay.ms]="i < 20 ? i * 30 : 0">
+                        <td class="px-4 py-3">
+                          <span class="block font-medium">{{ group.name }}</span>
+                          <span class="block text-xs text-muted">
+                            {{ 'Mwenyekiti {name}' | t: { name: group.chairperson || '—' } }}
+                          </span>
+                          @if (group.parent) {
+                            <span class="mt-1 inline-block rounded-full bg-brass-tint px-2 py-0.5 text-[0.7rem] text-brass-strong">
+                              {{ 'kutoka {parent}' | t: { parent: group.parent.name } }}
+                            </span>
+                          }
+                          @if (group.children_count > 0) {
+                            <span class="mt-1 inline-block rounded-full bg-sunken px-2 py-0.5 text-[0.7rem] text-muted">
+                              {{ 'imezaa jumuiya {count}' | t: { count: group.children_count } }}
+                            </span>
+                          }
+                        </td>
+                        <td class="w-48 px-4 py-3">
+                          <span class="tabular-nums">{{ group.members_count }}</span>
+                          <div class="mt-1 h-1.5 overflow-hidden rounded-full bg-sunken">
+                            <div class="h-full rounded-full bg-brass/70" [style.width.%]="percent(group.members_count, detailLargestJumuiya())"></div>
+                          </div>
+                        </td>
+                        <td class="px-4 py-3 text-muted tabular-nums">{{ group.male_count }} / {{ group.female_count }}</td>
+                        @if (kanda.offerings_year !== null) {
+                          <td class="px-4 py-3 text-right whitespace-nowrap tabular-nums">{{ money(group.offerings_year) }}</td>
+                        }
+                        <td class="px-4 py-3">
+                          <div class="flex justify-end gap-x-3 whitespace-nowrap">
+                            <a class="text-sm text-brass-strong hover:underline" routerLink="/jumuiya" [queryParams]="{ q: group.name }">
+                              {{ 'Fungua' | t }}
+                            </a>
+                            @if (canMove()) {
+                              <button type="button" class="text-sm text-brass-strong hover:underline" (click)="moveTarget.set(group)">
+                                {{ 'Hamisha' | t }}
+                              </button>
+                            }
+                            @if (canSplit()) {
+                              <button type="button" class="text-sm text-brass-strong hover:underline" (click)="openSplit(group)">
+                                {{ 'Gawanya' | t }}
+                              </button>
+                            }
+                          </div>
+                        </td>
+                      </tr>
+                    }
+                  </tbody>
+                </table>
+              </div>
+            }
+          </section>
+        } @else if (detailLoading()) {
+          <div class="grid gap-3 sm:grid-cols-2 lg:grid-cols-4" aria-busy="true" [attr.aria-label]="'Inapakia dashibodi ya kanda' | t">
+            @for (card of [1, 2, 3, 4]; track card) {
+              <div class="rounded border border-line bg-surface p-4">
+                <span class="skeleton h-3 w-20"></span>
+                <span class="skeleton mt-3 h-7 w-16"></span>
+              </div>
+            }
+          </div>
+          <div class="space-y-2">
+            @for (row of skeletonCards; track row) {
+              <span class="skeleton h-12 w-full"></span>
+            }
+          </div>
+        }
+      </div>
+    </section>
+  </div>
+}
+
+@if (deleteTarget(); as kanda) {
+  <div
+    class="fixed inset-0 z-[60] flex items-center justify-center bg-black/45 p-4"
+    animate.enter="backdrop-in"
+    animate.leave="backdrop-out"
+    (click)="closeDelete()"
+  >
+    <section
+      class="w-full max-w-md overflow-hidden rounded-xl border border-line bg-surface shadow-2xl"
+      role="alertdialog"
+      aria-modal="true"
+      aria-labelledby="kanda-delete-title"
+      (click)="$event.stopPropagation()"
+    >
+      <div class="h-1 bg-negative"></div>
+      <div class="p-5">
+        <h2 id="kanda-delete-title" class="font-serif text-xl">{{ 'Futa {name}?' | t: { name: kanda.name } }}</h2>
+
+        @if (kanda.jumuiyas_count > 0) {
+          <p class="mt-2 text-sm text-muted">
+            {{
+              'Kanda hii ina jumuiya {count} zenye wanajumuiya {members}. Hazitafutwa — chagua kanda ambayo zitahamia.'
+                | t: { count: kanda.jumuiyas_count, members: kanda.members_count ?? 0 }
+            }}
+          </p>
+          @if (deleteMoveOptions().length === 0) {
+            <p class="mt-3 rounded border border-negative/40 bg-negative/10 px-3 py-2 text-sm text-negative">
+              {{ 'Hakuna kanda nyingine ya kuhamishia jumuiya hizi. Ongeza kanda nyingine kwanza.' | t }}
+            </p>
+          } @else {
+            <label for="kanda-delete-move" class="mt-4 mb-1 block text-xs tracking-[0.12em] text-muted uppercase">
+              {{ 'Hamishia jumuiya zake kanda' | t }}
+            </label>
+            <select
+              id="kanda-delete-move"
+              class="w-full rounded border border-line bg-canvas px-3 py-2 text-sm focus:border-brass focus:ring-1 focus:ring-brass focus:outline-none"
+              [value]="deleteMoveTo()"
+              (change)="deleteMoveTo.set(+$any($event.target).value)"
+            >
+              <option value="0" disabled>{{ 'Chagua kanda' | t }}</option>
+              @for (option of deleteMoveOptions(); track option.id) {
+                <option [value]="option.id">{{ option.name }}</option>
+              }
+            </select>
+          }
+        } @else {
+          <p class="mt-2 text-sm text-muted">{{ 'Kanda hii haina jumuiya.' | t }}</p>
+        }
+
+        <p class="mt-3 text-xs text-faint">{{ 'Unaweza kuirejesha ndani ya siku 30 kutoka kumbukumbu za shughuli.' | t }}</p>
+
+        @if (deleteError()) {
+          <p class="alert-in mt-3 rounded border border-negative/40 bg-negative/10 px-3 py-2 text-sm text-negative" role="alert">
+            {{ deleteError() }}
+          </p>
+        }
+      </div>
+      <div class="flex gap-3 border-t border-line bg-sunken/50 px-5 py-4">
+        <button
+          type="button"
+          class="flex-1 rounded-lg border border-line bg-surface px-4 py-2.5 text-sm font-medium hover:bg-canvas"
+          [disabled]="deleting()"
+          (click)="closeDelete()"
+        >
+          {{ 'Ghairi' | t }}
+        </button>
+        <button
+          type="button"
+          class="flex-1 rounded-lg bg-negative px-4 py-2.5 text-sm font-medium text-canvas shadow-sm hover:opacity-90 disabled:opacity-60"
+          [disabled]="deleting() || (kanda.jumuiyas_count > 0 && deleteMoveOptions().length === 0)"
+          (click)="confirmDelete()"
+        >
+          {{ (deleting() ? 'Inafuta…' : kanda.jumuiyas_count > 0 ? 'Hamisha na ufute' : 'Futa') | t }}
+        </button>
+      </div>
+    </section>
+  </div>
+}
+
+@if (moveTarget(); as group) {
+  <app-jumuiya-move-dialog
+    [jumuiya]="group"
+    [kandas]="kandas()"
+    (closed)="moveTarget.set(null)"
+    (done)="onMoveDone($event)"
+  />
+}
+
+@if (splitTarget(); as group) {
+  <app-jumuiya-split-dialog
+    [jumuiya]="group"
+    [kandas]="kandas()"
+    (closed)="splitTarget.set(null)"
+    (done)="onSplitDone($event)"
+  />
 }

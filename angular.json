@@ -18,7 +18,7 @@
           "options": {
             "browser": "src/main.ts",
             "tsConfig": "tsconfig.app.json",
-            "allowedCommonJsDependencies": ["core-js", "html2canvas", "raf", "rgbcolor"],
+            "allowedCommonJsDependencies": ["core-js", "exceljs", "html2canvas", "raf", "rgbcolor"],
             "assets": [
               {
                 "glob": "**/*",

@@ -52,6 +52,11 @@ export const USERS: Record<string, string> = {
   'Ni msimamizi pekee anayeweza kufuta msimamizi.': 'Only an administrator can delete an administrator.',
   'Kila mtumiaji anaiona': 'Visible to every user',
   'kuona tu': 'view only',
+  'Washa moduli, kisha bofya vitendo anavyoruhusiwa kufanya ndani yake.':
+    'Turn a module on, then tap the actions they are allowed to do in it.',
+  Imewashwa: 'Always on',
+  Anaruhusiwa: 'Allowed to',
+  'Hakuna kitendo kilichochaguliwa: ataweza kuona tu.': 'No action selected: they can only view.',
   'Hifadhi mtumiaji': 'Save user',
   'Imeshindwa kuhifadhi mtumiaji huyo.': 'Could not save that user.',
 

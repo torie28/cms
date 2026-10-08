@@ -22,35 +22,32 @@ export interface ModulePrivileges {
   delete: boolean;
 }
 
+export type ModuleActionIcon = 'plus' | 'edit' | 'trash' | 'send' | 'restore';
+
 export interface ModuleActionOption {
   action: ModuleAction;
   label: string;
+  icon: ModuleActionIcon;
 }
+
+const CRUD: readonly ModuleActionOption[] = [
+  { action: 'create', label: 'Ongeza', icon: 'plus' },
+  { action: 'update', label: 'Hariri', icon: 'edit' },
+  { action: 'delete', label: 'Futa', icon: 'trash' },
+];
 
 /** Write actions each module actually offers. Viewing the module is the access checkbox itself. */
 export const MODULE_ACTIONS: Record<string, readonly ModuleActionOption[]> = {
-  users: [
-    { action: 'create', label: 'Ongeza' },
-    { action: 'update', label: 'Hariri' },
-    { action: 'delete', label: 'Futa' },
-  ],
-  sadaka: [
-    { action: 'create', label: 'Ongeza' },
-    { action: 'update', label: 'Hariri' },
-    { action: 'delete', label: 'Futa' },
-  ],
-  jumuiya: [
-    { action: 'create', label: 'Ongeza' },
-    { action: 'update', label: 'Hariri' },
-    { action: 'delete', label: 'Futa' },
-  ],
-  kanda: [{ action: 'create', label: 'Ongeza' }],
-  notifications: [{ action: 'create', label: 'Tuma' }],
-  settings: [{ action: 'update', label: 'Hariri' }],
-  api_settings: [{ action: 'update', label: 'Hariri' }],
+  users: CRUD,
+  sadaka: CRUD,
+  jumuiya: CRUD,
+  kanda: [{ action: 'create', label: 'Ongeza', icon: 'plus' }],
+  notifications: [{ action: 'create', label: 'Tuma', icon: 'send' }],
+  settings: [{ action: 'update', label: 'Hariri', icon: 'edit' }],
+  api_settings: [{ action: 'update', label: 'Hariri', icon: 'edit' }],
   activity_logs: [
-    { action: 'update', label: 'Rejesha' },
-    { action: 'delete', label: 'Futa kabisa' },
+    { action: 'update', label: 'Rejesha', icon: 'restore' },
+    { action: 'delete', label: 'Futa kabisa', icon: 'trash' },
   ],
 };
 

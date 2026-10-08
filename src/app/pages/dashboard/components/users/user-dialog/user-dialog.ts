@@ -119,6 +119,24 @@ export class UserDialog implements OnInit {
     return !!this.privileges()[key]?.[action];
   }
 
+  protected viewOnly(key: string): boolean {
+    return this.actionsFor(key).every((option) => !this.hasPrivilege(key, option.action));
+  }
+
+  /** Add reads green, removal red, everything else brass, so the risky choices stand out. */
+  protected actionClasses(option: ModuleActionOption, active: boolean): string {
+    if (!active) {
+      return 'border-line text-muted hover:border-line-strong hover:text-ink';
+    }
+    if (option.icon === 'trash') {
+      return 'border-negative bg-negative/10 text-negative';
+    }
+    if (option.action === 'create') {
+      return 'border-positive bg-positive/10 text-positive';
+    }
+    return 'border-brass bg-brass-tint text-brass-strong';
+  }
+
   /** An action the editor cannot grant stays off, unless this account already has it. */
   protected privilegeLocked(key: string, action: ModuleAction): boolean {
     return !this.hasPrivilege(key, action) && !this.auth.isAdmin() && !this.auth.can(key, action);

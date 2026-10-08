@@ -5,7 +5,7 @@
   (click)="close()"
 >
   <section
-    class="flex max-h-[calc(100dvh-5rem)] w-full max-w-2xl sm:max-h-[calc(100dvh-8rem)] flex-col rounded border border-line bg-surface shadow-lg"
+    class="flex max-h-[calc(100dvh-5rem)] w-full max-w-3xl sm:max-h-[calc(100dvh-8rem)] flex-col rounded border border-line bg-surface shadow-lg"
     role="dialog"
     aria-modal="true"
     aria-labelledby="user-dialog-title"
@@ -130,66 +130,131 @@
           </div>
         </div>
 
-        <fieldset>
-          <div class="mb-2 flex items-center justify-between gap-3">
-            <legend class="filter-label mb-0">{{ 'Moduli anazoweza kufikia' | t }}</legend>
+        <fieldset class="space-y-3">
+          <div class="flex flex-wrap items-end justify-between gap-3">
+            <div>
+              <legend class="font-serif text-lg leading-tight">{{ 'Moduli anazoweza kufikia' | t }}</legend>
+              <p class="mt-0.5 text-xs text-muted">
+                {{ 'Washa moduli, kisha bofya vitendo anavyoruhusiwa kufanya ndani yake.' | t }}
+              </p>
+            </div>
             @if (!isAdminRole()) {
-              <button type="button" class="text-xs text-brass-strong hover:underline" (click)="toggleAll()">
+              <button
+                type="button"
+                class="inline-flex h-10 items-center gap-2 rounded-lg border border-line px-4 text-sm font-medium text-brass-strong hover:border-brass hover:bg-brass-tint"
+                (click)="toggleAll()"
+              >
+                <svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" class="h-4 w-4" aria-hidden="true">
+                  <rect x="2" y="2" width="12" height="12" rx="2.5" />
+                  <path d="m5.5 8 2 2 3-4" />
+                </svg>
                 {{ 'Chagua/ondoa zote' | t }}
               </button>
             }
           </div>
 
           @if (isAdminRole()) {
-            <p class="mb-2 rounded border border-line bg-sunken px-3 py-2 text-xs text-muted">
+            <p class="flex items-start gap-2.5 rounded-lg border border-brass/40 bg-brass-tint px-4 py-3 text-sm text-brass-strong">
+              <svg viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" class="mt-0.5 h-5 w-5 shrink-0" aria-hidden="true">
+                <path d="M10 2.5 3.5 5v4.5c0 4 2.8 7 6.5 8 3.7-1 6.5-4 6.5-8V5z" />
+                <path d="m7 10 2 2 4-4" />
+              </svg>
               {{ 'Msimamizi anafikia moduli zote moja kwa moja, na anaweza kuongeza, kuhariri na kufuta ndani ya kila moduli.' | t }}
             </p>
           }
 
-          <div class="grid gap-2 sm:grid-cols-2">
+          <div class="grid gap-3 md:grid-cols-2">
             @for (module of availableModules(); track module.key) {
               @let locked = module.key === alwaysOn || isAdminRole();
+              @let on = isSelected(module.key);
+              @let options = actionsFor(module.key);
               <div
-                class="rounded border px-3 py-2.5 text-sm"
-                [class.opacity-70]="locked"
-                [class.border-brass]="isSelected(module.key)"
-                [class.bg-brass-tint]="isSelected(module.key)"
-                [class.border-line]="!isSelected(module.key)"
+                class="flex flex-col rounded-xl border-2 bg-surface transition-colors"
+                [class.border-brass]="on && !locked"
+                [class.shadow-sm]="on && !locked"
+                [class.border-line]="!on || locked"
               >
-                <label class="flex items-start gap-3" [class.cursor-pointer]="!locked">
-                  <input
-                    type="checkbox"
-                    class="mt-0.5 accent-[var(--brass-strong)]"
-                    [checked]="isSelected(module.key)"
-                    [disabled]="locked"
-                    (change)="toggleModule(module.key)"
-                  />
-                  <span class="min-w-0">
-                    <span class="block font-medium">{{ module.label | t }}</span>
+                <button
+                  type="button"
+                  role="switch"
+                  class="flex w-full items-start gap-3 rounded-t-xl px-4 py-3.5 text-left enabled:hover:bg-sunken disabled:cursor-default"
+                  [class.bg-brass-tint]="on && !locked"
+                  [class.rounded-b-xl]="!on || locked || options.length === 0"
+                  [attr.aria-checked]="on"
+                  [disabled]="locked"
+                  (click)="toggleModule(module.key)"
+                >
+                  <span class="min-w-0 flex-1">
+                    <span class="flex items-center gap-2">
+                      <span class="font-medium">{{ module.label | t }}</span>
+                      @if (locked) {
+                        <span class="rounded-full bg-sunken px-2 py-0.5 text-[0.65rem] tracking-[0.1em] text-faint uppercase">
+                          {{ 'Imewashwa' | t }}
+                        </span>
+                      }
+                    </span>
                     @if (module.key === alwaysOn) {
-                      <span class="block text-xs text-faint">{{ 'Kila mtumiaji anaiona' | t }}</span>
+                      <span class="mt-0.5 block text-xs text-faint">{{ 'Kila mtumiaji anaiona' | t }}</span>
                     } @else if (module.description) {
-                      <span class="block text-xs text-muted">{{ module.description | t }}</span>
+                      <span class="mt-0.5 block text-xs leading-relaxed text-muted">{{ module.description | t }}</span>
                     }
                   </span>
-                </label>
-                @if (!locked && isSelected(module.key) && actionsFor(module.key).length) {
-                  <div class="mt-2 flex flex-wrap gap-x-3 gap-y-1 pl-7">
-                    @for (option of actionsFor(module.key); track option.action) {
-                      <label
-                        class="inline-flex items-center gap-1.5 text-xs"
-                        [class.cursor-pointer]="!privilegeLocked(module.key, option.action)"
-                        [class.opacity-50]="privilegeLocked(module.key, option.action)"
-                      >
-                        <input
-                          type="checkbox"
-                          class="accent-[var(--brass-strong)]"
-                          [checked]="hasPrivilege(module.key, option.action)"
+                  <span
+                    class="relative mt-0.5 h-7 w-12 shrink-0 rounded-full transition-colors"
+                    [class.bg-brass-strong]="on"
+                    [class.bg-line-strong]="!on"
+                    [class.opacity-60]="locked"
+                    aria-hidden="true"
+                  >
+                    <span
+                      class="absolute top-1 left-1 h-5 w-5 rounded-full bg-canvas shadow transition-transform"
+                      [class.translate-x-5]="on"
+                    ></span>
+                  </span>
+                </button>
+
+                @if (on && !locked && options.length) {
+                  <div class="border-t border-brass/30 px-4 pt-3 pb-4">
+                    <p class="mb-2 text-[0.65rem] font-medium tracking-[0.14em] text-faint uppercase">
+                      {{ 'Anaruhusiwa' | t }}
+                    </p>
+                    <div class="grid gap-2" [style.grid-template-columns]="'repeat(' + options.length + ', minmax(0, 1fr))'">
+                      @for (option of options; track option.action) {
+                        @let active = hasPrivilege(module.key, option.action);
+                        <button
+                          type="button"
+                          class="flex h-11 items-center justify-center gap-2 rounded-lg border-2 px-2 text-sm font-medium transition-colors disabled:cursor-not-allowed disabled:opacity-40"
+                          [class]="actionClasses(option, active)"
+                          [attr.aria-pressed]="active"
                           [disabled]="privilegeLocked(module.key, option.action)"
-                          (change)="togglePrivilege(module.key, option.action)"
-                        />
-                        {{ option.label | t }}
-                      </label>
+                          (click)="togglePrivilege(module.key, option.action)"
+                        >
+                          <svg viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round" class="h-[1.1rem] w-[1.1rem] shrink-0" aria-hidden="true">
+                            @switch (option.icon) {
+                              @case ('plus') {
+                                <path d="M10 4v12M4 10h12" />
+                              }
+                              @case ('edit') {
+                                <path d="M13.5 3.5 16.5 6.5 7 16H4v-3z" />
+                                <path d="m11.5 5.5 3 3" />
+                              }
+                              @case ('trash') {
+                                <path d="M3.5 5.5h13M8 5.5V3.5h4v2M5.5 5.5l.8 11h7.4l.8-11M8.5 8.5v5M11.5 8.5v5" />
+                              }
+                              @case ('send') {
+                                <path d="M17 3 8.5 11.5M17 3l-5 14-3.5-5.5L3 8z" />
+                              }
+                              @case ('restore') {
+                                <path d="M3.5 10a6.5 6.5 0 1 0 2-4.7M3.5 3v3.5H7" />
+                              }
+                            }
+                          </svg>
+                          <span class="truncate">{{ option.label | t }}</span>
+                        </button>
+                      }
+                    </div>
+                    @if (viewOnly(module.key)) {
+                      <p class="mt-2 text-xs text-faint">{{ 'Hakuna kitendo kilichochaguliwa: ataweza kuona tu.' | t }}</p>
                     }
                   </div>
                 }
@@ -199,13 +264,17 @@
         </fieldset>
       </div>
 
-      <footer class="flex justify-end gap-2 border-t border-line px-5 py-3">
-        <button type="button" class="rounded px-3 py-2 text-sm text-muted hover:bg-sunken" (click)="close()">
+      <footer class="flex justify-end gap-3 border-t border-line px-5 py-4">
+        <button
+          type="button"
+          class="h-11 rounded-lg border border-line px-5 text-sm font-medium text-muted hover:bg-sunken hover:text-ink"
+          (click)="close()"
+        >
           {{ 'Ghairi' | t }}
         </button>
         <button
           type="submit"
-          class="rounded bg-brass-strong px-4 py-2 text-sm font-medium text-canvas disabled:opacity-60"
+          class="h-11 rounded-lg bg-brass-strong px-6 text-sm font-semibold text-canvas shadow-sm hover:opacity-90 disabled:opacity-60"
           [disabled]="saving()"
         >
           {{ (saving() ? 'Inahifadhi…' : isEdit() ? 'Hifadhi mabadiliko' : 'Hifadhi mtumiaji') | t }}

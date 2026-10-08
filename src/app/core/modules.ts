@@ -41,7 +41,7 @@ export const MODULE_ACTIONS: Record<string, readonly ModuleActionOption[]> = {
   users: CRUD,
   sadaka: CRUD,
   jumuiya: CRUD,
-  kanda: [{ action: 'create', label: 'Ongeza', icon: 'plus' }],
+  kanda: CRUD,
   notifications: [{ action: 'create', label: 'Tuma', icon: 'send' }],
   settings: [{ action: 'update', label: 'Hariri', icon: 'edit' }],
   api_settings: [{ action: 'update', label: 'Hariri', icon: 'edit' }],

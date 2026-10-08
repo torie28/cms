@@ -9,6 +9,8 @@ import {
 import { FormArray, FormBuilder, ReactiveFormsModule, Validators } from '@angular/forms';
 import { ActivatedRoute } from '@angular/router';
 import { FilterPanel, parseBound, withinNumberRange } from '../../../../shared/filter-panel';
+import { JumuiyaMoveDialog } from '../../../../shared/jumuiya-move-dialog';
+import { JumuiyaSplitDialog, JumuiyaSplitResult } from '../../../../shared/jumuiya-split-dialog';
 import { matchesSearch, SearchBox } from '../../../../shared/search-box';
 import { ActivityService } from '../../../../core/activity';
 import { AuthService } from '../../../../core/auth';
@@ -51,7 +53,7 @@ interface ImportPlan {
 @Component({
   selector: 'app-jumuiya',
   changeDetection: ChangeDetectionStrategy.OnPush,
-  imports: [ReactiveFormsModule, SearchBox, FilterPanel, TranslatePipe],
+  imports: [ReactiveFormsModule, SearchBox, FilterPanel, JumuiyaSplitDialog, JumuiyaMoveDialog, TranslatePipe],
   templateUrl: './jumuiya.html',
 })
 export class JumuiyaPage {
@@ -62,6 +64,9 @@ export class JumuiyaPage {
   protected readonly canCreate = computed(() => this.auth.can('jumuiya', 'create'));
   protected readonly canUpdate = computed(() => this.auth.can('jumuiya', 'update'));
   protected readonly canDelete = computed(() => this.auth.can('jumuiya', 'delete'));
+  protected readonly canSplit = computed(() => this.canCreate() && this.canUpdate());
+  protected readonly splitTarget = signal<Jumuiya | null>(null);
+  protected readonly moveTarget = signal<Jumuiya | null>(null);
 
   protected readonly jumuiyas = signal<Jumuiya[]>([]);
   protected readonly kandas = signal<Kanda[]>([]);
@@ -277,6 +282,47 @@ export class JumuiyaPage {
 
   protected closeView(): void {
     this.viewOpen.set(false);
+  }
+
+  protected openSplit(group: Jumuiya, event?: Event): void {
+    event?.stopPropagation();
+    this.selected.set(group);
+    this.viewOpen.set(false);
+    this.splitTarget.set(group);
+  }
+
+  protected openMove(group: Jumuiya, event?: Event): void {
+    event?.stopPropagation();
+    this.selected.set(group);
+    this.viewOpen.set(false);
+    this.moveTarget.set(group);
+  }
+
+  protected async onMoveDone(moved: Jumuiya): Promise<void> {
+    this.moveTarget.set(null);
+    this.upsertJumuiya(moved);
+    this.notice.set(
+      translate('{name} imehamishiwa {kanda} pamoja na wanajumuiya wake {count}.', {
+        name: moved.name,
+        kanda: moved.kanda?.name ?? '—',
+        count: moved.members_count ?? 0,
+      }),
+    );
+    await this.refresh();
+  }
+
+  protected async onSplitDone({ parent, jumuiya }: JumuiyaSplitResult): Promise<void> {
+    this.splitTarget.set(null);
+    this.notice.set(
+      translate('{parent} imegawanywa: {child} imeundwa ndani ya {kanda} ikiwa na wanajumuiya {count}.', {
+        parent: parent.name,
+        child: jumuiya.name,
+        kanda: jumuiya.kanda?.name ?? '—',
+        count: jumuiya.members_count ?? 0,
+      }),
+    );
+    await this.refresh();
+    this.selected.set(this.jumuiyas().find((group) => group.id === jumuiya.id) ?? jumuiya);
   }
 
   protected async refresh(): Promise<void> {

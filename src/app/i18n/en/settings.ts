@@ -150,6 +150,8 @@ export const SETTINGS: Record<string, string> = {
   Aliwasha: 'Enabled',
   Alizima: 'Disabled',
   'Alituma ujumbe': 'Sent a message',
+  Aligawanya: 'Split',
+  Alihamisha: 'Moved',
 
   // Subject type labels
   Ujumbe: 'Message',

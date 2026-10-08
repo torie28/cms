@@ -35,7 +35,7 @@ class Modules
         'users' => ['create', 'update', 'delete'],
         'sadaka' => ['create', 'update', 'delete'],
         'jumuiya' => ['create', 'update', 'delete'],
-        'kanda' => ['create'],
+        'kanda' => ['create', 'update', 'delete'],
         'notifications' => ['create'],
         'settings' => ['update'],
         'api_settings' => ['update'],

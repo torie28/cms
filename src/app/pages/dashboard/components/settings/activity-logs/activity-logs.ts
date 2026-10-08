@@ -29,6 +29,8 @@ const ACTION_LABELS: Record<string, string> = {
   enabled: 'Aliwasha',
   disabled: 'Alizima',
   sent: 'Alituma ujumbe',
+  split: 'Aligawanya',
+  moved: 'Alihamisha',
 };
 
 const SUBJECT_TYPE_LABELS: Record<string, string> = {

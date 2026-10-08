@@ -39,10 +39,15 @@ Route::middleware('auth:sanctum')->group(function () {
     Route::get('/kandas', [KandaController::class, 'index']);
     Route::post('/kandas', [KandaController::class, 'store']);
     Route::post('/kandas/import', [KandaController::class, 'import']);
+    Route::get('/kandas/{kanda}', [KandaController::class, 'show'])->whereNumber('kanda');
+    Route::put('/kandas/{kanda}', [KandaController::class, 'update'])->whereNumber('kanda');
+    Route::delete('/kandas/{kanda}', [KandaController::class, 'destroy'])->whereNumber('kanda');
 
     Route::get('/jumuiyas', [JumuiyaController::class, 'index']);
     Route::post('/jumuiyas', [JumuiyaController::class, 'store']);
     Route::get('/jumuiyas/{jumuiya}', [JumuiyaController::class, 'show']);
+    Route::post('/jumuiyas/{jumuiya}/split', [JumuiyaController::class, 'split']);
+    Route::post('/jumuiyas/{jumuiya}/move', [JumuiyaController::class, 'move']);
     Route::put('/jumuiyas/{jumuiya}', [JumuiyaController::class, 'update']);
     Route::delete('/jumuiyas/{jumuiya}', [JumuiyaController::class, 'destroy']);
     Route::get('/jumuiyas/{jumuiya}/members', [JumuiyaMemberController::class, 'index']);

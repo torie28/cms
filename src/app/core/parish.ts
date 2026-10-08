@@ -9,17 +9,46 @@ export interface Kanda {
   leader: string | null;
   notes: string | null;
   jumuiyas_count: number;
+  members_count?: number;
 }
 
 export interface Jumuiya {
   id: number;
   name: string;
   kanda_id: number;
+  parent_id?: number | null;
   chairperson: string | null;
   notes: string | null;
   members_count?: number;
   members?: JumuiyaMember[];
   kanda?: { id: number; name: string };
+  parent?: { id: number; name: string } | null;
+}
+
+export interface KandaJumuiya extends Jumuiya {
+  members_count: number;
+  male_count: number;
+  female_count: number;
+  children_count: number;
+  /** Sum of offerings since 1 January; absent when the user cannot see Sadaka. */
+  offerings_year?: string | number | null;
+}
+
+export interface KandaDetail extends Kanda {
+  members_count: number;
+  male_count: number;
+  female_count: number;
+  jumuiyas: KandaJumuiya[];
+  offerings_year: number | null;
+}
+
+export interface JumuiyaSplitPayload {
+  name: string;
+  kanda_id: number;
+  parent_kanda_id: number;
+  chairperson: string;
+  notes: string;
+  member_ids: number[];
 }
 
 export interface JumuiyaMember {
@@ -52,6 +81,34 @@ export class ParishService {
         { kandas, file },
       ),
     );
+  }
+
+  getKanda(id: number): Promise<KandaDetail> {
+    return firstValueFrom(this.http.get<KandaDetail>(`${API_BASE}/kandas/${id}`));
+  }
+
+  updateKanda(id: number, payload: { name: string; leader: string; notes: string }): Promise<Kanda> {
+    return firstValueFrom(this.http.put<Kanda>(`${API_BASE}/kandas/${id}`, payload));
+  }
+
+  /** A kanda that still has jumuiyas needs `moveToKandaId` to take them over. */
+  deleteKanda(id: number, moveToKandaId?: number): Promise<{ moved: number }> {
+    return firstValueFrom(
+      this.http.delete<{ moved: number }>(`${API_BASE}/kandas/${id}`, {
+        body: moveToKandaId ? { move_to_kanda_id: moveToKandaId } : {},
+      }),
+    );
+  }
+
+  splitJumuiya(id: number, payload: JumuiyaSplitPayload): Promise<{ parent: Jumuiya; jumuiya: Jumuiya }> {
+    return firstValueFrom(
+      this.http.post<{ parent: Jumuiya; jumuiya: Jumuiya }>(`${API_BASE}/jumuiyas/${id}/split`, payload),
+    );
+  }
+
+  /** Members belong to the jumuiya, so they move to the new kanda with it. */
+  moveJumuiya(id: number, kandaId: number): Promise<Jumuiya> {
+    return firstValueFrom(this.http.post<Jumuiya>(`${API_BASE}/jumuiyas/${id}/move`, { kanda_id: kandaId }));
   }
 
   listJumuiyas(): Promise<Jumuiya[]> {

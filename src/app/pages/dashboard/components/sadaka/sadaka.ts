@@ -49,7 +49,7 @@ import {
 import { FilterPanel, withinDateRange } from '../../../../shared/filter-panel';
 import { matchesSearch, SearchBox } from '../../../../shared/search-box';
 
-type Period = 'today' | 'week' | 'month' | 'year' | 'custom';
+type Period = 'today' | 'week' | 'month' | 'last-month' | 'year' | 'custom';
 type Sort = 'date-desc' | 'date-asc' | 'amount-desc' | 'amount-asc';
 
 /** 0 means "show everything on one page". */
@@ -90,6 +90,7 @@ const PERIODS: readonly { value: Period; label: string }[] = [
   { value: 'today', label: 'Leo' },
   { value: 'week', label: 'Wiki hii' },
   { value: 'month', label: 'Mwezi huu' },
+  { value: 'last-month', label: 'Mwezi uliopita' },
   { value: 'year', label: 'Mwaka huu' },
   { value: 'custom', label: 'Chagua tarehe' },
 ];
@@ -169,6 +170,11 @@ export class Sadaka {
         monday.setDate(now.getDate() - ((now.getDay() + 6) % 7));
         return { from: isoDay(monday), to: this.today };
       }
+      case 'last-month':
+        return {
+          from: isoDay(new Date(now.getFullYear(), now.getMonth() - 1, 1)),
+          to: isoDay(new Date(now.getFullYear(), now.getMonth(), 0)),
+        };
       case 'year':
         return { from: `${now.getFullYear()}-01-01`, to: this.today };
       case 'custom':

@@ -19,13 +19,15 @@ import { httpErrorMessage } from '../../../../core/http-error';
 import { translate, TranslatePipe } from '../../../../core/i18n';
 import { EXPORT_FORMATS, FORMAT_NAMES, SPREADSHEET_ACCEPT } from '../../../../core/spreadsheet';
 import {
+  buildImportPlan,
   downloadTemplate,
   ExportFormat,
   exportJumuiyaProfile,
   exportJumuiyas,
-  ImportedRow,
-  normalizeGender,
+  importNotice,
+  ImportPlan,
   readSpreadsheet,
+  runImportPlan,
 } from '../../../../core/jumuiya-transfer';
 import { OfferingService } from '../../../../core/offerings';
 import {
@@ -35,22 +37,6 @@ import {
   Kanda,
   ParishService,
 } from '../../../../core/parish';
-
-interface ImportGroup {
-  name: string;
-  existing: Jumuiya | null;
-  kandaId: number;
-  kandaName: string;
-  chairperson: string;
-  notes: string;
-  members: JumuiyaMemberPayload[];
-}
-
-interface ImportPlan {
-  groups: ImportGroup[];
-  issues: string[];
-  memberCount: number;
-}
 
 @Component({
   selector: 'app-jumuiya',
@@ -546,7 +532,17 @@ export class JumuiyaPage {
   }
 
   protected async downloadImportTemplate(): Promise<void> {
-    await downloadTemplate(this.importTarget()?.name);
+    const target = this.importTarget();
+    await downloadTemplate(target?.name, target?.kanda?.name);
+  }
+
+  protected async downloadJumuiyaTemplate(group: Jumuiya, event?: Event): Promise<void> {
+    event?.stopPropagation();
+    try {
+      await downloadTemplate(group.name, group.kanda?.name);
+    } catch (error) {
+      this.error.set(httpErrorMessage(error, 'Imeshindwa kuandaa faili la kupakua.'));
+    }
   }
 
   protected async chooseImportFile(event: Event): Promise<void> {
@@ -568,7 +564,9 @@ export class JumuiyaPage {
         this.importError.set(translate('Faili hilo halina safu zenye taarifa.'));
         return;
       }
-      this.importPlan.set(this.buildImportPlan(rows, this.importTarget()));
+      this.importPlan.set(
+        buildImportPlan(rows, { jumuiyas: this.jumuiyas(), kandas: this.kandas(), target: this.importTarget() }),
+      );
     } catch (error) {
       this.importError.set(
         error instanceof Error && error.message
@@ -587,33 +585,8 @@ export class JumuiyaPage {
 
     this.importing.set(true);
     this.importError.set(null);
-    const failures: string[] = [];
-    let created = 0;
-    let added = 0;
-
-    for (const group of plan.groups) {
-      try {
-        if (group.existing) {
-          if (group.members.length > 0) {
-            await this.parish.addJumuiyaMembers(group.existing.id, group.members);
-            added += group.members.length;
-          }
-        } else {
-          await this.parish.createJumuiya({
-            name: group.name,
-            kanda_id: group.kandaId,
-            chairperson: group.chairperson,
-            notes: group.notes,
-            members: group.members,
-          });
-          created++;
-          added += group.members.length;
-        }
-      } catch (error) {
-        failures.push(`${group.name}: ${httpErrorMessage(error, 'imeshindwa kuhifadhiwa.')}`);
-      }
-    }
-
+    const result = await runImportPlan(plan, this.parish);
+    const { created, added, failures } = result;
     this.importing.set(false);
 
     if (created > 0 || added > 0) {
@@ -636,6 +609,8 @@ export class JumuiyaPage {
       await this.loadMembers(selected.id);
     }
 
+    this.notice.set(result.saved.length > 0 ? importNotice(result) : null);
+
     if (failures.length > 0) {
       this.importPlan.set(null);
       this.importError.set(translate('Baadhi hazikuingizwa. {failures}', { failures: failures.join(' · ') }));
@@ -643,9 +618,6 @@ export class JumuiyaPage {
     }
 
     this.closeImport();
-    this.notice.set(
-      translate('Uingizaji umekamilika: jumuiya mpya {created}, wanajumuiya {added}.', { created, added }),
-    );
   }
 
   protected toggleExportMenu(menu: 'page' | 'view', event: Event): void {
@@ -763,106 +735,6 @@ export class JumuiyaPage {
     }
 
     return '—';
-  }
-
-  private buildImportPlan(rows: ImportedRow[], target: Jumuiya | null): ImportPlan {
-    const issues: string[] = [];
-    const groups = new Map<string, ImportGroup>();
-    const findKanda = (name: string) =>
-      this.kandas().find((kanda) => kanda.name.trim().toLowerCase() === name.trim().toLowerCase());
-
-    for (const row of rows) {
-      const name = target ? target.name : row.jumuiya;
-
-      if (!name) {
-        issues.push(translate('Mstari {line}: jina la jumuiya halipo, umerukwa.', { line: row.line }));
-        continue;
-      }
-
-      const key = name.trim().toLowerCase();
-      let group = groups.get(key);
-
-      if (!group) {
-        const existing =
-          target ?? this.jumuiyas().find((item) => item.name.trim().toLowerCase() === key) ?? null;
-        group = {
-          name: existing?.name ?? name,
-          existing,
-          kandaId: existing?.kanda_id ?? 0,
-          kandaName: existing?.kanda?.name ?? row.kanda,
-          chairperson: '',
-          notes: '',
-          members: [],
-        };
-        groups.set(key, group);
-      }
-
-      if (!group.existing) {
-        group.kandaName ||= row.kanda;
-        group.chairperson ||= row.chairperson;
-        group.notes ||= row.notes;
-      }
-
-      if (!row.member) {
-        if (row.phone || row.gender) {
-          issues.push(
-            translate('Mstari {line}: jina la mwanajumuiya halipo, umerukwa.', { line: row.line }),
-          );
-        }
-        continue;
-      }
-
-      if (row.member.length > 255 || row.phone.length > 40) {
-        issues.push(translate('Mstari {line}: jina au simu ni ndefu mno, umerukwa.', { line: row.line }));
-        continue;
-      }
-
-      let gender = normalizeGender(row.gender);
-      if (gender === 'invalid') {
-        issues.push(
-          translate('Mstari {line}: jinsia "{gender}" haitambuliki, imeachwa wazi.', {
-            line: row.line,
-            gender: row.gender,
-          }),
-        );
-        gender = '';
-      }
-
-      group.members.push({ name: row.member, phone: row.phone, gender });
-    }
-
-    const valid: ImportGroup[] = [];
-
-    for (const group of groups.values()) {
-      if (!group.existing) {
-        const kanda = group.kandaName ? findKanda(group.kandaName) : undefined;
-
-        if (!kanda) {
-          issues.push(
-            group.kandaName
-              ? translate('{name}: kanda "{kanda}" haipo, jumuiya imerukwa.', {
-                  name: group.name,
-                  kanda: group.kandaName,
-                })
-              : translate('{name}: kanda haijatajwa, jumuiya imerukwa.', { name: group.name }),
-          );
-          continue;
-        }
-
-        group.kandaId = kanda.id;
-        group.kandaName = kanda.name;
-      } else if (group.members.length === 0) {
-        continue;
-      }
-
-      valid.push(group);
-    }
-
-    return {
-      groups: valid,
-      issues,
-      memberCount: valid.reduce((total, group) => total + group.members.length, 0),
-    };
   }
 
   private newDraftMember() {

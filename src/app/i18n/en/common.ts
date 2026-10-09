@@ -187,6 +187,11 @@ export const COMMON: Record<string, string> = {
   'Kiolezo cha kuingiza wanajumuiya': 'Member import template',
   'Jumuiya na wanajumuiya wake': 'Communities and their members',
   'Kiolezo cha Kanda': 'Zone template',
+  Kiolezo: 'Template',
+  'Kiolezo cha kuingiza jumuiya na wanajumuiya': 'Community and member import template',
+  'Kiolezo cha Excel cha kujaza wanajumuiya wa {name}': 'Excel template for filling in the members of {name}',
+  'Kiolezo cha Excel cha kujaza jumuiya na wanajumuiya wa {name}':
+    'Excel template for filling in the communities and members of {name}',
   'Kanda za parokia': 'Parish zones',
   'Kiolezo cha kuingiza michango · Tarehe kwa mfumo {format}': 'Offering import template · Dates as {format}',
   'Hakuna kumbukumbu': 'No records',

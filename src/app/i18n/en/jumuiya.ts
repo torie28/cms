@@ -105,6 +105,19 @@ export const JUMUIYA: Record<string, string> = {
   'Baadhi hazikuingizwa. {failures}': 'Some items were not imported. {failures}',
   'Uingizaji umekamilika: jumuiya mpya {created}, wanajumuiya {added}.':
     'Import complete: {created} new communities, {added} members.',
+  'Uingizaji kwenye {kanda} umekamilika: jumuiya mpya {created}, wanajumuiya {added}. Jumuiya: {names}.':
+    'Import into {kanda} complete: {created} new communities, {added} members. Communities: {names}.',
+  'Wanajumuiya {added} wameingizwa kwenye jumuiya {jumuiya} ({kanda}).':
+    '{added} members were imported into {jumuiya} ({kanda}).',
+  'Jumuiya {jumuiya} imeongezwa kwenye {kanda} ikiwa na wanajumuiya {added}.':
+    '{jumuiya} was added to {kanda} with {added} members.',
+  '{names} na nyingine {count}': '{names} and {count} more',
+
+  'Mstari {line}: {name} haiwezi kuwa kwenye kanda mbili; itabaki kwenye {kanda}, si {other}.':
+    'Row {line}: {name} cannot be in two zones; it stays in {kanda}, not {other}.',
+
+  '{name}: {chair} tayari ni mwenyekiti wa {other}; mwenyekiti ameachwa wazi.':
+    '{name}: {chair} already chairs {other}; the chairperson was left blank.',
 
   // Split
   Gawanya: 'Split',

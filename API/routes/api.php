@@ -40,6 +40,7 @@ Route::middleware('auth:sanctum')->group(function () {
     Route::post('/kandas', [KandaController::class, 'store']);
     Route::post('/kandas/import', [KandaController::class, 'import']);
     Route::get('/kandas/{kanda}', [KandaController::class, 'show'])->whereNumber('kanda');
+    Route::post('/kandas/{kanda}/split', [KandaController::class, 'split'])->whereNumber('kanda');
     Route::put('/kandas/{kanda}', [KandaController::class, 'update'])->whereNumber('kanda');
     Route::delete('/kandas/{kanda}', [KandaController::class, 'destroy'])->whereNumber('kanda');
 

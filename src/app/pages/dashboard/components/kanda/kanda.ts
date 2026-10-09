@@ -19,8 +19,18 @@ import {
   KandaRow,
   readKandaSpreadsheet,
 } from '../../../../core/kanda-transfer';
+import {
+  buildImportPlan,
+  downloadKandaJumuiyaTemplate,
+  downloadTemplate,
+  importNotice,
+  ImportPlan,
+  readJumuiyaMemberSheet,
+  readSpreadsheet,
+  runImportPlan,
+} from '../../../../core/jumuiya-transfer';
 import { OfferingService } from '../../../../core/offerings';
-import { Jumuiya, Kanda, KandaDetail, ParishService } from '../../../../core/parish';
+import { Jumuiya, Kanda, KandaDetail, KandaSplitResult, ParishService } from '../../../../core/parish';
 import {
   EXPORT_FORMATS,
   ExportFormat,
@@ -28,8 +38,10 @@ import {
   SPREADSHEET_ACCEPT,
 } from '../../../../core/spreadsheet';
 import { FilterPanel, parseBound, withinNumberRange } from '../../../../shared/filter-panel';
+import { JumuiyaCreateDialog } from '../../../../shared/jumuiya-create-dialog';
 import { JumuiyaMoveDialog } from '../../../../shared/jumuiya-move-dialog';
 import { JumuiyaSplitDialog, JumuiyaSplitResult } from '../../../../shared/jumuiya-split-dialog';
+import { KandaSplitDialog } from '../../../../shared/kanda-split-dialog';
 import { matchesSearch, SearchBox } from '../../../../shared/search-box';
 
 type KandaSort = 'name' | 'name-desc' | 'jumuiyas-desc' | 'jumuiyas-asc' | 'members-desc';
@@ -52,6 +64,8 @@ interface KandaImportPlan {
     FilterPanel,
     JumuiyaSplitDialog,
     JumuiyaMoveDialog,
+    KandaSplitDialog,
+    JumuiyaCreateDialog,
     TranslatePipe,
   ],
   templateUrl: './kanda.html',
@@ -76,6 +90,10 @@ export class KandaPage {
   protected readonly canSplit = computed(
     () => this.auth.can('jumuiya', 'create') && this.auth.can('jumuiya', 'update'),
   );
+  protected readonly canSplitKanda = computed(() => this.canCreate() && this.canUpdate());
+  protected readonly canAddJumuiya = computed(() => this.auth.can('jumuiya', 'create'));
+  protected readonly addJumuiyaTarget = signal<Kanda | null>(null);
+  protected readonly kandaSplitTarget = signal<Kanda | null>(null);
 
   protected readonly jumuiyas = signal<Jumuiya[]>([]);
   protected readonly detailOpen = signal(false);
@@ -159,6 +177,10 @@ export class KandaPage {
   protected readonly spreadsheetAccept = SPREADSHEET_ACCEPT;
   protected readonly importOpen = signal(false);
   protected readonly importPlan = signal<KandaImportPlan | null>(null);
+  /** Set instead of `importPlan` when the file is a kanda's filled-in jumuiya + members template. */
+  protected readonly memberImportPlan = signal<ImportPlan | null>(null);
+  /** When set, the import dialog adds jumuiyas (and their members) to this kanda instead of creating kandas. */
+  protected readonly importKanda = signal<Kanda | null>(null);
   protected readonly importFileName = signal<string | null>(null);
   protected readonly importError = signal<string | null>(null);
   protected readonly importing = signal(false);
@@ -299,8 +321,11 @@ export class KandaPage {
     }
   }
 
-  protected openImport(): void {
+  protected openImport(kanda?: Kanda, event?: Event): void {
+    event?.stopPropagation();
+    this.importKanda.set(kanda ?? null);
     this.importPlan.set(null);
+    this.memberImportPlan.set(null);
     this.importFileName.set(null);
     this.importError.set(null);
     this.exportMenuOpen.set(false);
@@ -310,12 +335,44 @@ export class KandaPage {
   protected closeImport(): void {
     if (!this.importing()) {
       this.importOpen.set(false);
+      this.importKanda.set(null);
       this.importPlan.set(null);
+      this.memberImportPlan.set(null);
     }
   }
 
   protected async downloadImportTemplate(): Promise<void> {
-    await downloadKandaTemplate();
+    const kanda = this.importKanda();
+    await (kanda ? this.downloadFillTemplate(kanda) : downloadKandaTemplate());
+  }
+
+  /** A template for filling this kanda's jumuiyas and members, imported from the Jumuiya page. */
+  protected async downloadFillTemplate(kanda: Kanda, event?: Event): Promise<void> {
+    event?.stopPropagation();
+    const error = this.detailOpen() ? this.detailError : this.error;
+    error.set(null);
+
+    try {
+      const names =
+        this.detail()?.id === kanda.id
+          ? this.detail()!.jumuiyas.map((group) => group.name)
+          : this.jumuiyas()
+              .filter((group) => group.kanda_id === kanda.id)
+              .map((group) => group.name);
+      await downloadKandaJumuiyaTemplate(kanda.name, names);
+    } catch (failure) {
+      error.set(httpErrorMessage(failure, 'Imeshindwa kuandaa faili la kupakua.'));
+    }
+  }
+
+  protected async downloadJumuiyaTemplate(group: Jumuiya): Promise<void> {
+    this.detailError.set(null);
+
+    try {
+      await downloadTemplate(group.name, this.detail()?.name);
+    } catch (failure) {
+      this.detailError.set(httpErrorMessage(failure, 'Imeshindwa kuandaa faili la kupakua.'));
+    }
   }
 
   protected async chooseImportFile(event: Event): Promise<void> {
@@ -329,9 +386,35 @@ export class KandaPage {
 
     this.importFileName.set(file.name);
     this.importPlan.set(null);
+    this.memberImportPlan.set(null);
     this.importError.set(null);
 
     try {
+      const kanda = this.importKanda();
+      if (kanda) {
+        const rows = await readSpreadsheet(file);
+        if (rows.length === 0) {
+          this.importError.set(translate('Faili hilo halina jumuiya wala wanajumuiya waliojazwa.'));
+          return;
+        }
+        this.memberImportPlan.set(
+          buildImportPlan(rows, { jumuiyas: this.jumuiyas(), kandas: this.kandas(), kanda }),
+        );
+        return;
+      }
+
+      const memberRows = await readJumuiyaMemberSheet(file);
+      if (memberRows) {
+        if (memberRows.length === 0) {
+          this.importError.set(translate('Faili hilo halina jumuiya wala wanajumuiya waliojazwa.'));
+          return;
+        }
+        this.memberImportPlan.set(
+          buildImportPlan(memberRows, { jumuiyas: this.jumuiyas(), kandas: this.kandas() }),
+        );
+        return;
+      }
+
       const rows = await readKandaSpreadsheet(file);
       if (rows.length === 0) {
         this.importError.set(translate('Faili hilo halina safu zenye taarifa.'));
@@ -348,6 +431,11 @@ export class KandaPage {
   }
 
   protected async runImport(): Promise<void> {
+    if (this.memberImportPlan()) {
+      await this.runMemberImport();
+      return;
+    }
+
     const plan = this.importPlan();
 
     if (!plan || plan.fresh.length === 0 || this.importing()) {
@@ -375,6 +463,44 @@ export class KandaPage {
     } finally {
       this.importing.set(false);
     }
+  }
+
+  private async runMemberImport(): Promise<void> {
+    const plan = this.memberImportPlan();
+
+    if (!plan || plan.groups.length === 0 || this.importing()) {
+      return;
+    }
+
+    this.importing.set(true);
+    this.importError.set(null);
+    const result = await runImportPlan(plan, this.parish);
+    const { created, added, failures } = result;
+    this.importing.set(false);
+
+    if (created > 0 || added > 0) {
+      void this.activity.record({
+        action: 'imported',
+        subject:
+          `${created} jumuiyas and ${added} members` +
+          (this.importKanda() ? ` into ${this.importKanda()!.name}` : '') +
+          (this.importFileName() ? ` from ${this.importFileName()}` : ''),
+        subject_type: 'jumuiya',
+      });
+    }
+
+    const current = this.detail();
+    await Promise.all([this.refresh(), current ? this.loadDetail(current.id) : Promise.resolve()]);
+
+    this.notice.set(result.saved.length > 0 ? importNotice(result) : null);
+
+    if (failures.length > 0) {
+      this.memberImportPlan.set(null);
+      this.importError.set(translate('Baadhi hazikuingizwa. {failures}', { failures: failures.join(' · ') }));
+      return;
+    }
+
+    this.closeImport();
   }
 
   protected toggleExportMenu(event: Event): void {
@@ -469,6 +595,7 @@ export class KandaPage {
     const known = new Set(this.kandas().map((kanda) => kanda.name.trim().toLowerCase()));
     const seen = new Set<string>();
     const plan: KandaImportPlan = { fresh: [], existing: [], issues: [] };
+    const repeats = new Map<string, { name: string; lines: number[] }>();
 
     for (const row of rows) {
       const name = row.name.trim();
@@ -481,9 +608,7 @@ export class KandaPage {
           translate('Mstari {line}: jina au kiongozi ni ndefu mno, umerukwa.', { line: row.line }),
         );
       } else if (seen.has(key)) {
-        plan.issues.push(
-          translate('Mstari {line}: "{name}" imerudiwa kwenye faili, umerukwa.', { line: row.line, name }),
-        );
+        repeats.set(key, { name, lines: [...(repeats.get(key)?.lines ?? []), row.line] });
       } else if (known.has(key)) {
         seen.add(key);
         plan.existing.push(name);
@@ -491,6 +616,19 @@ export class KandaPage {
         seen.add(key);
         plan.fresh.push({ name, leader: row.leader, notes: row.notes });
       }
+    }
+
+    for (const { name, lines } of repeats.values()) {
+      plan.issues.push(
+        lines.length === 1
+          ? translate('Mstari {line}: "{name}" imerudiwa kwenye faili, umerukwa.', { line: lines[0], name })
+          : translate('"{name}" imerudiwa mara {count} kwenye faili (mistari {from}–{to}); nakala za ziada zimerukwa.', {
+              name,
+              count: lines.length,
+              from: lines[0],
+              to: lines[lines.length - 1],
+            }),
+      );
     }
 
     return plan;
@@ -533,6 +671,48 @@ export class KandaPage {
 
   protected openSplit(group: Jumuiya): void {
     this.splitTarget.set(group);
+  }
+
+  protected openAddJumuiya(kanda: Kanda, event?: Event): void {
+    event?.stopPropagation();
+    this.addJumuiyaTarget.set(kanda);
+  }
+
+  protected async onJumuiyaAdded(created: Jumuiya): Promise<void> {
+    const kanda = this.addJumuiyaTarget();
+    this.addJumuiyaTarget.set(null);
+    this.notice.set(
+      translate('{name} imeongezwa kwenye {kanda} ikiwa na wanajumuiya {count}.', {
+        name: created.name,
+        kanda: kanda?.name ?? created.kanda?.name ?? '—',
+        count: created.members_count ?? 0,
+      }),
+    );
+
+    const current = this.detail();
+    await Promise.all([this.refresh(), current ? this.loadDetail(current.id) : Promise.resolve()]);
+  }
+
+  protected openKandaSplit(kanda: Kanda, event?: Event): void {
+    event?.stopPropagation();
+    this.kandaSplitTarget.set(kanda);
+  }
+
+  protected async onKandaSplitDone(result: KandaSplitResult): Promise<void> {
+    const { parent, kanda } = result;
+    this.kandaSplitTarget.set(null);
+    this.kandas.set(result.kandas);
+    this.notice.set(
+      translate('{parent} imegawanywa: {child} imeundwa ikiwa na jumuiya {count} na wanajumuiya {members}.', {
+        parent: parent.name,
+        child: kanda.name,
+        count: kanda.jumuiyas_count,
+        members: kanda.members_count ?? 0,
+      }),
+    );
+
+    const current = this.detail();
+    await Promise.all([this.refresh(), current ? this.loadDetail(current.id) : Promise.resolve()]);
   }
 
   protected async onMoveDone(moved: Jumuiya): Promise<void> {

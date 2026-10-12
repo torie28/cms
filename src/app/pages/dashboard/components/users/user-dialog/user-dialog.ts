@@ -50,11 +50,12 @@ export class UserDialog implements OnInit {
   protected readonly assignableRoles = computed(() =>
     this.auth.isAdmin() ? this.roles() : this.roles().filter((role) => role.name !== 'admin'),
   );
+  /** Admins also see switched-off modules, so they can grant one before it is switched on. */
   protected readonly availableModules = computed(() => {
-    const enabled = this.modules().filter((module) => module.enabled);
     if (this.auth.isAdmin()) {
-      return enabled;
+      return this.modules();
     }
+    const enabled = this.modules().filter((module) => module.enabled);
     const selected = this.selectedModules();
     return enabled.filter(
       (module) => module.key === ALWAYS_ON_MODULE || this.auth.canAccess(module.key) || selected.has(module.key),

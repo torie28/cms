@@ -62,6 +62,13 @@ export const routes: Routes = [
           import('./pages/dashboard/components/sadaka/sadaka').then((m) => m.Sadaka),
       },
       {
+        path: 'matukio',
+        title: 'Matukio · Mfumo wa Usimamizi wa Kanisa',
+        canActivate: [moduleGuard('matukio')],
+        loadComponent: () =>
+          import('./pages/dashboard/components/matukio/matukio').then((m) => m.Matukio),
+      },
+      {
         path: 'jumuiya',
         title: 'Jumuiya · Mfumo wa Usimamizi wa Kanisa',
         canActivate: [moduleGuard('jumuiya')],

@@ -12,6 +12,7 @@ import { I18nService, TranslatePipe } from '../core/i18n';
 import { liturgicalDay, liturgicalName } from '../core/liturgical';
 import { Icon } from '../shared/icon';
 import { LanguageToggle } from '../shared/language-toggle';
+import { NoahChat } from '../shared/noah-chat';
 import { NotificationBell } from '../shared/notification-bell';
 import { ThemeToggle } from '../shared/theme-toggle';
 import { APP_NAV } from './nav';
@@ -24,6 +25,7 @@ const COLLAPSED_KEY = 'cms.sidebar.collapsed';
   imports: [
     Icon,
     LanguageToggle,
+    NoahChat,
     NotificationBell,
     RouterLink,
     RouterLinkActive,

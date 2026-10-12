@@ -36,10 +36,23 @@ The project has two parts in one repository:
 | Kanda (`kanda`)                | `/kanda`        | Parish zones and their leaders. Supports bulk import from Excel/CSV and export. |
 | Jumuiya (`jumuiya`)            | `/jumuiya`      | Small Christian communities, each belonging to a kanda, with a chairperson and members (name, phone, gender). Bulk import/export of communities and members. |
 | Sadaka (`sadaka`)              | `/sadaka`       | Records offerings by category (sadaka ya ibada, zaka, fungu la kumi, majitoleo ya jumuiya, shukrani, ujenzi, mengineyo) and payment method (cash, mobile, bank, cheque). Personal categories (zaka, fungu la kumi) require the giver's name; majitoleo must belong to a jumuiya. |
+| Matukio (`matukio`)            | `/matukio`      | Parish events and schedules. **Coming soon:** the page currently only shows a "coming soon" notice, and the module has no add/edit/delete actions yet. |
 | Arifa na SMS (`notifications`) | `/notifications`| Send messages by **SMS**, **in-app**, or both to: everyone, selected kanda, selected jumuiya, system users, or custom phone numbers. Tracks delivery per recipient, SMS segment counts, and lets you retry failed sends. Users see in-app messages in the notification bell. |
 | Mipangilio (`settings`)        | `/settings/system` | Enable/disable modules. |
 | API na huduma za nje (`api_settings`) | `/settings/apis` | Credentials for external services (SMS provider: NextSMS or Beem Africa, switchable from the dashboard), stored **encrypted** with `APP_KEY`, with a "send test" button. |
 | Kumbukumbu za shughuli (`activity_logs`) | `/settings/activity-logs` | Audit trail of who did what and when. Deleted records can be **restored** from here. |
+
+### Noah, the in-app guide
+Every page has an **Uliza Noah / Ask Noah** button (bottom right). Noah answers
+"how do I…?" questions about any module in the user's language, with step-by-step
+instructions and a link to the page. Before giving steps it checks the asker's
+live access: if their role lacks the module, a create/edit/delete privilege, or
+the module is switched off, Noah explains the limitation and who can grant it
+instead. It runs entirely inside the API (no external AI service).
+
+- Knowledge base: `API/app/Support/Noah/Knowledge.php` (topics in Swahili and English).
+- Matching and access checks: `API/app/Support/Noah/Noah.php`; endpoints `GET /api/noah`, `POST /api/noah/ask`.
+- Chat panel: `src/app/shared/noah-chat.ts`.
 
 ### Other behaviour worth knowing
 - **Recycle bin (30 days):** users, roles, jumuiya, members and offerings are
@@ -157,3 +170,6 @@ API/
    `src/app/layout/nav.ts`.
 4. For a new settings sub-page, add it to
    `src/app/pages/dashboard/components/settings/settings.sections.ts`.
+5. Teach Noah about it: add the module to `MODULE_ALIASES`, `PATHS`,
+   `MODULE_LABELS_EN` and `MODULE_SUMMARIES`, and its topics, in
+   `API/app/Support/Noah/Knowledge.php`. Update existing topics whenever a feature changes.

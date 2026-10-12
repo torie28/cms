@@ -72,8 +72,12 @@ export const COMMON: Record<string, string> = {
 
   // Navigation & route titles
   Muhtasari: 'Overview',
-  Mahudhurio: 'Attendance',
   Matukio: 'Events',
+  'Matukio na ratiba za parokia.': 'Parish events and schedules.',
+  'Inakuja hivi karibuni': 'Coming soon',
+  'Moduli ya matukio inaandaliwa': 'The Events module is being built',
+  'Hivi karibuni utaweza kupanga matukio ya parokia, kama misa maalum, mikutano na sherehe, na kuwatumia waumini taarifa zake.':
+    'Soon you will be able to plan parish events such as special Masses, meetings and celebrations, and notify parishioners about them.',
   'Arifa na SMS': 'Notifications & SMS',
   'Mfumo wa Usimamizi wa Kanisa': 'Church Management System',
   'Ingia · Mfumo wa Usimamizi wa Kanisa': 'Sign in · Church Management System',

@@ -109,12 +109,15 @@ export class AuthService {
         this.http.post<LoginResponse>(`${API_BASE}/login`, { username, password }),
       );
 
+      // Persist the token before storeUser: it may save the locale right away, and
+      // the interceptor reads the token from sessionStorage, not from this signal.
       this.currentToken.set(response.token);
-      this.storeUser(response.user);
 
       if (this.isBrowser) {
         sessionStorage.setItem(TOKEN_KEY, response.token);
       }
+
+      this.storeUser(response.user);
 
       return response.user;
     } catch (error) {

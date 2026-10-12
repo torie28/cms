@@ -192,8 +192,17 @@
                           {{ 'Imewashwa' | t }}
                         </span>
                       }
+                      @if (!module.enabled) {
+                        <span class="rounded-full bg-sunken px-2 py-0.5 text-[0.65rem] tracking-[0.1em] text-negative uppercase">
+                          {{ 'Imezimwa' | t }}
+                        </span>
+                      }
                     </span>
-                    @if (module.key === alwaysOn) {
+                    @if (!module.enabled) {
+                      <span class="mt-0.5 block text-xs text-faint">
+                        {{ 'Imezimwa kwenye mfumo kwa sasa. Ukimpa sasa, ataiona itakapowashwa.' | t }}
+                      </span>
+                    } @else if (module.key === alwaysOn) {
                       <span class="mt-0.5 block text-xs text-faint">{{ 'Kila mtumiaji anaiona' | t }}</span>
                     } @else if (module.description) {
                       <span class="mt-0.5 block text-xs leading-relaxed text-muted">{{ module.description | t }}</span>

@@ -72,8 +72,12 @@ export const COMMON: Record<string, string> = {
 
   // Navigation & route titles
   Muhtasari: 'Overview',
-  Mahudhurio: 'Attendance',
   Matukio: 'Events',
+  'Matukio na ratiba za parokia.': 'Parish events and schedules.',
+  'Inakuja hivi karibuni': 'Coming soon',
+  'Moduli ya matukio inaandaliwa': 'The Events module is being built',
+  'Hivi karibuni utaweza kupanga matukio ya parokia, kama misa maalum, mikutano na sherehe, na kuwatumia waumini taarifa zake.':
+    'Soon you will be able to plan parish events such as special Masses, meetings and celebrations, and notify parishioners about them.',
   'Arifa na SMS': 'Notifications & SMS',
   'Mfumo wa Usimamizi wa Kanisa': 'Church Management System',
   'Ingia · Mfumo wa Usimamizi wa Kanisa': 'Sign in · Church Management System',
@@ -180,13 +184,18 @@ export const COMMON: Record<string, string> = {
   'Imetolewa {date}': 'Generated {date}',
   'Jumla ya rekodi: {count}': 'Total records: {count}',
   'Chagua moja ya: {values}': 'Choose one of: {values}',
-  'Jaza taarifa chini ya vichwa vya safu. Usibadilishe majina ya vichwa; futa mistari ya mfano (iliyoandikwa kwa italiki) kabla ya kupakia.':
-    'Fill in the rows below the column headings. Do not rename the headings; delete the example rows (in italics) before uploading.',
+  'Jaza taarifa chini ya vichwa vya safu. Usibadilishe majina ya vichwa.':
+    'Fill in the rows below the column headings. Do not rename the headings.',
   'Kiolezo cha Jumuiya': 'Community template',
   'Jumuiya ya {name}': '{name} Community',
   'Kiolezo cha kuingiza wanajumuiya': 'Member import template',
   'Jumuiya na wanajumuiya wake': 'Communities and their members',
   'Kiolezo cha Kanda': 'Zone template',
+  Kiolezo: 'Template',
+  'Kiolezo cha kuingiza jumuiya na wanajumuiya': 'Community and member import template',
+  'Kiolezo cha Excel cha kujaza wanajumuiya wa {name}': 'Excel template for filling in the members of {name}',
+  'Kiolezo cha Excel cha kujaza jumuiya na wanajumuiya wa {name}':
+    'Excel template for filling in the communities and members of {name}',
   'Kanda za parokia': 'Parish zones',
   'Kiolezo cha kuingiza michango · Tarehe kwa mfumo {format}': 'Offering import template · Dates as {format}',
   'Hakuna kumbukumbu': 'No records',

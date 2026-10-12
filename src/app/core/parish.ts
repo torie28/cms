@@ -8,8 +8,24 @@ export interface Kanda {
   name: string;
   leader: string | null;
   notes: string | null;
+  parent_id?: number | null;
+  parent?: { id: number; name: string } | null;
+  children_count?: number;
   jumuiyas_count: number;
   members_count?: number;
+}
+
+export interface KandaSplitPayload {
+  name: string;
+  leader: string;
+  notes: string;
+  jumuiya_ids: number[];
+}
+
+export interface KandaSplitResult {
+  parent: Kanda;
+  kanda: Kanda;
+  kandas: Kanda[];
 }
 
 export interface Jumuiya {
@@ -89,6 +105,11 @@ export class ParishService {
 
   updateKanda(id: number, payload: { name: string; leader: string; notes: string }): Promise<Kanda> {
     return firstValueFrom(this.http.put<Kanda>(`${API_BASE}/kandas/${id}`, payload));
+  }
+
+  /** Creates a new kanda and moves the chosen jumuiyas (with their members) into it. */
+  splitKanda(id: number, payload: KandaSplitPayload): Promise<KandaSplitResult> {
+    return firstValueFrom(this.http.post<KandaSplitResult>(`${API_BASE}/kandas/${id}/split`, payload));
   }
 
   /** A kanda that still has jumuiyas needs `moveToKandaId` to take them over. */

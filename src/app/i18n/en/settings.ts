@@ -72,8 +72,18 @@ export const SETTINGS: Record<string, string> = {
   'Mtoa huduma': 'Provider',
   'Majaribio (huandikwa kwenye log, hazitumwi)': 'Test (written to the log, not sent)',
   'Jina la mtumaji (Sender ID)': 'Sender name (Sender ID)',
-  'Herufi zisizozidi 11. Kwa Beem, lazima liwe limeidhinishwa kwenye akaunti yako.':
-    'At most 11 characters. For Beem, it must be approved on your account.',
+  'Herufi zisizozidi 11. Liandike sawasawa kabisa na lilivyoidhinishwa na mtoa huduma (NextSMS au Beem).':
+    'At most 11 characters. Type it exactly as approved by the provider (NextSMS or Beem).',
+  'Jina la mtumiaji unaloingia nalo kwenye app.nextsms.co.tz.': 'The username you sign in with on app.nextsms.co.tz.',
+  'Nenosiri la akaunti ya NextSMS (API hutumia username na password kwa Basic Auth).':
+    'Your NextSMS account password (the API uses username and password with Basic Auth).',
+  'Mazingira ya NextSMS': 'NextSMS environment',
+  'Halisi (inatuma SMS na kutumia salio)': 'Live (sends SMS and uses credit)',
+  'Sandbox (NextSMS inakagua ombi, haitumi SMS)': 'Sandbox (NextSMS checks the request, sends nothing)',
+  'Anza na Sandbox kuhakikisha username/password ni sahihi, kisha badili kuwa Halisi.':
+    'Start with Sandbox to confirm the username/password, then switch to Live.',
+  'Sandbox ya NextSMS imekubali ombi: username, password na Sender ID vimekubalika. Hakuna SMS iliyotumwa; badili mazingira kuwa "Halisi" ili kutuma kweli.':
+    'The NextSMS sandbox accepted the request: username, password and Sender ID are valid. No SMS was sent; switch the environment to "Live" to send for real.',
   'Barua pepe (SMTP)': 'Email (SMTP)',
   'Seva ya barua pepe inayotumika kutuma barua kutoka kwenye mfumo.':
     'The mail server used to send email from the system.',

@@ -2,6 +2,7 @@ import { COMMON } from './common';
 import { JUMUIYA } from './jumuiya';
 import { KANDA } from './kanda';
 import { LITURGY } from './liturgy';
+import { NOAH } from './noah';
 import { NOTIFICATIONS } from './notifications';
 import { OVERVIEW } from './overview';
 import { SADAKA } from './sadaka';
@@ -19,4 +20,5 @@ export const EN: Readonly<Record<string, string>> = {
   ...SETTINGS,
   ...NOTIFICATIONS,
   ...SADAKA,
+  ...NOAH,
 };

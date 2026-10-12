@@ -6,6 +6,7 @@ use App\Models\Kanda;
 use App\Support\ActivityLogger;
 use App\Support\Modules;
 use App\Support\Recycle;
+use Illuminate\Database\Eloquent\Collection;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
@@ -15,12 +16,7 @@ class KandaController extends Controller
 {
     public function index(): JsonResponse
     {
-        $kandas = Kanda::query()
-            ->withCount(['jumuiyas', 'members'])
-            ->orderBy('name')
-            ->get();
-
-        return response()->json($kandas);
+        return response()->json($this->listing());
     }
 
     /**
@@ -32,9 +28,11 @@ class KandaController extends Controller
         $showOfferings = Modules::canAccess($request->user(), 'sadaka');
         $yearStart = now()->startOfYear()->toDateString();
 
+        $kanda->load('parent:id,name');
         $kanda->loadCount([
             'jumuiyas',
             'members',
+            'children',
             'members as male_count' => fn ($query) => $query->where('jumuiya_members.gender', 'male'),
             'members as female_count' => fn ($query) => $query->where('jumuiya_members.gender', 'female'),
         ]);
@@ -71,8 +69,7 @@ class KandaController extends Controller
             'notes' => ['nullable', 'string'],
         ]);
 
-        $kanda = Kanda::query()->create($data);
-        $kanda->loadCount(['jumuiyas', 'members']);
+        $kanda = $this->present(Kanda::query()->create($data));
 
         app(ActivityLogger::class)->record(
             $request->user(),
@@ -101,7 +98,7 @@ class KandaController extends Controller
             'leader' => 'Kiongozi',
             'notes' => 'Maelezo',
         ]);
-        $kanda->loadCount(['jumuiyas', 'members']);
+        $kanda = $this->present($kanda);
 
         app(ActivityLogger::class)->record(
             $request->user(),
@@ -114,6 +111,76 @@ class KandaController extends Controller
         );
 
         return response()->json($kanda);
+    }
+
+    /**
+     * Splits a kanda in two: a new kanda is created and the chosen jumuiyas (with their
+     * members and offerings) move into it. The original kanda keeps the rest.
+     */
+    public function split(Request $request, Kanda $kanda): JsonResponse
+    {
+        $this->ensureCan($request, 'kanda', 'create');
+        $this->ensureCan($request, 'kanda', 'update');
+
+        $data = $request->validate([
+            'name' => ['required', 'string', 'max:255', Rule::unique('kandas', 'name')->withoutTrashed()],
+            'leader' => ['nullable', 'string', 'max:255'],
+            'notes' => ['nullable', 'string'],
+            'jumuiya_ids' => ['required', 'array', 'min:1'],
+            'jumuiya_ids.*' => [
+                'integer',
+                'distinct',
+                Rule::exists('jumuiyas', 'id')
+                    ->where('kanda_id', $kanda->id)
+                    ->whereNull('deleted_at'),
+            ],
+        ], [
+            'name.unique' => 'Kanda yenye jina hilo tayari ipo.',
+            'jumuiya_ids.required' => 'Chagua angalau jumuiya moja itakayohamia kanda mpya.',
+            'jumuiya_ids.min' => 'Chagua angalau jumuiya moja itakayohamia kanda mpya.',
+            'jumuiya_ids.*.exists' => 'Jumuiya uliyochagua haipo tena kwenye kanda hii.',
+        ]);
+
+        [$child, $moved] = DB::transaction(function () use ($kanda, $data) {
+            $child = Kanda::query()->create([
+                'name' => trim($data['name']),
+                'parent_id' => $kanda->id,
+                'leader' => $data['leader'] ?? null,
+                'notes' => $data['notes'] ?? null,
+            ]);
+
+            $moved = $kanda->jumuiyas()
+                ->whereIn('id', $data['jumuiya_ids'])
+                ->orderBy('name')
+                ->pluck('name');
+
+            $kanda->jumuiyas()->whereIn('id', $data['jumuiya_ids'])->update(['kanda_id' => $child->id]);
+
+            return [$child, $moved];
+        });
+
+        $parent = $this->present($kanda);
+        $child = $this->present($child);
+
+        app(ActivityLogger::class)->record(
+            $request->user(),
+            'split',
+            $parent->name.' into '.$child->name.' with '.$moved->count().' jumuiyas',
+            'kanda',
+            $request,
+            $child,
+            ['changes' => [
+                'Kanda mpya' => ['from' => $parent->name, 'to' => $child->name],
+                'Jumuiya zilizohamishwa' => ['from' => null, 'to' => $moved->join(', ')],
+                'Wanajumuiya waliohamishwa' => ['from' => null, 'to' => $child->members_count],
+            ]],
+        );
+
+        return response()->json([
+            'parent' => $parent,
+            'kanda' => $child,
+            'kandas' => $this->listing(),
+        ], 201);
     }
 
     /**
@@ -214,7 +281,25 @@ class KandaController extends Controller
         return response()->json([
             'created' => $fresh->count(),
             'skipped' => $skipped->pluck('name')->values(),
-            'kandas' => Kanda::query()->withCount(['jumuiyas', 'members'])->orderBy('name')->get(),
+            'kandas' => $this->listing(),
         ], 201);
+    }
+
+    /** @return Collection<int, Kanda> */
+    private function listing(): Collection
+    {
+        return Kanda::query()
+            ->with('parent:id,name')
+            ->withCount(['jumuiyas', 'members', 'children'])
+            ->orderBy('name')
+            ->get();
+    }
+
+    private function present(Kanda $kanda): Kanda
+    {
+        $kanda->load('parent:id,name');
+        $kanda->loadCount(['jumuiyas', 'members', 'children']);
+
+        return $kanda;
     }
 }

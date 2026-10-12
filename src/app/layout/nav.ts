@@ -13,9 +13,8 @@ export interface NavItem {
 export const APP_NAV: NavItem[] = [
   { label: 'Muhtasari', path: '/dashboard', icon: 'grid', exact: true, module: 'dashboard' },
   { label: 'Watumiaji', path: '/users', icon: 'users', exact: false, module: 'users' },
-  { label: 'Mahudhurio', path: null, icon: 'check' },
   { label: 'Sadaka', path: '/sadaka', icon: 'coin', exact: true, module: 'sadaka' },
-  { label: 'Matukio', path: null, icon: 'calendar' },
+  { label: 'Matukio', path: '/matukio', icon: 'calendar', exact: true, module: 'matukio' },
   { label: 'Jumuiya', path: '/jumuiya', icon: 'heart', exact: true, module: 'jumuiya' },
   { label: 'Kanda', path: '/kanda', icon: 'map', exact: true, module: 'kanda' },
   { label: 'Arifa na SMS', path: '/notifications', icon: 'bell', exact: true, module: 'notifications' },

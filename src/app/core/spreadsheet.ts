@@ -29,6 +29,8 @@ export interface SheetData {
   totalRow?: boolean;
   /** Dropdown values per column index, offered on every data row. */
   choices?: Record<number, string[]>;
+  /** Values pre-filled per column index on a template's blank rows. */
+  fill?: Record<number, string>;
   /** Field/value layout: the first column holds bold labels. */
   labelColumn?: boolean;
 }
@@ -36,7 +38,7 @@ export interface SheetData {
 export interface WorkbookOptions {
   title: string;
   subtitle?: string;
-  /** Adds fill-in instructions, marks the rows as examples and appends blank rows to fill. */
+  /** Adds fill-in instructions, styles any given rows as examples and appends blank rows to fill. */
   template?: boolean;
 }
 
@@ -218,7 +220,7 @@ export async function saveWorkbook(sheets: SheetData[], filename: string, option
     if (options.template) {
       banner(
         translate(
-          'Jaza taarifa chini ya vichwa vya safu. Usibadilishe majina ya vichwa; futa mistari ya mfano (iliyoandikwa kwa italiki) kabla ya kupakia.',
+          'Jaza taarifa chini ya vichwa vya safu. Usibadilishe majina ya vichwa.',
         ),
         34,
         {
@@ -246,7 +248,10 @@ export async function saveWorkbook(sheets: SheetData[], filename: string, option
     });
 
     const blanks = options.template ? BLANK_TEMPLATE_ROWS : 0;
-    const body: string[][] = [...sheet.rows, ...Array.from({ length: blanks }, () => sheet.head.map(() => ''))];
+    const body: string[][] = [
+      ...sheet.rows,
+      ...Array.from({ length: blanks }, () => sheet.head.map((_, column) => sheet.fill?.[column] ?? '')),
+    ];
     const widths = sheet.head.map((label) => label.length);
 
     body.forEach((values, index) => {

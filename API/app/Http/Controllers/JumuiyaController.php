@@ -29,9 +29,9 @@ class JumuiyaController extends Controller
         $this->ensureCan($request, 'jumuiya', 'create');
 
         $data = $request->validate([
-            'name' => ['required', 'string', 'max:255'],
+            'name' => ['required', 'string', 'max:255', $this->uniqueName()],
             'kanda_id' => ['required', 'integer', $this->activeKanda()],
-            'chairperson' => ['nullable', 'string', 'max:255'],
+            'chairperson' => ['nullable', 'string', 'max:255', $this->uniqueChairperson()],
             'notes' => ['nullable', 'string'],
             'members' => ['sometimes', 'array'],
             'members.*.name' => ['required', 'string', 'max:255'],
@@ -84,9 +84,9 @@ class JumuiyaController extends Controller
         $this->ensureCan($request, 'jumuiya', 'update');
 
         $data = $request->validate([
-            'name' => ['required', 'string', 'max:255'],
+            'name' => ['required', 'string', 'max:255', $this->uniqueName($jumuiya)],
             'kanda_id' => ['required', 'integer', $this->activeKanda()],
-            'chairperson' => ['nullable', 'string', 'max:255'],
+            'chairperson' => ['nullable', 'string', 'max:255', $this->uniqueChairperson($jumuiya)],
             'notes' => ['nullable', 'string'],
         ]);
 
@@ -131,10 +131,11 @@ class JumuiyaController extends Controller
                         $fail('Jumuiya mpya inahitaji jina tofauti na jumuiya mama.');
                     }
                 },
+                $this->uniqueName(),
             ],
             'kanda_id' => ['required', 'integer', $this->activeKanda()],
             'parent_kanda_id' => ['required', 'integer', $this->activeKanda()],
-            'chairperson' => ['nullable', 'string', 'max:255'],
+            'chairperson' => ['nullable', 'string', 'max:255', $this->uniqueChairperson()],
             'notes' => ['nullable', 'string'],
             'member_ids' => ['present', 'array'],
             'member_ids.*' => [
@@ -248,6 +249,46 @@ class JumuiyaController extends Controller
     private function activeKanda(): Exists
     {
         return Rule::exists('kandas', 'id')->withoutTrashed();
+    }
+
+    /**
+     * A jumuiya name may be used once across the whole parish (ignoring case and spacing),
+     * so the same jumuiya can't appear twice in a kanda or in two different kandas.
+     */
+    private function uniqueName(?Jumuiya $ignore = null): \Closure
+    {
+        return function (string $attribute, mixed $value, \Closure $fail) use ($ignore) {
+            $existing = Jumuiya::query()
+                ->with('kanda:id,name')
+                ->whereRaw('lower(trim(name)) = ?', [mb_strtolower(trim((string) $value))])
+                ->when($ignore, fn ($query) => $query->whereKeyNot($ignore->id))
+                ->first();
+
+            if ($existing) {
+                $fail("Jumuiya \"{$existing->name}\" tayari ipo kwenye kanda ".($existing->kanda?->name ?? '—').'. Tumia jina tofauti.');
+            }
+        };
+    }
+
+    /** One person may chair only one jumuiya (names compared ignoring case and spacing). */
+    private function uniqueChairperson(?Jumuiya $ignore = null): \Closure
+    {
+        return function (string $attribute, mixed $value, \Closure $fail) use ($ignore) {
+            $chair = trim((string) $value);
+            if ($chair === '') {
+                return;
+            }
+
+            $existing = Jumuiya::query()
+                ->with('kanda:id,name')
+                ->whereRaw('lower(trim(chairperson)) = ?', [mb_strtolower($chair)])
+                ->when($ignore, fn ($query) => $query->whereKeyNot($ignore->id))
+                ->first();
+
+            if ($existing) {
+                $fail("{$existing->chairperson} tayari ni mwenyekiti wa jumuiya {$existing->name} (".($existing->kanda?->name ?? '—').'). Mwenyekiti mmoja hawezi kuongoza jumuiya mbili.');
+            }
+        };
     }
 
     private function present(Jumuiya $jumuiya): Jumuiya

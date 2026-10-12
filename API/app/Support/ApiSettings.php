@@ -18,7 +18,7 @@ class ApiSettings
     /**
      * `type`: text | secret | select | number | email.
      * `show_when`: [field, value(s)] — only relevant (and required) when that field matches.
-     * `live_when`: [field, value] — the service really sends when that field is not the test value.
+     * `test_mode`: list of [field, value] — the service only simulates sending when any relevant field matches.
      *
      * @var array<string, array<string, mixed>>
      */
@@ -27,7 +27,7 @@ class ApiSettings
             'label' => 'SMS',
             'description' => 'Mtoa huduma anayetumika kutuma SMS kwa waumini, jumuiya na watumiaji.',
             'test' => 'phone',
-            'test_mode' => ['driver', 'log'],
+            'test_mode' => [['driver', 'log'], ['nextsms_environment', 'sandbox']],
             'fields' => [
                 'driver' => [
                     'label' => 'Mtoa huduma',
@@ -36,6 +36,7 @@ class ApiSettings
                     'required' => true,
                     'options' => [
                         'log' => 'Majaribio (huandikwa kwenye log, hazitumwi)',
+                        'nextsms' => 'NextSMS',
                         'beem' => 'Beem Africa',
                     ],
                 ],
@@ -45,7 +46,36 @@ class ApiSettings
                     'config' => 'services.sms.sender_id',
                     'required' => true,
                     'max' => 11,
-                    'help' => 'Herufi zisizozidi 11. Kwa Beem, lazima liwe limeidhinishwa kwenye akaunti yako.',
+                    'placeholder' => 'ST MATHIAS',
+                    'help' => 'Herufi zisizozidi 11. Liandike sawasawa kabisa na lilivyoidhinishwa na mtoa huduma (NextSMS au Beem).',
+                ],
+                'nextsms_username' => [
+                    'label' => 'NextSMS Username',
+                    'type' => 'text',
+                    'config' => 'services.sms.nextsms.username',
+                    'required' => true,
+                    'show_when' => ['driver', 'nextsms'],
+                    'help' => 'Jina la mtumiaji unaloingia nalo kwenye app.nextsms.co.tz.',
+                ],
+                'nextsms_password' => [
+                    'label' => 'NextSMS Password',
+                    'type' => 'secret',
+                    'config' => 'services.sms.nextsms.password',
+                    'required' => true,
+                    'show_when' => ['driver', 'nextsms'],
+                    'help' => 'Nenosiri la akaunti ya NextSMS (API hutumia username na password kwa Basic Auth).',
+                ],
+                'nextsms_environment' => [
+                    'label' => 'Mazingira ya NextSMS',
+                    'type' => 'select',
+                    'config' => 'services.sms.nextsms.environment',
+                    'required' => true,
+                    'show_when' => ['driver', 'nextsms'],
+                    'options' => [
+                        'live' => 'Halisi (inatuma SMS na kutumia salio)',
+                        'sandbox' => 'Sandbox (NextSMS inakagua ombi, haitumi SMS)',
+                    ],
+                    'help' => 'Anza na Sandbox kuhakikisha username/password ni sahihi, kisha badili kuwa Halisi.',
                 ],
                 'beem_api_key' => [
                     'label' => 'Beem API Key',
@@ -68,7 +98,7 @@ class ApiSettings
             'label' => 'Barua pepe (SMTP)',
             'description' => 'Seva ya barua pepe inayotumika kutuma barua kutoka kwenye mfumo.',
             'test' => 'email',
-            'test_mode' => ['mailer', 'log'],
+            'test_mode' => [['mailer', 'log']],
             'fields' => [
                 'mailer' => [
                     'label' => 'Njia ya kutuma',
@@ -295,16 +325,22 @@ class ApiSettings
         return in_array((string) ($values[$other] ?? ''), Arr::wrap($expected), true);
     }
 
-    /** "live" (really sends), "test" (log only) or "incomplete" (required fields missing). */
+    /** "live" (really sends), "test" (simulated only) or "incomplete" (required fields missing). */
     public static function status(string $service, array $values): string
     {
         if (self::missing($service, $values) !== []) {
             return 'incomplete';
         }
 
-        [$modeField, $testValue] = self::DEFINITIONS[$service]['test_mode'];
+        $fields = self::DEFINITIONS[$service]['fields'];
 
-        return (string) ($values[$modeField] ?? '') === $testValue ? 'test' : 'live';
+        foreach (self::DEFINITIONS[$service]['test_mode'] as [$modeField, $testValue]) {
+            if (self::isRelevant($fields[$modeField], $values) && (string) ($values[$modeField] ?? '') === $testValue) {
+                return 'test';
+            }
+        }
+
+        return 'live';
     }
 
     /** @return array<string, ApiSetting> */

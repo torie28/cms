@@ -290,6 +290,11 @@
             <p class="mt-1 text-sm" [class]="kanda.leader ? 'text-muted' : 'text-negative'">
               {{ kanda.leader || ('Hakuna kiongozi aliyepangwa' | t) }}
             </p>
+            @if (kanda.parent) {
+              <span class="mt-2 inline-block rounded-full bg-brass-tint px-2 py-0.5 text-[0.7rem] text-brass-strong">
+                {{ 'kutoka {parent}' | t: { parent: kanda.parent.name } }}
+              </span>
+            }
 
             <dl class="mt-4 grid w-full grid-cols-2 gap-3">
               <div class="rounded bg-sunken px-3 py-2">
@@ -323,9 +328,30 @@
             >
               {{ (exportingKandaId() === kanda.id ? 'Inaandaa…' : 'Pakua Excel') | t }}
             </button>
+            <button
+              type="button"
+              class="text-sm text-brass-strong hover:underline"
+              [title]="'Kiolezo cha Excel cha kujaza jumuiya na wanajumuiya wa {name}' | t: { name: kanda.name }"
+              (click)="downloadFillTemplate(kanda, $event)"
+            >
+              {{ 'Kiolezo' | t }}
+            </button>
             @if (canUpdate()) {
               <button type="button" class="text-sm text-brass-strong hover:underline" (click)="openForm(kanda, $event)">
                 {{ 'Hariri' | t }}
+              </button>
+            }
+            @if (canAddJumuiya()) {
+              <button type="button" class="text-sm text-brass-strong hover:underline" (click)="openAddJumuiya(kanda, $event)">
+                {{ 'Ongeza jumuiya' | t }}
+              </button>
+              <button type="button" class="text-sm text-brass-strong hover:underline" (click)="openImport(kanda, $event)">
+                {{ 'Ingiza Excel' | t }}
+              </button>
+            }
+            @if (canSplitKanda() && kanda.jumuiyas_count > 0) {
+              <button type="button" class="text-sm text-brass-strong hover:underline" (click)="openKandaSplit(kanda, $event)">
+                {{ 'Gawanya' | t }}
               </button>
             }
             @if (canDelete()) {
@@ -416,11 +442,23 @@
       class="max-h-[90vh] w-full max-w-2xl overflow-y-auto rounded border border-line bg-surface p-5"
       (click)="$event.stopPropagation()"
     >
-      <h2 class="font-serif text-xl">{{ 'Ingiza kanda kutoka Excel' | t }}</h2>
-      <p class="mt-1 text-sm text-muted">
-        {{ 'Kila mstari ni kanda moja. Safu:' | t }} <span class="font-medium">Kanda, Kiongozi, Maelezo</span>.
-        {{ 'Kanda zilizopo tayari zitarukwa. Inakubali .xlsx, .xls, .ods na .csv.' | t }}
-      </p>
+      @if (importKanda(); as target) {
+        <h2 class="font-serif text-xl">{{ 'Ingiza jumuiya kwenye {kanda}' | t: { kanda: target.name } }}</h2>
+        <p class="mt-1 text-sm text-muted">
+          {{ 'Kila mstari ni jumuiya moja au mwanajumuiya mmoja. Safu:' | t }}
+          <span class="font-medium">Jumuiya, Mwenyekiti, Mwanajumuiya, Simu, Jinsia</span>.
+          {{ 'Jumuiya zote mpya zitaongezwa kwenye kanda hii. Kwa jumuiya zilizopo, wanajumuiya wataongezwa kwake.' | t }}
+        </p>
+      } @else {
+        <h2 class="font-serif text-xl">{{ 'Ingiza kanda kutoka Excel' | t }}</h2>
+        <p class="mt-1 text-sm text-muted">
+          {{ 'Kila mstari ni kanda moja. Safu:' | t }} <span class="font-medium">Kanda, Kiongozi, Maelezo</span>.
+          {{ 'Kanda zilizopo tayari zitarukwa. Inakubali .xlsx, .xls, .ods na .csv.' | t }}
+        </p>
+        <p class="mt-1 text-sm text-muted">
+          {{ 'Unaweza pia kupakia kiolezo cha kanda ulichojaza (kutoka "Kiolezo"); jumuiya na wanajumuiya wake wataingizwa.' | t }}
+        </p>
+      }
 
       <div class="mt-4 flex flex-wrap items-center gap-2">
         <label
@@ -507,6 +545,53 @@
         </div>
       }
 
+      @if (memberImportPlan(); as plan) {
+        <div class="mt-5 space-y-4">
+          <p class="text-sm">
+            {{
+              'Tayari kuingiza wanajumuiya {members} katika jumuiya {groups}.'
+                | t: { members: plan.memberCount, groups: plan.groups.length }
+            }}
+          </p>
+
+          @if (plan.issues.length > 0) {
+            <div class="rounded border border-negative/40 bg-negative/10 px-3 py-2 text-sm text-negative">
+              <p class="font-medium">{{ 'Tahadhari {count}' | t: { count: plan.issues.length } }}</p>
+              <ul class="mt-1 max-h-32 list-disc space-y-0.5 overflow-y-auto pl-5">
+                @for (issue of plan.issues; track $index) {
+                  <li>{{ issue }}</li>
+                }
+              </ul>
+            </div>
+          }
+
+          @if (plan.groups.length > 0) {
+            <div class="overflow-x-auto">
+              <table class="w-full min-w-[32rem] text-left text-sm">
+                <thead class="border-b border-line text-xs tracking-[0.12em] text-faint uppercase">
+                  <tr>
+                    <th class="py-2 pr-3 font-medium">{{ 'Jumuiya' | t }}</th>
+                    <th class="py-2 pr-3 font-medium">{{ 'Hali' | t }}</th>
+                    <th class="py-2 pr-3 font-medium">{{ 'Kanda' | t }}</th>
+                    <th class="py-2 font-medium">{{ 'Wanajumuiya' | t }}</th>
+                  </tr>
+                </thead>
+                <tbody class="divide-y divide-line">
+                  @for (group of plan.groups; track group.name) {
+                    <tr class="row-slide">
+                      <td class="py-2 pr-3 font-medium">{{ group.name }}</td>
+                      <td class="py-2 pr-3 text-muted">{{ (group.existing ? 'Ipo' : 'Mpya') | t }}</td>
+                      <td class="py-2 pr-3 text-muted">{{ group.kandaName || '—' }}</td>
+                      <td class="py-2 text-muted">{{ group.members.length }}</td>
+                    </tr>
+                  }
+                </tbody>
+              </table>
+            </div>
+          }
+        </div>
+      }
+
       <div class="mt-5 flex justify-end gap-2">
         <button
           type="button"
@@ -519,7 +604,12 @@
         <button
           type="button"
           class="rounded bg-brass-strong px-4 py-2 text-sm font-medium text-canvas disabled:opacity-60"
-          [disabled]="importing() || !importPlan() || importPlan()!.fresh.length === 0"
+          [disabled]="
+            importing() ||
+            (memberImportPlan()
+              ? memberImportPlan()!.groups.length === 0
+              : !importPlan() || importPlan()!.fresh.length === 0)
+          "
           (click)="runImport()"
         >
           {{ (importing() ? 'Inaingiza…' : 'Ingiza') | t }}
@@ -551,6 +641,20 @@
             <p class="mt-0.5 text-sm" [class]="kanda.leader ? 'text-muted' : 'text-negative'">
               {{ kanda.leader ? ('Kiongozi: {name}' | t: { name: kanda.leader }) : ('Hakuna kiongozi aliyepangwa' | t) }}
             </p>
+            @if (kanda.parent || kanda.children_count) {
+              <p class="mt-1 flex flex-wrap gap-1.5">
+                @if (kanda.parent) {
+                  <span class="rounded-full bg-brass-tint px-2 py-0.5 text-[0.7rem] text-brass-strong">
+                    {{ 'kutoka {parent}' | t: { parent: kanda.parent.name } }}
+                  </span>
+                }
+                @if (kanda.children_count) {
+                  <span class="rounded-full bg-sunken px-2 py-0.5 text-[0.7rem] text-muted">
+                    {{ 'imezaa kanda {count}' | t: { count: kanda.children_count } }}
+                  </span>
+                }
+              </p>
+            }
           </div>
         } @else {
           <div>
@@ -593,6 +697,14 @@
                 </div>
               }
             </div>
+            <button
+              type="button"
+              class="rounded border border-line px-3 py-1.5 text-sm hover:bg-sunken"
+              [title]="'Kiolezo cha Excel cha kujaza jumuiya na wanajumuiya wa {name}' | t: { name: kanda.name }"
+              (click)="downloadFillTemplate(kanda)"
+            >
+              {{ 'Pakua kiolezo' | t }}
+            </button>
             @if (canUpdate()) {
               <button
                 type="button"
@@ -600,6 +712,15 @@
                 (click)="openForm(kanda)"
               >
                 {{ 'Hariri' | t }}
+              </button>
+            }
+            @if (canSplitKanda() && kanda.jumuiyas_count > 0) {
+              <button
+                type="button"
+                class="rounded border border-line px-3 py-1.5 text-sm hover:bg-sunken"
+                (click)="openKandaSplit(kanda)"
+              >
+                {{ 'Gawanya' | t }}
               </button>
             }
             @if (canDelete()) {
@@ -676,13 +797,44 @@
           <section class="rounded border border-line bg-surface">
             <div class="flex flex-wrap items-baseline justify-between gap-3 border-b border-line px-4 py-3">
               <h3 class="font-serif text-lg">{{ 'Jumuiya za kanda hii' | t }}</h3>
-              @if (canSplit()) {
-                <p class="text-xs text-faint">{{ 'Bofya "Gawanya" jumuiya ikiwa imekuwa kubwa na inahitaji kugawanywa.' | t }}</p>
-              }
+              <div class="flex flex-wrap items-center gap-3">
+                @if (canSplit() && kanda.jumuiyas.length > 0) {
+                  <p class="text-xs text-faint">{{ 'Bofya "Gawanya" jumuiya ikiwa imekuwa kubwa na inahitaji kugawanywa.' | t }}</p>
+                }
+                @if (canAddJumuiya()) {
+                  <button
+                    type="button"
+                    class="rounded border border-line px-3 py-1.5 text-sm hover:bg-sunken"
+                    [title]="'Ongeza jumuiya nyingi kwa mara moja kutoka Excel' | t"
+                    (click)="openImport(kanda)"
+                  >
+                    {{ 'Ingiza Excel' | t }}
+                  </button>
+                  <button
+                    type="button"
+                    class="rounded bg-brass-strong px-3 py-1.5 text-sm font-medium text-canvas hover:opacity-90"
+                    (click)="openAddJumuiya(kanda)"
+                  >
+                    {{ 'Ongeza jumuiya' | t }}
+                  </button>
+                }
+              </div>
             </div>
 
             @if (kanda.jumuiyas.length === 0) {
-              <p class="px-4 py-8 text-center text-sm text-muted">{{ 'Kanda hii bado haina jumuiya.' | t }}</p>
+              <div class="px-4 py-8 text-center text-sm text-muted">
+                <p>{{ 'Kanda hii bado haina jumuiya.' | t }}</p>
+                @if (canAddJumuiya()) {
+                  <p class="mt-2 flex justify-center gap-4">
+                    <button type="button" class="text-brass-strong hover:underline" (click)="openAddJumuiya(kanda)">
+                      {{ 'Ongeza jumuiya ya kwanza' | t }}
+                    </button>
+                    <button type="button" class="text-brass-strong hover:underline" (click)="openImport(kanda)">
+                      {{ 'Ingiza kutoka Excel' | t }}
+                    </button>
+                  </p>
+                }
+              </div>
             } @else {
               <div class="overflow-x-auto">
                 <table class="w-full min-w-[40rem] text-left text-sm">
@@ -731,6 +883,14 @@
                             <a class="text-sm text-brass-strong hover:underline" routerLink="/jumuiya" [queryParams]="{ q: group.name }">
                               {{ 'Fungua' | t }}
                             </a>
+                            <button
+                              type="button"
+                              class="text-sm text-brass-strong hover:underline"
+                              [title]="'Kiolezo cha Excel cha kujaza wanajumuiya wa {name}' | t: { name: group.name }"
+                              (click)="downloadJumuiyaTemplate(group)"
+                            >
+                              {{ 'Kiolezo' | t }}
+                            </button>
                             @if (canMove()) {
                               <button type="button" class="text-sm text-brass-strong hover:underline" (click)="moveTarget.set(group)">
                                 {{ 'Hamisha' | t }}
@@ -856,6 +1016,14 @@
     (closed)="moveTarget.set(null)"
     (done)="onMoveDone($event)"
   />
+}
+
+@if (addJumuiyaTarget(); as kanda) {
+  <app-jumuiya-create-dialog [kanda]="kanda" (closed)="addJumuiyaTarget.set(null)" (done)="onJumuiyaAdded($event)" />
+}
+
+@if (kandaSplitTarget(); as kanda) {
+  <app-kanda-split-dialog [kanda]="kanda" (closed)="kandaSplitTarget.set(null)" (done)="onKandaSplitDone($event)" />
 }
 
 @if (splitTarget(); as group) {

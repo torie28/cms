@@ -8,6 +8,7 @@ use App\Http\Controllers\JumuiyaMemberController;
 use App\Http\Controllers\KandaController;
 use App\Http\Controllers\MessageController;
 use App\Http\Controllers\ModuleController;
+use App\Http\Controllers\NoahController;
 use App\Http\Controllers\OfferingController;
 use App\Http\Controllers\RoleController;
 use App\Http\Controllers\UserController;
@@ -40,6 +41,7 @@ Route::middleware('auth:sanctum')->group(function () {
     Route::post('/kandas', [KandaController::class, 'store']);
     Route::post('/kandas/import', [KandaController::class, 'import']);
     Route::get('/kandas/{kanda}', [KandaController::class, 'show'])->whereNumber('kanda');
+    Route::post('/kandas/{kanda}/split', [KandaController::class, 'split'])->whereNumber('kanda');
     Route::put('/kandas/{kanda}', [KandaController::class, 'update'])->whereNumber('kanda');
     Route::delete('/kandas/{kanda}', [KandaController::class, 'destroy'])->whereNumber('kanda');
 
@@ -74,4 +76,7 @@ Route::middleware('auth:sanctum')->group(function () {
     Route::post('/activity-logs', [ActivityLogController::class, 'store']);
     Route::post('/activity-logs/{log}/restore', [ActivityLogController::class, 'restore']);
     Route::delete('/activity-logs/{log}/purge', [ActivityLogController::class, 'purge']);
+
+    Route::get('/noah', [NoahController::class, 'intro']);
+    Route::post('/noah/ask', [NoahController::class, 'ask'])->middleware('throttle:60,1');
 });

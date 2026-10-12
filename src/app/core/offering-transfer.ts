@@ -237,17 +237,14 @@ export async function readOfferingSheet(
   return plan;
 }
 
-export async function downloadOfferingTemplate(categoryLabel: string, today: string): Promise<void> {
+export async function downloadOfferingTemplate(categoryLabel: string): Promise<void> {
   const columns: Field[] = ['contributor', 'amount', 'date', 'phone', 'jumuiya', 'method', 'reference', 'notes'];
   await saveWorkbook(
     [
       {
         name: categoryLabel.slice(0, 31),
         head: columns.map((key) => HEADERS[key]),
-        rows: [
-          ['Maria Joseph', '20000', today, '0712345678', 'Mt. Yosefu', 'Taslimu', '', ''],
-          ['Petro Paulo', '15000', today, '0754321098', '', 'Pesa kwa simu', 'QK12AB34CD', 'Septemba'],
-        ],
+        rows: [],
         choices: { 5: ['Taslimu', 'Pesa kwa simu', 'Benki', 'Hundi'] },
       },
     ],

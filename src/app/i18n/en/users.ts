@@ -55,6 +55,9 @@ export const USERS: Record<string, string> = {
   'Washa moduli, kisha bofya vitendo anavyoruhusiwa kufanya ndani yake.':
     'Turn a module on, then tap the actions they are allowed to do in it.',
   Imewashwa: 'Always on',
+  Imezimwa: 'Switched off',
+  'Imezimwa kwenye mfumo kwa sasa. Ukimpa sasa, ataiona itakapowashwa.':
+    'Switched off system-wide for now. Grant it now and they will see it once it is switched on.',
   Anaruhusiwa: 'Allowed to',
   'Hakuna kitendo kilichochaguliwa: ataweza kuona tu.': 'No action selected: they can only view.',
   'Hifadhi mtumiaji': 'Save user',

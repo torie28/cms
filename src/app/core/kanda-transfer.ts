@@ -42,10 +42,7 @@ export async function downloadKandaTemplate(): Promise<void> {
       {
         name: 'Kanda',
         head: HEAD,
-        rows: [
-          ['Kanda ya Kati', 'Yohana Petro', 'Inahusisha mitaa ya katikati'],
-          ['Kanda ya Kaskazini', 'Anna Mushi', ''],
-        ],
+        rows: [],
       },
     ],
     'kiolezo-kanda.xlsx',

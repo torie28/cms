@@ -62,6 +62,40 @@ export const KANDA: Record<string, string> = {
   'Imeshindwa kupakia dashibodi ya kanda.': 'Could not load the zone dashboard.',
   'Wanajumuiya wengi kwanza': 'Most members first',
 
+  // Add jumuiya to a kanda
+  'Jumuiya mpya itaongezwa kwenye {kanda}.': 'The new community will be added to {kanda}.',
+  'Wanajumuiya (si lazima)': 'Members (optional)',
+  '+ Ongeza mstari': '+ Add row',
+  'Jina la mwanajumuiya': 'Member name',
+  'Mistari isiyo na jina itarukwa.': 'Rows without a name are skipped.',
+  'Ongeza jumuiya ya kwanza': 'Add the first community',
+  'Ingiza jumuiya kwenye {kanda}': 'Import communities into {kanda}',
+  'Kila mstari ni jumuiya moja au mwanajumuiya mmoja. Safu:': 'Each row is one community or one member. Columns:',
+  'Jumuiya zote mpya zitaongezwa kwenye kanda hii. Kwa jumuiya zilizopo, wanajumuiya wataongezwa kwake.':
+    'All new communities are added to this zone. For existing communities, the members are added to them.',
+  'Ongeza jumuiya nyingi kwa mara moja kutoka Excel': 'Add many communities at once from Excel',
+  '{name} imeongezwa kwenye {kanda} ikiwa na wanajumuiya {count}.': '{name} was added to {kanda} with {count} members.',
+
+  // Kanda split
+  'Gawanya kanda': 'Split zone',
+  'Unagawanya {name} kuwa kanda mbili. Jumuiya utakazochagua zitahamia kanda mpya pamoja na wanajumuiya wake.':
+    'You are splitting {name} into two zones. The communities you choose will move to the new zone with their members.',
+  'Kanda mama': 'Original zone',
+  'Jumuiya {count} zitabaki': '{count} communities stay',
+  'Jumuiya zitakazohamia kanda mpya': 'Communities moving to the new zone',
+  'Tafuta jumuiya au mwenyekiti…': 'Search communities or chairpersons…',
+  'Chagua zote zilizoonyeshwa': 'Select all shown',
+  'Kanda hii bado haina jumuiya, kwa hiyo haiwezi kugawanywa.':
+    'This zone has no communities yet, so it cannot be split.',
+  'Tahadhari: kanda mama itabaki bila jumuiya.': 'Warning: the original zone will be left with no communities.',
+  'Kanda mpya inahitaji jina tofauti na kanda mama.': 'The new zone needs a different name from the original zone.',
+  'Chagua angalau jumuiya moja itakayohamia kanda mpya.': 'Choose at least one community to move to the new zone.',
+  'Imeshindwa kugawanya kanda hiyo.': 'Could not split that zone.',
+  'Imeshindwa kupakia jumuiya za kanda hii.': 'Could not load the communities in this zone.',
+  'imezaa kanda {count}': 'split into {count} more',
+  '{parent} imegawanywa: {child} imeundwa ikiwa na jumuiya {count} na wanajumuiya {members}.':
+    '{parent} was split: {child} was created with {count} communities and {members} members.',
+
   // Kanda edit & delete
   'Hariri kanda': 'Edit zone',
   'Futa {name}?': 'Delete {name}?',
@@ -102,6 +136,11 @@ export const KANDA: Record<string, string> = {
   'Mstari {line}: jina au kiongozi ni ndefu mno, umerukwa.': 'Row {line}: name or leader is too long, skipped.',
   'Mstari {line}: "{name}" imerudiwa kwenye faili, umerukwa.':
     'Row {line}: "{name}" appears more than once in the file, skipped.',
+  '"{name}" imerudiwa mara {count} kwenye faili (mistari {from}–{to}); nakala za ziada zimerukwa.':
+    '"{name}" appears {count} more times in the file (rows {from}–{to}); the extra copies were skipped.',
+  'Unaweza pia kupakia kiolezo cha kanda ulichojaza (kutoka "Kiolezo"); jumuiya na wanajumuiya wake wataingizwa.':
+    'You can also upload a filled-in zone template (from "Template"); its communities and members will be imported.',
+  'Faili hilo halina jumuiya wala wanajumuiya waliojazwa.': 'That file has no communities or members filled in.',
   'Uingizaji umekamilika: kanda mpya {created}.': 'Import complete: {created} new zones.',
   'Uingizaji umekamilika: kanda mpya {created}, zilizorukwa (tayari zipo) {skipped}.':
     'Import complete: {created} new zones, {skipped} skipped (already exist).',

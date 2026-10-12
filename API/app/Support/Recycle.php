@@ -190,6 +190,24 @@ class Recycle
             return 'Kanda yake ilifutwa. Rejesha kanda hiyo kwanza.';
         }
 
+        if ($model instanceof Jumuiya) {
+            $clash = Jumuiya::query()
+                ->with('kanda:id,name')
+                ->whereRaw('lower(trim(name)) = ?', [mb_strtolower(trim($model->name))])
+                ->first();
+            if ($clash) {
+                return "Jumuiya nyingine yenye jina \"{$clash->name}\" ipo sasa kwenye kanda ".($clash->kanda?->name ?? '—').'. Ibadilishe jina kwanza.';
+            }
+
+            $chair = trim((string) $model->chairperson);
+            $chaired = $chair === '' ? null : Jumuiya::query()
+                ->whereRaw('lower(trim(chairperson)) = ?', [mb_strtolower($chair)])
+                ->first();
+            if ($chaired) {
+                return "{$chaired->chairperson} sasa ni mwenyekiti wa jumuiya {$chaired->name}. Mwenyekiti mmoja hawezi kuongoza jumuiya mbili.";
+            }
+        }
+
         if ($model instanceof JumuiyaMember && Jumuiya::onlyTrashed()->whereKey($model->jumuiya_id)->exists()) {
             return 'Jumuiya yake ilifutwa. Rejesha jumuiya hiyo kwanza.';
         }

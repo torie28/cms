@@ -20,6 +20,7 @@ class Modules
         ['key' => 'sadaka', 'label' => 'Sadaka', 'description' => 'Kumbukumbu za sadaka na michango.'],
         ['key' => 'jumuiya', 'label' => 'Jumuiya', 'description' => 'Jumuiya ndogo ndogo na wanachama wake.'],
         ['key' => 'kanda', 'label' => 'Kanda', 'description' => 'Kanda za parokia.'],
+        ['key' => 'matukio', 'label' => 'Matukio', 'description' => 'Matukio na ratiba za parokia. Inakuja hivi karibuni.'],
         ['key' => 'notifications', 'label' => 'Arifa na SMS', 'description' => 'Kutuma SMS na arifa kwa waumini, jumuiya, kanda au watumiaji wa mfumo.'],
         ['key' => 'settings', 'label' => 'Mipangilio ya mfumo', 'description' => 'Mipangilio ya mfumo na moduli zake.', 'is_core' => true],
         ['key' => 'api_settings', 'label' => 'API na huduma za nje', 'description' => 'Nyeti: funguo za SMS, barua pepe na huduma nyingine za nje.', 'is_core' => true],

@@ -370,6 +370,14 @@
                       {{ 'Ongeza wanajumuiya' | t }}
                     </button>
                   }
+                  <button
+                    type="button"
+                    class="text-sm text-brass-strong hover:underline"
+                    [title]="'Kiolezo cha Excel cha kujaza wanajumuiya wa {name}' | t: { name: group.name }"
+                    (click)="downloadJumuiyaTemplate(group, $event)"
+                  >
+                    {{ 'Kiolezo' | t }}
+                  </button>
                 </div>
               </td>
             </tr>
@@ -418,6 +426,14 @@
               {{ 'Ingiza Excel' | t }}
             </button>
           }
+          <button
+            type="button"
+            class="rounded border border-line px-3 py-1.5 text-sm hover:bg-sunken"
+            [title]="'Kiolezo cha Excel cha kujaza wanajumuiya wa {name}' | t: { name: group.name }"
+            (click)="downloadJumuiyaTemplate(group)"
+          >
+            {{ 'Pakua kiolezo' | t }}
+          </button>
           <div class="relative">
             <button
               type="button"

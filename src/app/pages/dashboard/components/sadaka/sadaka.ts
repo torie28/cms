@@ -642,7 +642,7 @@ export class Sadaka {
   protected async downloadImportTemplate(): Promise<void> {
     const category = this.importCategory();
     if (category) {
-      await downloadOfferingTemplate(translate(category.label), this.today);
+      await downloadOfferingTemplate(translate(category.label));
     }
   }
 

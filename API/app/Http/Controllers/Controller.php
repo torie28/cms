@@ -13,6 +13,17 @@ abstract class Controller
         abort_unless($request->user()?->role === Roles::ADMIN, 403, 'Ni msimamizi pekee anayeweza kufanya hivi.');
     }
 
+    protected function ensureAnyModule(Request $request, string ...$keys): void
+    {
+        foreach ($keys as $key) {
+            if (Modules::canAccess($request->user(), $key)) {
+                return;
+            }
+        }
+
+        abort(403, 'Huna ruhusa ya kufungua moduli hii.');
+    }
+
     protected function ensureCan(Request $request, string $module, string $action): void
     {
         abort_unless(

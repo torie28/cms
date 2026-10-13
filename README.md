@@ -108,8 +108,8 @@ php artisan migrate --seed
 php artisan serve        # http://127.0.0.1:8000
 ```
 
-The seeder creates the user **`admin` / `admin`**. Change this password after
-your first login.
+Locally, the seeder creates the user **`admin` / `admin`**. Anywhere else it
+refuses to run until `ADMIN_PASSWORD` (12+ characters) is set in `API/.env`.
 
 ### 2. Frontend (Angular)
 
@@ -133,6 +133,33 @@ The frontend expects the API at `http://127.0.0.1:8000/api`
 | `npm test`        | Frontend unit tests (Vitest) |
 | `npm run db:ui`   | Serves Adminer at `http://127.0.0.1:8080` for browsing the database (download `tools/adminer.php` first; it is not committed) |
 | `cd API && php artisan test` | Backend tests |
+
+---
+
+## Before going live
+
+The API already rate-limits login (5 tries a minute per username), expires
+tokens after `SANCTUM_EXPIRATION` minutes (default 8 hours), signs a user out
+everywhere when their password changes, and only lets each user read the
+modules they were given. The server setup is up to you:
+
+1. In `API/.env` set `APP_ENV=production`, `APP_DEBUG=false`, `LOG_LEVEL=warning`,
+   a fresh `APP_KEY` (`php artisan key:generate`), `APP_URL=https://…`, and
+   `FRONTEND_URL` to the exact address the Angular app is served from.
+2. Set `ADMIN_PASSWORD` before `php artisan migrate --seed`, and give every
+   other account a password of 8+ characters.
+3. Serve everything over **HTTPS** only. If a proxy or load balancer terminates
+   TLS, put its IP in `TRUSTED_PROXIES` so HTTPS and login rate limits see the
+   real client.
+4. Point the web server's document root at `API/public` only, so `.env`,
+   `storage/` and `vendor/` can never be downloaded.
+5. Use a dedicated PostgreSQL user with access to this database only, and do
+   not deploy Adminer (`tools/adminer.php`) or expose port 8080.
+6. Run `php artisan config:cache route:cache` on deploy, and add a cron entry
+   for `php artisan schedule:run` (purges the recycle bin and expired tokens).
+7. Point `API_BASE` in `src/app/core/api.ts` at the HTTPS API before
+   `npm run build`.
+8. Back up the database daily and keep `composer audit` / `npm audit` clean.
 
 ---
 

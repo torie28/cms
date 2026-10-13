@@ -24,7 +24,7 @@ class UserModulesTest extends TestCase
         $created = $this->postJson('/api/users', [
             'name' => 'Neema Juma',
             'username' => 'neema',
-            'password' => 'secret',
+            'password' => 'secret-pass',
             'role' => 'member',
             'modules' => ['matukio'],
         ])->assertCreated();

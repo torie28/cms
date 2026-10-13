@@ -164,6 +164,11 @@ export class AuthService {
       }
     }
 
+    this.expireSession();
+  }
+
+  /** Forgets the local session without calling the API (used when the token is no longer valid). */
+  expireSession(): void {
     this.currentUser.set(null);
     this.currentToken.set(null);
 

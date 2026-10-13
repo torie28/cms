@@ -33,7 +33,7 @@ export const USERS: Record<string, string> = {
   'Jina linahitajika.': 'Name is required.',
   'Tumia herufi, namba, _ au - tu.': 'Use only letters, numbers, _ or -.',
   '(acha wazi kubaki na la zamani)': '(leave blank to keep the current one)',
-  'Nenosiri liwe na herufi 4 au zaidi.': 'Password must be at least 4 characters.',
+  'Nenosiri liwe na herufi 8 au zaidi.': 'Password must be at least 8 characters.',
   'Namba ya simu': 'Phone number',
   'Weka namba ya simu sahihi.': 'Enter a valid phone number.',
   'Barua pepe': 'Email',

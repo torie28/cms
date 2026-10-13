@@ -123,4 +123,15 @@ return [
         'store' => env('APP_MAINTENANCE_STORE', 'database'),
     ],
 
+    /*
+    |--------------------------------------------------------------------------
+    | Seeded Administrator Password
+    |--------------------------------------------------------------------------
+    |
+    | Used by AdminUserSeeder. Required (12+ characters) outside local development.
+    |
+    */
+
+    'admin_password' => env('ADMIN_PASSWORD'),
+
 ];

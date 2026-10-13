@@ -165,10 +165,10 @@ class Knowledge
                 'title' => ['sw' => 'Kubadilisha nenosiri', 'en' => 'Changing a password'],
                 'answer' => [
                     'sw' => "Mfumo hauna bado ukurasa wa kujibadilishia nenosiri mwenyewe.\n\n"
-                        ."Muombe msimamizi (au mtu mwenye ruhusa ya kuhariri watumiaji) akuwekee jipya: **Watumiaji → Hariri → Nenosiri** (angalau herufi 4). "
+                        .'Muombe msimamizi (au mtu mwenye ruhusa ya kuhariri watumiaji) akuwekee jipya: **Watumiaji → Hariri → Nenosiri** (angalau herufi 8). '
                         .'Ukiacha nenosiri wazi wakati wa kuhariri, la zamani linabaki.',
                     'en' => "There is no self-service password page yet.\n\n"
-                        ."Ask an administrator (or someone allowed to edit users) to set a new one: **Users → Edit → Password** (at least 4 characters). "
+                        .'Ask an administrator (or someone allowed to edit users) to set a new one: **Users → Edit → Password** (at least 8 characters). '
                         .'Leaving the password blank while editing keeps the old one.',
                 ],
                 'related' => ['users.update', 'general.login'],
@@ -275,11 +275,11 @@ class Knowledge
                 'title' => ['sw' => 'Kuingiza na kupakua (Excel)', 'en' => 'Import and export (Excel)'],
                 'answer' => [
                     'sw' => "**Kupakua:** orodha za Kanda, Jumuiya na Sadaka zinapakuliwa kama Excel, CSV, PDF au kuchapishwa, kupitia kitufe cha **Pakua**.\n\n"
-                        ."**Kuingiza:** unaweza kuingiza kanda, jumuiya na wanajumuiya, pamoja na Zaka na Fungu la kumi, kutoka faili la .xlsx, .xls, .ods au .csv. "
+                        .'**Kuingiza:** unaweza kuingiza kanda, jumuiya na wanajumuiya, pamoja na Zaka na Fungu la kumi, kutoka faili la .xlsx, .xls, .ods au .csv. '
                         ."Vichwa vya safu vinaweza kuwa kwa Kiswahili au Kiingereza.\n\n"
                         .'Ushauri: bofya **Pakua kiolezo** kwanza, jaza kiolezo hicho, kisha ukiingize. Mfumo unakuonyesha mistari yenye makosa kabla ya kuhifadhi.',
                     'en' => "**Export:** Zone, Community and Offering lists download as Excel, CSV, PDF or print, using the **Download** button.\n\n"
-                        ."**Import:** zones, communities and members, plus Tithe (Zaka) and Fungu la kumi, can be imported from .xlsx, .xls, .ods or .csv files. "
+                        .'**Import:** zones, communities and members, plus Tithe (Zaka) and Fungu la kumi, can be imported from .xlsx, .xls, .ods or .csv files. '
                         ."Column headers may be in Swahili or English.\n\n"
                         .'Tip: click **Download template** first, fill it in, then import it. The app shows rows with problems before anything is saved.',
                 ],
@@ -339,13 +339,13 @@ class Knowledge
                 'title' => ['sw' => 'Kuongeza mtumiaji', 'en' => 'Adding a user'],
                 'answer' => [
                     'sw' => "1. Fungua **Watumiaji**, bofya **Ongeza mtumiaji**.\n"
-                        ."2. Jaza **jina kamili**, **jina la mtumiaji** (herufi, namba, - na _ tu) na **nenosiri** (angalau herufi 4). Simu, barua pepe na jinsia si lazima.\n"
+                        ."2. Jaza **jina kamili**, **jina la mtumiaji** (herufi, namba, - na _ tu) na **nenosiri** (angalau herufi 8). Simu, barua pepe na jinsia si lazima.\n"
                         ."3. Chagua **wadhifa** wake.\n"
                         ."4. Weka alama kwenye **moduli** atakazoziona, na kwa kila moja chagua **Ongeza / Hariri / Futa** kama anavyohitaji.\n"
                         ."5. Bofya **Hifadhi**.\n\n"
                         .'Kumbuka: kama wewe si msimamizi, unaweza kumpa moduli na ruhusa ulizo nazo wewe tu, na huwezi kumpa wadhifa wa msimamizi.',
                     'en' => "1. Open **Users** and click **Add user**.\n"
-                        ."2. Fill in **full name**, **username** (letters, numbers, - and _ only) and **password** (at least 4 characters). Phone, email and gender are optional.\n"
+                        ."2. Fill in **full name**, **username** (letters, numbers, - and _ only) and **password** (at least 8 characters). Phone, email and gender are optional.\n"
                         ."3. Choose their **role**.\n"
                         ."4. Tick the **modules** they should see, and for each one choose **Add / Edit / Delete** as needed.\n"
                         ."5. Click **Save**.\n\n"
@@ -358,7 +358,7 @@ class Knowledge
                 'module' => 'users',
                 'actions' => ['update'],
                 'keywords' => ['hariri mtumiaji', 'edit user', 'badilisha wadhifa', 'change role', 'mpe moduli', 'give access', 'grant access', 'assign module', 'ongeza ruhusa', 'grant permission', 'mpe ruhusa', 'toa ruhusa'],
-                'title' => ['sw' => 'Kuhariri mtumiaji na ruhusa zake', 'en' => "Editing a user and their access"],
+                'title' => ['sw' => 'Kuhariri mtumiaji na ruhusa zake', 'en' => 'Editing a user and their access'],
                 'answer' => [
                     'sw' => "1. Fungua **Watumiaji**, tafuta mtumiaji, bofya **Hariri**.\n"
                         ."2. Badilisha taarifa zake, wadhifa, au nenosiri (ukiliacha wazi, la zamani linabaki).\n"
@@ -366,7 +366,7 @@ class Knowledge
                         ."4. Bofya **Hifadhi**. Mabadiliko yanaanza kufanya kazi akipakia ukurasa upya; hahitaji kuingia upya.\n\n"
                         ."Mipaka:\n"
                         ."- Ni **msimamizi** pekee anayeweza kumhariri msimamizi au kumpa mtu wadhifa wa msimamizi.\n"
-                        ."- Asiye msimamizi hawezi kujihariri mwenyewe kupitia orodha hii, wala kutoa ruhusa asiyo nayo.",
+                        .'- Asiye msimamizi hawezi kujihariri mwenyewe kupitia orodha hii, wala kutoa ruhusa asiyo nayo.',
                     'en' => "1. Open **Users**, find the user and click **Edit**.\n"
                         ."2. Change their details, role, or password (leave it blank to keep the old one).\n"
                         ."3. Under **Modules**, tick or untick, and choose **Add / Edit / Delete** for each module.\n"
@@ -794,7 +794,7 @@ class Knowledge
                 'answer' => [
                     'sw' => "**Arifa na SMS** ina sehemu mbili:\n\n"
                         ."- **Tuma ujumbe** — tunga na tuma SMS au arifa ya mfumo.\n"
-                        ."- **Historia** — kila ujumbe uliotumwa, nani aliutuma, wapokeaji, vipande vya SMS, na hali ya kila mpokeaji (imetumwa / imeshindwa). Bofya **Angalia** kuona maelezo.",
+                        .'- **Historia** — kila ujumbe uliotumwa, nani aliutuma, wapokeaji, vipande vya SMS, na hali ya kila mpokeaji (imetumwa / imeshindwa). Bofya **Angalia** kuona maelezo.',
                     'en' => "**Notifications & SMS** has two parts:\n\n"
                         ."- **Send message** — compose and send an SMS or in-app notification.\n"
                         .'- **History** — every message sent, who sent it, recipients, SMS segments, and each recipient\'s status (sent / failed). Click **View** for details.',
@@ -881,7 +881,7 @@ class Knowledge
                 'answer' => [
                     'sw' => "1. Fungua **Mipangilio → Mipangilio ya mfumo**.\n"
                         ."2. Tumia swichi kuwasha au kuzima moduli; unaweza pia kubadilisha jina na maelezo yake.\n\n"
-                        ."Moduli iliyozimwa inafichwa kwa **kila mtu**, hata msimamizi. Moduli za msingi (Muhtasari, Mipangilio, API, Kumbukumbu za shughuli) haziwezi kuzimwa.",
+                        .'Moduli iliyozimwa inafichwa kwa **kila mtu**, hata msimamizi. Moduli za msingi (Muhtasari, Mipangilio, API, Kumbukumbu za shughuli) haziwezi kuzimwa.',
                     'en' => "1. Open **Settings → System settings**.\n"
                         ."2. Use the switches to turn modules on or off; you can also rename them and edit their description.\n\n"
                         .'A disabled module is hidden from **everyone**, administrators included. Core modules (Overview, Settings, APIs, Activity logs) cannot be disabled.',

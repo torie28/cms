@@ -87,7 +87,7 @@ export class UserDialog implements OnInit {
     });
 
     const password = this.form.controls.password;
-    password.setValidators(user ? [Validators.minLength(4)] : [Validators.required, Validators.minLength(4)]);
+    password.setValidators(user ? [Validators.minLength(8)] : [Validators.required, Validators.minLength(8)]);
     password.updateValueAndValidity();
 
     if (this.lockedRole()) {

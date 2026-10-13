@@ -25,6 +25,8 @@ class KandaController extends Controller
      */
     public function show(Request $request, Kanda $kanda): JsonResponse
     {
+        $this->ensureAnyModule($request, 'kanda', 'jumuiya');
+
         $showOfferings = Modules::canAccess($request->user(), 'sadaka');
         $yearStart = now()->startOfYear()->toDateString();
 

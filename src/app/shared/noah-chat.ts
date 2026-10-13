@@ -90,7 +90,7 @@ function toBlocks(text: string): Block[] {
           @for (entry of entries(); track entry.id; let last = $last) {
             @if (entry.from === 'user') {
               <div class="flex justify-end">
-                <p class="max-w-[85%] rounded-2xl rounded-br-sm bg-brass-strong px-3.5 py-2 text-sm whitespace-pre-wrap text-canvas">
+                <p class="noah-text max-w-[85%] rounded-2xl rounded-br-sm bg-brass-strong px-3.5 py-2 whitespace-pre-wrap text-canvas">
                   {{ entry.text }}
                 </p>
               </div>
@@ -99,7 +99,7 @@ function toBlocks(text: string): Block[] {
                 <span class="mt-0.5 flex h-6 w-6 shrink-0 items-center justify-center rounded-full bg-brass-tint font-serif text-xs text-brass-strong">N</span>
                 <div class="min-w-0 max-w-[88%] space-y-2">
                   <div
-                    class="space-y-2 rounded-2xl rounded-tl-sm border px-3.5 py-2.5 text-sm leading-relaxed"
+                    class="noah-text space-y-2 rounded-2xl rounded-tl-sm border px-3.5 py-2.5 leading-relaxed"
                     [class.border-line]="entry.status !== 'restricted' && entry.status !== 'disabled'"
                     [class.bg-sunken]="entry.status !== 'restricted' && entry.status !== 'disabled'"
                     [class.border-negative]="entry.status === 'restricted' || entry.status === 'disabled'"
@@ -180,7 +180,7 @@ function toBlocks(text: string): Block[] {
             type="text"
             autocomplete="off"
             maxlength="500"
-            class="filter-input flex-1"
+            class="filter-input noah-text flex-1"
             [placeholder]="'Andika swali lako…' | t"
             [value]="draft()"
             (input)="draft.set(input.value)"

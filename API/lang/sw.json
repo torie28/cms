@@ -1,4 +1,6 @@
 {
     "(and :count more error)": "(na kosa lingine :count)",
-    "(and :count more errors)": "(na makosa mengine :count)"
+    "(and :count more errors)": "(na makosa mengine :count)",
+    "If you're having trouble clicking the \":actionText\" button, copy and paste the URL below\ninto your web browser:": "Kama kitufe cha \":actionText\" hakifanyi kazi, nakili kiungo kilicho hapa chini na ukibandike kwenye kivinjari chako:",
+    "All rights reserved.": "Haki zote zimehifadhiwa."
 }

@@ -56,6 +56,18 @@ return [
 
     /*
     |--------------------------------------------------------------------------
+    | Frontend URL
+    |--------------------------------------------------------------------------
+    |
+    | Where the Angular app is served; links in emails (e.g. password reset)
+    | point here. The first origin listed in FRONTEND_URL is used.
+    |
+    */
+
+    'frontend_url' => trim(explode(',', (string) env('FRONTEND_URL', 'http://localhost:4200'))[0]),
+
+    /*
+    |--------------------------------------------------------------------------
     | Application Timezone
     |--------------------------------------------------------------------------
     |

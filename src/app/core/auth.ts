@@ -34,6 +34,13 @@ interface LoginResponse {
   user: AuthenticatedUser;
 }
 
+export interface PasswordReset {
+  token: string;
+  email: string;
+  password: string;
+  password_confirmation: string;
+}
+
 const USER_KEY = 'cms.session';
 const TOKEN_KEY = 'cms.token';
 
@@ -123,6 +130,21 @@ export class AuthService {
     } catch (error) {
       throw new Error(this.messageFrom(error));
     }
+  }
+
+  /** Emails a reset link. The API answers the same way whether or not the address is registered. */
+  async requestPasswordReset(email: string): Promise<string> {
+    const response = await firstValueFrom(
+      this.http.post<{ message: string }>(`${API_BASE}/forgot-password`, { email }),
+    );
+    return response.message;
+  }
+
+  async resetPassword(payload: PasswordReset): Promise<string> {
+    const response = await firstValueFrom(
+      this.http.post<{ message: string }>(`${API_BASE}/reset-password`, payload),
+    );
+    return response.message;
   }
 
   /** Re-reads the signed-in user so role and module changes apply without signing in again. */

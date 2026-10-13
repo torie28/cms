@@ -11,6 +11,8 @@ export interface Preferences {
   zoom: number;
   noahFontSize: FontSize;
   noahFontFamily: FontFamily;
+  /** Re-fetch the open page's data every 15 seconds (see core/auto-refresh.ts). */
+  autoRefresh: boolean;
 }
 
 export const DEFAULT_PREFERENCES: Readonly<Preferences> = {
@@ -19,6 +21,7 @@ export const DEFAULT_PREFERENCES: Readonly<Preferences> = {
   zoom: 100,
   noahFontSize: 'md',
   noahFontFamily: 'default',
+  autoRefresh: true,
 };
 
 export const FONT_SIZES: readonly { value: FontSize; label: string }[] = [
@@ -81,6 +84,7 @@ function parse(raw: string | null): Preferences {
       noahFontFamily: isFontFamily(stored.noahFontFamily)
         ? stored.noahFontFamily
         : DEFAULT_PREFERENCES.noahFontFamily,
+      autoRefresh: typeof stored.autoRefresh === 'boolean' ? stored.autoRefresh : DEFAULT_PREFERENCES.autoRefresh,
     };
   } catch {
     return { ...DEFAULT_PREFERENCES };

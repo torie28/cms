@@ -9,6 +9,7 @@ import {
   signal,
 } from '@angular/core';
 import { AuthService } from '../../../../../core/auth';
+import { onAutoRefresh } from '../../../../../core/auto-refresh';
 import { ConfirmService } from '../../../../../core/confirm';
 import { httpErrorMessage } from '../../../../../core/http-error';
 import { I18nService, translate, TranslatePipe } from '../../../../../core/i18n';
@@ -108,6 +109,7 @@ export class UserList {
     afterNextRender(() => {
       void this.refresh();
     });
+    onAutoRefresh(() => this.refresh(true));
   }
 
   protected roleName(role: string): string {
@@ -189,9 +191,15 @@ export class UserList {
     this.sort.set(value as UserSort);
   }
 
-  protected async refresh(): Promise<void> {
-    this.loading.set(true);
-    this.error.set(null);
+  /** `silent` keeps the table on screen (no skeleton, no error banner) for background refreshes. */
+  protected async refresh(silent = false): Promise<void> {
+    if (silent && this.loading()) {
+      return;
+    }
+    if (!silent) {
+      this.loading.set(true);
+      this.error.set(null);
+    }
 
     try {
       const [users, roles, modules] = await Promise.all([
@@ -203,9 +211,13 @@ export class UserList {
       this.roles.set(roles);
       this.modules.set(modules);
     } catch (error) {
-      this.error.set(httpErrorMessage(error, 'Imeshindwa kupakia watumiaji.'));
+      if (!silent) {
+        this.error.set(httpErrorMessage(error, 'Imeshindwa kupakia watumiaji.'));
+      }
     } finally {
-      this.loading.set(false);
+      if (!silent) {
+        this.loading.set(false);
+      }
     }
   }
 }

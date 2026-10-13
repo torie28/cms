@@ -193,6 +193,7 @@ export const SETTINGS: Record<string, string> = {
   // Action labels
   Aliingia: 'Signed in',
   Alitoka: 'Signed out',
+  'Alibadilisha nenosiri': 'Reset password',
   Aliongeza: 'Added',
   Alihariri: 'Edited',
   Alifuta: 'Deleted',

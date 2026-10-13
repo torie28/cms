@@ -178,6 +178,37 @@ export const COMMON: Record<string, string> = {
   '© {year} St. Mathias Chapel. Haki zote zimehifadhiwa.': '© {year} St. Mathias Chapel. All rights reserved.',
   'Imeshindwa kuingia.': 'Unable to sign in.',
   'Taarifa hizo hazilingani na kumbukumbu zetu.': 'Those credentials do not match our records.',
+
+  // Forgot / reset password
+  'Umesahau nenosiri · Mfumo wa Usimamizi wa Kanisa': 'Forgot password · Church Management System',
+  'Weka nenosiri jipya · Mfumo wa Usimamizi wa Kanisa': 'Set a new password · Church Management System',
+  'Umesahau nenosiri?': 'Forgot your password?',
+  'Andika barua pepe ya akaunti yako, tutakutumia kiungo cha kuweka nenosiri jipya.':
+    "Enter your account's email address and we'll send you a link to set a new password.",
+  'Badilisha nenosiri': 'Reset password',
+  'Andika barua pepe sahihi.': 'Enter a valid email address.',
+  'Tuma kiungo': 'Send link',
+  'Kama barua pepe hiyo imesajiliwa, tumekutumia kiungo cha kubadilisha nenosiri.':
+    "If that email is registered, we've sent you a password reset link.",
+  'Kiungo kitaisha muda baada ya dakika 60. Angalia pia folda ya spam.':
+    'The link expires in 60 minutes. Check your spam folder too.',
+  'Hukupata barua pepe? Tuma tena': "Didn't get the email? Send again",
+  'Imeshindwa kutuma kiungo. Jaribu tena.': 'Unable to send the link. Please try again.',
+  'Maombi mengi mno. Subiri dakika moja kisha ujaribu tena.': 'Too many requests. Wait a minute and try again.',
+  '← Rudi kwenye kuingia': '← Back to sign in',
+  'Weka nenosiri jipya': 'Set a new password',
+  'Kwa akaunti ya {email}': 'For the account {email}',
+  'Kiungo hiki hakijakamilika. Fungua kiungo kamili kutoka kwenye barua pepe, au omba kipya.':
+    'This link is incomplete. Open the full link from the email, or request a new one.',
+  'Omba kiungo kipya': 'Request a new link',
+  'Nenosiri jipya': 'New password',
+  'Thibitisha nenosiri': 'Confirm password',
+  'Manenosiri hayalingani.': 'The passwords do not match.',
+  'Hifadhi nenosiri jipya': 'Save new password',
+  'Nenosiri limebadilishwa. Ingia kwa nenosiri jipya.': 'Your password has been changed. Sign in with your new password.',
+  'Kiungo cha kubadilisha nenosiri si sahihi au kimeisha muda. Omba kiungo kipya.':
+    'This password reset link is invalid or has expired. Request a new one.',
+  'Imeshindwa kubadilisha nenosiri. Jaribu tena.': 'Unable to change the password. Please try again.',
   'Ni msimamizi pekee anayeweza kufanya hivi.': 'Only an administrator can do this.',
 
   // Excel downloads

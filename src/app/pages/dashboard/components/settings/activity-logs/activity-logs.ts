@@ -19,6 +19,7 @@ import { matchesSearch, SearchBox } from '../../../../../shared/search-box';
 const ACTION_LABELS: Record<string, string> = {
   'logged in': 'Aliingia',
   'logged out': 'Alitoka',
+  'reset password': 'Alibadilisha nenosiri',
   created: 'Aliongeza',
   updated: 'Alihariri',
   deleted: 'Alifuta',

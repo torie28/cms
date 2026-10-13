@@ -93,9 +93,9 @@
               <label for="password" class="text-xs font-medium tracking-[0.15em] text-muted uppercase">
                 {{ 'Nenosiri' | t }}
               </label>
-              <button type="button" class="text-xs text-brass-strong hover:underline">
+              <a routerLink="/forgot-password" class="text-xs text-brass-strong hover:underline">
                 {{ 'Umesahau?' | t }}
-              </button>
+              </a>
             </div>
             <div class="relative">
               <input
@@ -150,10 +150,6 @@
         <p class="mt-6 text-center text-sm text-muted">
           {{ 'Unahitaji akaunti?' | t }}
           <a routerLink="/login" class="text-brass-strong hover:underline">{{ 'Muulize msimamizi wa parokia' | t }}</a>
-        </p>
-
-        <p class="mt-8 rounded border border-dashed border-line bg-sunken px-3 py-2 text-center text-xs text-faint">
-          {{ 'Majaribio — admin / admin' | t }}
         </p>
       </div>
     </div>

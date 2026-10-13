@@ -1,4 +1,8 @@
-import { HttpInterceptorFn } from '@angular/common/http';
+import { HttpErrorResponse, HttpInterceptorFn } from '@angular/common/http';
+import { inject } from '@angular/core';
+import { Router } from '@angular/router';
+import { catchError, throwError } from 'rxjs';
+import { AuthService } from './auth';
 import { currentLang } from './i18n';
 
 const TOKEN_KEY = 'cms.token';
@@ -15,7 +19,20 @@ export const authInterceptor: HttpInterceptorFn = (req, next) => {
     headers['Authorization'] = `Bearer ${token}`;
   }
 
-  return next(req.clone({ setHeaders: headers }));
+  const auth = inject(AuthService);
+  const router = inject(Router);
+
+  return next(req.clone({ setHeaders: headers })).pipe(
+    catchError((error: unknown) => {
+      // The token expired or was revoked (e.g. password changed): start a fresh sign-in.
+      if (token && error instanceof HttpErrorResponse && error.status === 401) {
+        auth.expireSession();
+        void router.navigateByUrl('/login');
+      }
+
+      return throwError(() => error);
+    }),
+  );
 };
 
 function readToken(): string | null {

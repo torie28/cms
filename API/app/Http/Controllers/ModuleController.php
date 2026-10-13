@@ -10,8 +10,10 @@ use Illuminate\Http\Request;
 
 class ModuleController extends Controller
 {
-    public function index(): JsonResponse
+    public function index(Request $request): JsonResponse
     {
+        $this->ensureAnyModule($request, 'users', 'settings');
+
         Modules::sync();
 
         $modules = Module::query()

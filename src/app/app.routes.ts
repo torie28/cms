@@ -2,7 +2,7 @@ import { Routes } from '@angular/router';
 import { authGuard, guestGuard, moduleGuard } from './core/auth-guard';
 import { Dashboard } from './pages/dashboard/dashboard';
 import {
-  SETTINGS_MODULES,
+  SETTINGS_ACCESS,
   SETTINGS_ROUTES,
 } from './pages/dashboard/components/settings/settings.sections';
 
@@ -13,6 +13,20 @@ export const routes: Routes = [
     title: 'Ingia · Mfumo wa Usimamizi wa Kanisa',
     canActivate: [guestGuard],
     loadComponent: () => import('./pages/login/login').then((m) => m.Login),
+  },
+  {
+    path: 'forgot-password',
+    title: 'Umesahau nenosiri · Mfumo wa Usimamizi wa Kanisa',
+    canActivate: [guestGuard],
+    loadComponent: () =>
+      import('./pages/forgot-password/forgot-password').then((m) => m.ForgotPassword),
+  },
+  {
+    path: 'reset-password',
+    title: 'Weka nenosiri jipya · Mfumo wa Usimamizi wa Kanisa',
+    canActivate: [guestGuard],
+    loadComponent: () =>
+      import('./pages/reset-password/reset-password').then((m) => m.ResetPassword),
   },
   {
     path: '',
@@ -87,7 +101,7 @@ export const routes: Routes = [
       {
         path: 'settings',
         title: 'Mipangilio · Mfumo wa Usimamizi wa Kanisa',
-        canActivate: [moduleGuard(SETTINGS_MODULES)],
+        canActivate: SETTINGS_ACCESS ? [moduleGuard(SETTINGS_ACCESS)] : [],
         loadComponent: () =>
           import('./pages/dashboard/components/settings/settings').then((m) => m.Settings),
         children: SETTINGS_ROUTES,

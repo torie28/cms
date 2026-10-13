@@ -12,8 +12,10 @@ use Illuminate\Support\Facades\DB;
 
 class JumuiyaMemberController extends Controller
 {
-    public function index(Jumuiya $jumuiya): JsonResponse
+    public function index(Request $request, Jumuiya $jumuiya): JsonResponse
     {
+        $this->ensureAnyModule($request, 'jumuiya', 'kanda');
+
         return response()->json($jumuiya->members()->orderBy('name')->get());
     }
 

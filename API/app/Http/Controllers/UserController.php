@@ -12,6 +12,8 @@ use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Validation\Rule;
+use Illuminate\Validation\Rules\Password;
+use Laravel\Sanctum\PersonalAccessToken;
 
 class UserController extends Controller
 {
@@ -25,8 +27,10 @@ class UserController extends Controller
         'password' => 'Nenosiri',
     ];
 
-    public function index(): JsonResponse
+    public function index(Request $request): JsonResponse
     {
+        $this->ensureAnyModule($request, 'users');
+
         $users = User::query()
             ->with('modules:id,key')
             ->orderBy('name')
@@ -43,7 +47,7 @@ class UserController extends Controller
             ...$this->rules(),
             'username' => ['required', 'string', 'max:255', 'alpha_dash', Rule::unique('users', 'username')->withoutTrashed()],
             'email' => ['nullable', 'email', 'max:255', Rule::unique('users', 'email')->withoutTrashed()],
-            'password' => ['required', 'string', 'min:4'],
+            'password' => ['required', 'string', Password::defaults()],
         ]);
 
         $this->guardAssignment($request, $data);
@@ -75,7 +79,7 @@ class UserController extends Controller
             ...$this->rules(),
             'username' => ['required', 'string', 'max:255', 'alpha_dash', Rule::unique('users', 'username')->ignore($user->id)->withoutTrashed()],
             'email' => ['nullable', 'email', 'max:255', Rule::unique('users', 'email')->ignore($user->id)->withoutTrashed()],
-            'password' => ['nullable', 'string', 'min:4'],
+            'password' => ['nullable', 'string', Password::defaults()],
         ]);
 
         if (empty($data['password'])) {
@@ -90,6 +94,14 @@ class UserController extends Controller
             $user->update(collect($data)->except(['modules', 'privileges'])->all());
             $this->syncModules($user, $data['modules'] ?? [], $data['privileges'] ?? []);
         });
+
+        if ($user->wasChanged('password')) {
+            $current = $request->user()->currentAccessToken();
+
+            $user->tokens()
+                ->when($current instanceof PersonalAccessToken, fn ($tokens) => $tokens->whereKeyNot($current->getKey()))
+                ->delete();
+        }
 
         $changes = ActivityLogger::changes($user, self::FIELD_LABELS);
         $modulesAfter = $this->moduleLabels($user);

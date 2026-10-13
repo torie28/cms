@@ -60,12 +60,22 @@
   --color-negative: var(--negative);
 
   --font-serif: 'Iowan Old Style', 'Palatino Linotype', Palatino, 'Book Antiqua', Georgia, serif;
-  --font-sans: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif;
+  /* --app-font is set from the user's preferences (core/preferences.ts). */
+  --font-sans: var(--app-font, 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif);
 }
 
 html,
 body {
   height: 100%;
+}
+
+html {
+  font-size: var(--app-font-size, 100%);
+}
+
+/* Wraps the routed page under the top bar, so zooming never pushes the header or sidebar off screen. */
+.page-zoom {
+  zoom: var(--page-zoom, 1);
 }
 
 body {
@@ -237,6 +247,12 @@ textarea {
   outline: none;
   border-color: var(--brass);
   box-shadow: 0 0 0 1px var(--brass);
+}
+
+/* Noah's messages and input follow their own size and font preference. Must come after .filter-input. */
+.noah-text {
+  font-size: var(--noah-font-size, 0.875rem);
+  font-family: var(--noah-font, inherit);
 }
 
 @media (prefers-reduced-motion: reduce) {

@@ -71,8 +71,10 @@ class JumuiyaController extends Controller
         return response()->json($jumuiya, 201);
     }
 
-    public function show(Jumuiya $jumuiya): JsonResponse
+    public function show(Request $request, Jumuiya $jumuiya): JsonResponse
     {
+        $this->ensureAnyModule($request, 'jumuiya', 'kanda');
+
         $jumuiya->load(['kanda:id,name', 'members']);
         $jumuiya->loadCount('members');
 

@@ -3,8 +3,51 @@ export const SETTINGS: Record<string, string> = {
   // Settings shell & side menu
   'Mipangilio ya parokia, moduli za mfumo, API na kumbukumbu za shughuli.':
     'Parish settings, system modules, APIs and activity logs.',
+  'Mwonekano, lugha, moduli za mfumo, API na kumbukumbu za shughuli.':
+    'Appearance, language, system modules, APIs and activity logs.',
   'Washa au zima moduli za mfumo': 'Turn system modules on or off',
   'Nani alifanya nini, na lini': 'Who did what, and when',
+
+  // Appearance & language
+  'Mwonekano na lugha': 'Appearance & language',
+  'Mandhari, ukubwa wa herufi, zoom na lugha': 'Theme, text size, zoom and language',
+  'Mipangilio hii ni yako binafsi na huhifadhiwa kwenye kivinjari hiki. Lugha huhifadhiwa pia kwenye akaunti yako.':
+    'These settings are personal and saved in this browser. Your language is also saved to your account.',
+  'Rudisha mipangilio ya awali': 'Reset to defaults',
+  'Mandhari, ukubwa wa herufi, aina ya herufi, zoom, mipangilio ya Noah na lugha vitarudi kwenye chaguo-msingi. Endelea?':
+    'Theme, text size, font, zoom, Noah settings and language will go back to their defaults. Continue?',
+  Rudisha: 'Reset',
+  'Mipangilio imerudishwa kwenye chaguo-msingi.': 'Settings have been reset to their defaults.',
+  '"Mfumo" hufuata mpangilio wa kifaa chako.': '"System" follows your device setting.',
+  'Herufi za mfumo': 'App text',
+  'Ukubwa na aina ya herufi kwenye kurasa zote za mfumo.': 'Text size and font across every page of the app.',
+  'Ukubwa wa herufi': 'Text size',
+  'Aina ya herufi': 'Font',
+  Ndogo: 'Small',
+  Wastani: 'Medium',
+  Kubwa: 'Large',
+  'Kubwa zaidi': 'Extra large',
+  'Chaguo-msingi (Inter)': 'Default (Inter)',
+  'Herufi za kifaa': 'Device font',
+  'Serif ya kitamaduni': 'Classic serif',
+  'Rahisi kusoma': 'Easy to read',
+  'Upana sawa (mono)': 'Monospace',
+  'Mfano: Sadaka ya Dominika ya 3 ya Kwaresima — TSh 1,250,000.':
+    'Example: 3rd Sunday of Lent offering — TSh 1,250,000.',
+  'Zoom ya ukurasa': 'Page zoom',
+  'Hukuza au kupunguza dashibodi na kurasa nyingine chini ya upau wa juu.':
+    'Enlarges or shrinks the dashboard and other pages below the top bar.',
+  'Punguza zoom': 'Zoom out',
+  'Ongeza zoom': 'Zoom in',
+  'Herufi za Noah': 'Noah text',
+  'Ukubwa na aina ya herufi kwenye mazungumzo na Noah, msaidizi wa mfumo.':
+    'Text size and font in conversations with Noah, the system assistant.',
+  'Ukubwa wa herufi za Noah': 'Noah text size',
+  Hakikisho: 'Preview',
+  'Nawezaje kuongeza jumuiya?': 'How do I add a community?',
+  'Fungua Jumuiya, kisha bonyeza "Ongeza jumuiya" na ujaze jina na kanda.':
+    'Open Communities, then press "Add community" and fill in the name and zone.',
+  'Lugha ya mfumo mzima, ikiwemo majibu ya Noah.': "The language of the whole app, including Noah's replies.",
 
   // System settings
   'Moduli za mfumo': 'System modules',
@@ -150,6 +193,7 @@ export const SETTINGS: Record<string, string> = {
   // Action labels
   Aliingia: 'Signed in',
   Alitoka: 'Signed out',
+  'Alibadilisha nenosiri': 'Reset password',
   Aliongeza: 'Added',
   Alihariri: 'Edited',
   Alifuta: 'Deleted',

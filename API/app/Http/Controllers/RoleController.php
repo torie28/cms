@@ -12,8 +12,10 @@ use Illuminate\Validation\ValidationException;
 
 class RoleController extends Controller
 {
-    public function index(): JsonResponse
+    public function index(Request $request): JsonResponse
     {
+        $this->ensureAnyModule($request, 'users');
+
         $roles = Role::query()
             ->withCount('users')
             ->orderByDesc('is_system')

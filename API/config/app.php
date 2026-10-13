@@ -56,6 +56,18 @@ return [
 
     /*
     |--------------------------------------------------------------------------
+    | Frontend URL
+    |--------------------------------------------------------------------------
+    |
+    | Where the Angular app is served; links in emails (e.g. password reset)
+    | point here. The first origin listed in FRONTEND_URL is used.
+    |
+    */
+
+    'frontend_url' => trim(explode(',', (string) env('FRONTEND_URL', 'http://localhost:4200'))[0]),
+
+    /*
+    |--------------------------------------------------------------------------
     | Application Timezone
     |--------------------------------------------------------------------------
     |
@@ -122,5 +134,16 @@ return [
         'driver' => env('APP_MAINTENANCE_DRIVER', 'file'),
         'store' => env('APP_MAINTENANCE_STORE', 'database'),
     ],
+
+    /*
+    |--------------------------------------------------------------------------
+    | Seeded Administrator Password
+    |--------------------------------------------------------------------------
+    |
+    | Used by AdminUserSeeder. Required (12+ characters) outside local development.
+    |
+    */
+
+    'admin_password' => env('ADMIN_PASSWORD'),
 
 ];

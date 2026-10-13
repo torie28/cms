@@ -15,3 +15,4 @@ Artisan::command('recycle:purge-expired', function () {
 })->purpose('Permanently delete records whose 30-day restore window has passed');
 
 Schedule::command('recycle:purge-expired')->daily();
+Schedule::command('sanctum:prune-expired --hours=24')->daily();

@@ -1,4 +1,4 @@
-import { SETTINGS_MODULES } from '../pages/dashboard/components/settings/settings.sections';
+import { SETTINGS_ACCESS } from '../pages/dashboard/components/settings/settings.sections';
 import { IconName } from '../shared/icon';
 
 export interface NavItem {
@@ -18,5 +18,5 @@ export const APP_NAV: NavItem[] = [
   { label: 'Jumuiya', path: '/jumuiya', icon: 'heart', exact: true, module: 'jumuiya' },
   { label: 'Kanda', path: '/kanda', icon: 'map', exact: true, module: 'kanda' },
   { label: 'Arifa na SMS', path: '/notifications', icon: 'bell', exact: true, module: 'notifications' },
-  { label: 'Mipangilio', path: '/settings', icon: 'gear', exact: false, module: SETTINGS_MODULES },
+  { label: 'Mipangilio', path: '/settings', icon: 'gear', exact: false, module: SETTINGS_ACCESS },
 ];

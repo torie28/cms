@@ -39,7 +39,7 @@ The project has two parts in one repository:
 | Matukio (`matukio`)            | `/matukio`      | Parish events and schedules. **Coming soon:** the page currently only shows a "coming soon" notice, and the module has no add/edit/delete actions yet. |
 | Arifa na SMS (`notifications`) | `/notifications`| Send messages by **SMS**, **in-app**, or both to: everyone, selected kanda, selected jumuiya, system users, or custom phone numbers. Tracks delivery per recipient, SMS segment counts, and lets you retry failed sends. Users see in-app messages in the notification bell. |
 | Mipangilio (`settings`)        | `/settings/system` | Enable/disable modules. |
-| API na huduma za nje (`api_settings`) | `/settings/apis` | Credentials for external services (SMS provider: NextSMS or Beem Africa, switchable from the dashboard), stored **encrypted** with `APP_KEY`, with a "send test" button. |
+| API na huduma za nje (`api_settings`) | `/settings/apis` | Credentials for external services (SMS provider: NextSMS, Beem Africa or SEWMR SMS, switchable from the dashboard), stored **encrypted** with `APP_KEY`, with a "send test" button. |
 | Kumbukumbu za shughuli (`activity_logs`) | `/settings/activity-logs` | Audit trail of who did what and when. Deleted records can be **restored** from here. |
 
 ### Noah, the in-app guide

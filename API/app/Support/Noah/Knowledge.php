@@ -25,7 +25,7 @@ class Knowledge
         'matukio' => ['matukio', 'tukio', 'event', 'ratiba', 'schedule'],
         'notifications' => ['sms', 'arifa', 'ujumbe', 'message', 'messages', 'notification', 'notifications', 'tangazo', 'announcement'],
         'settings' => ['mipangilio ya mfumo', 'system settings', 'washa moduli', 'zima moduli', 'enable module', 'disable module'],
-        'api_settings' => ['api', 'nextsms', 'beem', 'sender id', 'mtoa huduma', 'provider', 'credentials', 'funguo'],
+        'api_settings' => ['api', 'nextsms', 'beem', 'sewmr', 'sewmrsms', 'sender id', 'mtoa huduma', 'provider', 'credentials', 'funguo'],
         'activity_logs' => ['kumbukumbu', 'activity', 'audit', 'logs', 'log'],
     ];
 
@@ -864,9 +864,9 @@ class Knowledge
                 'title' => ['sw' => 'SMS hazifiki kwenye simu', 'en' => 'SMS not reaching phones'],
                 'answer' => [
                     'sw' => "Ukiona **Hali ya majaribio · SMS haziendi kwenye simu** kwenye skrini ya kutuma, mfumo uko kwenye hali ya majaribio: ujumbe unaandikwa kwenye log tu, hautumwi.\n\n"
-                        .'Kuutoa, mwenye ruhusa ya **API na huduma za nje** achague mtoa huduma halisi (NextSMS au Beem Africa) na aweke funguo zake.',
+                        .'Kuutoa, mwenye ruhusa ya **API na huduma za nje** achague mtoa huduma halisi (NextSMS, Beem Africa au SEWMR SMS) na aweke funguo zake.',
                     'en' => "If the send screen shows **Test mode · SMS do not reach phones**, the system is in test mode: messages are written to a log, not sent.\n\n"
-                        .'To leave it, someone with **APIs & external services** access must choose a real provider (NextSMS or Beem Africa) and enter its credentials.',
+                        .'To leave it, someone with **APIs & external services** access must choose a real provider (NextSMS, Beem Africa or SEWMR SMS) and enter its credentials.',
                 ],
                 'related' => ['api_settings.sms'],
             ],
@@ -891,19 +891,19 @@ class Knowledge
                 'id' => 'api_settings.sms',
                 'module' => 'api_settings',
                 'actions' => ['update'],
-                'keywords' => ['nextsms', 'beem', 'sender id', 'mtoa huduma wa sms', 'sms provider', 'api key', 'funguo', 'credentials', 'api settings', 'mipangilio ya api', 'jina la mtumaji'],
+                'keywords' => ['nextsms', 'beem', 'sewmr', 'sewmrsms', 'sender id', 'mtoa huduma wa sms', 'sms provider', 'api key', 'funguo', 'credentials', 'api settings', 'mipangilio ya api', 'jina la mtumaji'],
                 'title' => ['sw' => 'Kuweka mtoa huduma wa SMS', 'en' => 'Setting up the SMS provider'],
                 'answer' => [
                     'sw' => "1. Fungua **Mipangilio → API na huduma za nje**.\n"
-                        ."2. Kwenye **SMS**, chagua **mtoa huduma**: NextSMS, Beem Africa, au Majaribio (log).\n"
-                        ."3. Weka **Jina la mtumaji (Sender ID)** — herufi zisizozidi 11, sawasawa na lilivyoidhinishwa na mtoa huduma.\n"
-                        ."4. Jaza funguo za mtoa huduma uliyemchagua, kisha **Hifadhi**.\n"
+                        ."2. Kwenye **SMS**, chagua **mtoa huduma**: NextSMS, Beem Africa, SEWMR SMS, au Majaribio (log).\n"
+                        ."3. Weka **Jina la mtumaji (Sender ID)** — herufi 3–11, sawasawa na lilivyoidhinishwa na mtoa huduma. Kwa SEWMR SMS omba hapa: https://www.sewmrsms.co.tz/console/sender-ids/requests\n"
+                        ."4. Jaza funguo za mtoa huduma uliyemchagua (kwa SEWMR SMS: API Token), kisha **Hifadhi**.\n"
                         ."5. Tumia **Jaribu** kutuma SMS ya majaribio kwa namba yako.\n\n"
                         .'Funguo zinahifadhiwa kwa usimbaji fiche (encrypted). Sehemu ukiyoiacha wazi inatumia thamani ya .env.',
                     'en' => "1. Open **Settings → APIs & external services**.\n"
-                        ."2. Under **SMS**, choose the **provider**: NextSMS, Beem Africa, or Test (log).\n"
-                        ."3. Enter the **Sender ID** — at most 11 characters, exactly as approved by the provider.\n"
-                        ."4. Fill in the chosen provider's credentials, then **Save**.\n"
+                        ."2. Under **SMS**, choose the **provider**: NextSMS, Beem Africa, SEWMR SMS, or Test (log).\n"
+                        ."3. Enter the **Sender ID** — 3–11 characters, exactly as approved by the provider. For SEWMR SMS request one at: https://www.sewmrsms.co.tz/console/sender-ids/requests\n"
+                        ."4. Fill in the chosen provider's credentials (for SEWMR SMS: API Token), then **Save**.\n"
                         ."5. Use **Test** to send a trial SMS to your number.\n\n"
                         .'Credentials are stored encrypted. Fields left blank fall back to the .env values.',
                 ],

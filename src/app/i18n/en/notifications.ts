@@ -186,4 +186,5 @@ export const NOTIFICATIONS: Record<string, string> = {
   'Beem haijasanidiwa (BEEM_API_KEY / BEEM_SECRET_KEY).': 'Beem is not configured (BEEM_API_KEY / BEEM_SECRET_KEY).',
   'NextSMS haijasanidiwa (username / password).': 'NextSMS is not configured (username / password).',
   'NextSMS imekataa username au password (HTTP 401).': 'NextSMS rejected the username or password (HTTP 401).',
+  'SEWMR SMS haijasanidiwa (SEWMRSMS_API_TOKEN).': 'SEWMR SMS is not configured (SEWMRSMS_API_TOKEN).',
 };

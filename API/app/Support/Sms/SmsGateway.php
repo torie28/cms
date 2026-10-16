@@ -16,10 +16,13 @@ class SmsGateway
     /** NextSMS status groups that mean the message will not reach the phone. */
     private const NEXTSMS_FAILED_GROUPS = ['REJECTED', 'UNDELIVERABLE', 'EXPIRED'];
 
+    private const SEWMRSMS_BASE_URL = 'https://api.sewmrsms.co.tz/api/v1';
+
     public const PROVIDERS = [
         'log' => 'Majaribio (log)',
         'nextsms' => 'NextSMS',
         'beem' => 'Beem Africa',
+        'sewmrsms' => 'SEWMR SMS',
     ];
 
     public static function driver(): string
@@ -42,7 +45,7 @@ class SmsGateway
     {
         return match (self::driver()) {
             'nextsms' => self::nextSmsSandbox(),
-            'beem' => false,
+            'beem', 'sewmrsms' => false,
             default => true,
         };
     }
@@ -84,6 +87,7 @@ class SmsGateway
             $outcome = match (self::driver()) {
                 'nextsms' => $this->sendViaNextSms($text, $phones),
                 'beem' => $this->sendViaBeem($text, $phones),
+                'sewmrsms' => $this->sendViaSewmrSms($text, $phones),
                 default => $this->sendViaLog($text, $phones),
             };
         } catch (Throwable $exception) {
@@ -188,9 +192,57 @@ class SmsGateway
         return (string) ($response->json('message') ?? $response->json('data.message') ?? 'Beem ilikataa ombi (HTTP '.$response->status().').');
     }
 
+    /**
+     * SEWMR SMS quick-send: one message to many numbers (comma-separated).
+     * Docs: https://api.sewmrsms.co.tz/docs — request Sender IDs at
+     * https://www.sewmrsms.co.tz/console/sender-ids/requests
+     *
+     * @param  list<string>  $phones
+     */
+    private function sendViaSewmrSms(string $text, array $phones): ?string
+    {
+        $token = config('services.sms.sewmrsms.api_token');
+
+        if (! $token) {
+            return 'SEWMR SMS haijasanidiwa (SEWMRSMS_API_TOKEN).';
+        }
+
+        $response = Http::withToken((string) $token)
+            ->acceptJson()
+            ->timeout(30)
+            ->post(self::SEWMRSMS_BASE_URL.'/sms/quick-send', [
+                'sender_id' => self::senderId(),
+                'message' => $text,
+                'recipients' => implode(',', $phones),
+            ]);
+
+        if ($response->successful() && $response->json('success') === true) {
+            return null;
+        }
+
+        return self::sewmrSmsError($response);
+    }
+
     private static function nextSmsSandbox(): bool
     {
         return config('services.sms.nextsms.environment') === 'sandbox';
+    }
+
+    private static function sewmrSmsError(Response $response): string
+    {
+        $detail = $response->json('message')
+            ?? $response->json('detail')
+            ?? $response->json('errors.0.message');
+
+        if (is_array($detail)) {
+            $detail = $detail['msg'] ?? $detail['message'] ?? json_encode($detail);
+        }
+
+        if ($response->status() === 401 || (is_string($detail) && str_contains(strtolower($detail), 'token'))) {
+            return 'SEWMR SMS imekataa API token'.(is_string($detail) && $detail !== '' ? ": {$detail}" : ' (HTTP '.$response->status().').');
+        }
+
+        return 'SEWMR SMS ilikataa ombi'.(is_string($detail) && $detail !== '' ? ": {$detail}" : ' (HTTP '.$response->status().').');
     }
 
     private static function nextSmsError(Response $response): string

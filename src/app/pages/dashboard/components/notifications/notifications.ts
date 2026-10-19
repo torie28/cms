@@ -24,6 +24,7 @@ import {
   MessagesService,
   MessageStatus,
   NAME_PLACEHOLDER,
+  SmsBalance,
   normalizePhone,
   renderMessage,
   smsLength,
@@ -337,6 +338,8 @@ export class NotificationsPage {
 
   // ---------- History ----------
 
+  protected readonly balance = signal<SmsBalance | null>(null);
+  protected readonly balanceLoading = signal(true);
   protected readonly history = signal<Message[]>([]);
   protected readonly historyLoading = signal(true);
   protected readonly historyError = signal<string | null>(null);
@@ -450,6 +453,7 @@ export class NotificationsPage {
     afterNextRender(() => {
       void this.loadContacts();
       void this.loadHistory();
+      void this.loadBalance();
     });
   }
 
@@ -575,10 +579,35 @@ export class NotificationsPage {
       this.history.update((current) => [sent, ...current]);
       this.notice.set(this.outcome(sent));
       this.resetCompose();
+      void this.loadBalance();
     } catch (error) {
       this.error.set(httpErrorMessage(error, 'Imeshindwa kutuma ujumbe huo.'));
     } finally {
       this.sending.set(false);
+    }
+  }
+
+  protected balanceCount(value: number): string {
+    return value.toLocaleString(this.i18n.intlLocale());
+  }
+
+  protected async loadBalance(): Promise<void> {
+    this.balanceLoading.set(true);
+
+    try {
+      this.balance.set(await this.messages.balance());
+    } catch (error) {
+      this.balance.set({
+        driver: '',
+        provider: '',
+        sender_id: '',
+        test_mode: false,
+        available: null,
+        rate: null,
+        error: httpErrorMessage(error, 'Imeshindwa kupakia salio la SMS.'),
+      });
+    } finally {
+      this.balanceLoading.set(false);
     }
   }
 

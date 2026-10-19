@@ -65,6 +65,7 @@ Route::middleware('auth:sanctum')->group(function () {
     Route::put('/offerings/{offering}', [OfferingController::class, 'update']);
     Route::delete('/offerings/{offering}', [OfferingController::class, 'destroy']);
 
+    Route::get('/sms/balance', [MessageController::class, 'balance']);
     Route::get('/messages/contacts', [MessageController::class, 'contacts']);
     Route::get('/messages', [MessageController::class, 'index']);
     Route::post('/messages', [MessageController::class, 'store']);

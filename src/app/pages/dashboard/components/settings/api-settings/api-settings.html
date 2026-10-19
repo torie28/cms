@@ -49,6 +49,22 @@
                 {{ 'Inakosa: {fields}' | t: { fields: service.missing.join(', ') } }}
               </p>
             }
+            @if (service.key === 'sms') {
+              <p class="mt-2 text-xs tabular-nums" [class.text-negative]="smsBalanceProblem()">
+                @if (smsBalanceLoading()) {
+                  <span class="skeleton inline-block h-3 w-40"></span>
+                } @else if (smsBalance(); as bal) {
+                  @if (bal.available !== null) {
+                    {{ 'SMS zilizobaki: {count} · {provider}' | t: { count: smsCount(bal.available), provider: bal.provider } }}
+                    @if (bal.rate) {
+                      · {{ 'bei {rate} kwa SMS' | t: { rate: bal.rate } }}
+                    }
+                  } @else {
+                    {{ bal.error | t }}
+                  }
+                }
+              </p>
+            }
           </div>
           @if (service.updated_at) {
             <p class="text-xs text-faint">

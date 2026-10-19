@@ -1,9 +1,9 @@
-import { DatePipe } from '@angular/common';
+import { DatePipe, NgTemplateOutlet } from '@angular/common';
 import { afterNextRender, Component, computed, effect, inject, Injector, signal } from '@angular/core';
 import { RouterLink } from '@angular/router';
 import { AuthService } from '../../../../core/auth';
 import { I18nService, translate, TranslatePipe } from '../../../../core/i18n';
-import { MessagesService } from '../../../../core/messages';
+import { MessagesService, SmsBalance } from '../../../../core/messages';
 import { Offering, OFFERING_CATEGORIES, OfferingService } from '../../../../core/offerings';
 import { Jumuiya, Kanda, ParishService } from '../../../../core/parish';
 import { UsersService } from '../../../../core/users';
@@ -52,9 +52,11 @@ interface Metric {
   label: string;
   value: string;
   caption: string;
-  link: string;
+  link: string | null;
   change?: string;
   trend?: 'up' | 'down';
+  pending?: boolean;
+  tone?: string;
 }
 
 interface MonthBar {
@@ -73,7 +75,7 @@ function isoDay(date: Date): string {
 
 @Component({
   selector: 'app-overview',
-  imports: [RouterLink, DatePipe, SearchBox, FilterPanel, TranslatePipe],
+  imports: [RouterLink, DatePipe, NgTemplateOutlet, SearchBox, FilterPanel, TranslatePipe],
   templateUrl: './overview.html',
 })
 export class Overview {
@@ -91,6 +93,7 @@ export class Overview {
     kanda: this.auth.canAccess('kanda'),
     users: this.auth.canAccess('users'),
     notifications: this.auth.canAccess('notifications'),
+    apis: this.auth.canAccess('api_settings'),
   };
 
   private readonly jumuiyas = signal<Jumuiya[] | null>(null);
@@ -98,6 +101,8 @@ export class Overview {
   private readonly offerings = signal<Offering[] | null>(null);
   private readonly userCount = signal<number | null>(null);
   private readonly unreadCount = signal<number | null>(null);
+  /** Undefined until the provider answers; null when the request itself failed. */
+  private readonly smsBalance = signal<SmsBalance | null | undefined>(undefined);
 
   protected readonly loading = computed(() => this.jumuiyas() === null);
   protected readonly offeringsLoading = computed(() => this.can.sadaka && this.offerings() === null);
@@ -247,8 +252,51 @@ export class Overview {
       });
     }
 
+    cards.push(this.smsMetric());
+
     return cards;
   });
+
+  private smsMetric(): Metric {
+    const balance = this.smsBalance();
+    const link = this.can.notifications ? '/notifications' : this.can.apis ? '/settings/apis' : null;
+
+    if (balance === undefined) {
+      return {
+        label: translate('SMS zilizobaki'),
+        value: '—',
+        caption: '',
+        link,
+        pending: true,
+      };
+    }
+
+    if (balance === null || balance.available === null) {
+      return {
+        label: translate('SMS zilizobaki'),
+        value: '—',
+        caption: translate(balance?.error ?? 'Imeshindwa kupakia salio la SMS.'),
+        link,
+        tone: 'text-negative',
+      };
+    }
+
+    const caption = [
+      translate('{provider} · mtumaji {sender}', { provider: balance.provider, sender: balance.sender_id }),
+      balance.rate ? translate('bei {rate} kwa SMS', { rate: balance.rate }) : '',
+      balance.available === 0 ? translate('Salio limeisha') : '',
+    ]
+      .filter(Boolean)
+      .join(' · ');
+
+    return {
+      label: translate('SMS zilizobaki'),
+      value: balance.available.toLocaleString(this.i18n.intlLocale()),
+      caption,
+      link,
+      tone: balance.available === 0 ? 'text-negative' : '',
+    };
+  }
 
   protected readonly months = computed<MonthBar[]>(() => {
     const format = new Intl.DateTimeFormat(this.i18n.intlLocale(), { month: 'short' });
@@ -324,6 +372,7 @@ export class Overview {
       effect(() => localStorage.setItem(CHART_STYLE_KEY, this.chartStyle()), { injector: this.injector });
 
       void this.loadParish();
+      void this.loadSmsBalance();
       if (this.can.sadaka) {
         void this.loadOfferings();
       }
@@ -389,6 +438,14 @@ export class Overview {
       this.userCount.set((await this.usersApi.list()).length);
     } catch {
       // The card is simply left out.
+    }
+  }
+
+  private async loadSmsBalance(): Promise<void> {
+    try {
+      this.smsBalance.set(await this.messagesApi.balance());
+    } catch {
+      this.smsBalance.set(null);
     }
   }
 

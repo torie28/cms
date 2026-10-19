@@ -113,6 +113,7 @@ export const SETTINGS: Record<string, string> = {
   'Mtoa huduma anayetumika kutuma SMS kwa waumini, jumuiya na watumiaji.':
     'The provider used to send SMS to parishioners, communities and users.',
   'Mtoa huduma': 'Provider',
+  'SMS zilizobaki: {count} · {provider}': 'SMS remaining: {count} · {provider}',
   'Majaribio (huandikwa kwenye log, hazitumwi)': 'Test (written to the log, not sent)',
   'Jina la mtumaji (Sender ID)': 'Sender name (Sender ID)',
   'Herufi 3–11. Liandike sawasawa kabisa na lilivyoidhinishwa na mtoa huduma. Kwa SEWMR SMS omba Sender ID: https://www.sewmrsms.co.tz/console/sender-ids/requests':

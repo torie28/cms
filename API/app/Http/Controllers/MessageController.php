@@ -43,6 +43,12 @@ class MessageController extends Controller
         ]);
     }
 
+    /** Remaining SMS on the active provider. Any signed-in user may read it. */
+    public function balance(): JsonResponse
+    {
+        return response()->json(app(SmsGateway::class)->balance());
+    }
+
     public function index(Request $request): JsonResponse
     {
         $this->ensureModule($request);

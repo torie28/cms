@@ -5,6 +5,7 @@ import { AuthService } from '../../../../../core/auth';
 import { ConfirmService } from '../../../../../core/confirm';
 import { httpErrorMessage } from '../../../../../core/http-error';
 import { I18nService, translate, TranslatePipe } from '../../../../../core/i18n';
+import { MessagesService, SmsBalance } from '../../../../../core/messages';
 
 interface ServiceState {
   draft: Record<string, string>;
@@ -31,6 +32,7 @@ const STATUS: Record<ApiServiceStatus, { label: string; classes: string }> = {
 })
 export class ApiSettings {
   private readonly api = inject(ApiSettingsService);
+  private readonly messages = inject(MessagesService);
   private readonly auth = inject(AuthService);
   private readonly confirm = inject(ConfirmService);
   protected readonly i18n = inject(I18nService);
@@ -40,11 +42,23 @@ export class ApiSettings {
   protected readonly states = signal<Record<string, ServiceState>>({});
   protected readonly loading = signal(true);
   protected readonly error = signal<string | null>(null);
+  protected readonly smsBalance = signal<SmsBalance | null>(null);
+  protected readonly smsBalanceLoading = signal(true);
 
   constructor() {
     afterNextRender(() => {
       void this.refresh();
+      void this.loadSmsBalance();
     });
+  }
+
+  protected smsCount(value: number): string {
+    return value.toLocaleString(this.i18n.intlLocale());
+  }
+
+  protected smsBalanceProblem(): boolean {
+    const balance = this.smsBalance();
+    return balance !== null && (balance.available === null || balance.available === 0);
   }
 
   protected status(service: ApiService) {
@@ -185,6 +199,9 @@ export class ApiSettings {
 
     try {
       const updated = await this.api.update(service.key, changes);
+      if (updated.key === 'sms') {
+        void this.loadSmsBalance();
+      }
       this.services.update((list) => list.map((item) => (item.key === updated.key ? updated : item)));
       const current = this.state(service);
       this.states.update((all) => ({
@@ -218,6 +235,26 @@ export class ApiSettings {
       testing: false,
       testResult: null,
     };
+  }
+
+  private async loadSmsBalance(): Promise<void> {
+    this.smsBalanceLoading.set(true);
+
+    try {
+      this.smsBalance.set(await this.messages.balance());
+    } catch (error) {
+      this.smsBalance.set({
+        driver: '',
+        provider: '',
+        sender_id: '',
+        test_mode: false,
+        available: null,
+        rate: null,
+        error: httpErrorMessage(error, 'Imeshindwa kupakia salio la SMS.'),
+      });
+    } finally {
+      this.smsBalanceLoading.set(false);
+    }
   }
 
   private patch(service: ApiService, changes: Partial<ServiceState>): void {

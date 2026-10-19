@@ -23,7 +23,14 @@ export const OVERVIEW: Record<string, string> = {
   'akaunti za mfumo': 'system accounts',
   'Arifa mpya': 'New notifications',
   hazijasomwa: 'unread',
+  'SMS zilizobaki': 'SMS remaining',
+  '{provider} · mtumaji {sender}': '{provider} · sender {sender}',
+  'bei {rate} kwa SMS': '{rate} per SMS',
+  'Salio halipatikani katika hali ya majaribio.': 'Balance is not available in test mode.',
+  'Salio limeisha': 'Balance is empty',
+  'Imeshindwa kupakia salio la SMS.': 'Could not load the SMS balance.',
   '{label}: {value}. Fungua moduli': '{label}: {value}. Open module',
+  '{label}: {value}': '{label}: {value}',
 
   // Offerings widgets
   'Makusanyo ya kila mwezi': 'Monthly collections',

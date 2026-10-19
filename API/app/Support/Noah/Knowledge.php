@@ -308,10 +308,10 @@ class Knowledge
                 'title' => ['sw' => 'Ukurasa wa Muhtasari', 'en' => 'The Overview page'],
                 'answer' => [
                     'sw' => "**Muhtasari** ni ukurasa wa kwanza baada ya kuingia, na kila mtumiaji anaruhusiwa kuuona.\n\n"
-                        ."Unaonyesha jumla ya watumiaji, jumuiya, wanajumuiya na michango, chati ya makusanyo ya kila mwezi (bofya mwezi kuona michango yake), michango ya hivi karibuni na jumuiya kubwa zaidi.\n\n"
+                        ."Unaonyesha jumla ya watumiaji, jumuiya, wanajumuiya na michango, salio la SMS lililobaki kwa mtoa huduma aliyechaguliwa, chati ya makusanyo ya kila mwezi (bofya mwezi kuona michango yake), michango ya hivi karibuni na jumuiya kubwa zaidi.\n\n"
                         .'Takwimu za moduli usizo na ruhusa hazitakuwa na viungo vya kuzifungua.',
                     'en' => "The **Overview** is the first page after signing in, and every user may see it.\n\n"
-                        ."It shows totals for users, communities, members and offerings, a monthly collections chart (click a month to see its offerings), recent offerings and the largest communities.\n\n"
+                        ."It shows totals for users, communities, members and offerings, the SMS balance left with the selected provider, a monthly collections chart (click a month to see its offerings), recent offerings and the largest communities.\n\n"
                         .'Figures for modules you cannot open will not link through to them.',
                 ],
             ],
@@ -821,7 +821,23 @@ class Knowledge
                         ."5. Check the **preview** and SMS segment count, then **Send**.\n\n"
                         .'People without a valid number are skipped, and duplicate numbers receive the message once.',
                 ],
-                'related' => ['notifications.segments', 'notifications.retry', 'notifications.testmode'],
+                'related' => ['notifications.balance', 'notifications.segments', 'notifications.retry', 'notifications.testmode'],
+            ],
+            [
+                'id' => 'notifications.balance',
+                'module' => 'dashboard',
+                'actions' => [],
+                'keywords' => ['salio', 'balance', 'sms zilizobaki', 'remaining sms', 'credits', 'credit', 'salio la sms', 'sms ngapi zimebaki', 'how many sms'],
+                'title' => ['sw' => 'Salio la SMS', 'en' => 'SMS balance'],
+                'answer' => [
+                    'sw' => "Salio linalobaki linaonekana kwenye **Muhtasari**, kama kadi ya **SMS zilizobaki**. Msimamizi na mtumiaji wa kawaida wanaweza kuliona.\n\n"
+                        ."Linatoka kwa mtoa huduma aliyechaguliwa sasa: NextSMS, Beem Africa au SEWMR SMS. Kadi inaonyesha idadi, jina la mtumaji, na bei kwa SMS ikipatikana.\n\n"
+                        .'Kadi hiyo hiyo ipo kwenye **Arifa na SMS** na kwenye **Mipangilio → API na huduma za nje**. Hali ya majaribio haina salio la kuonyesha.',
+                    'en' => "The remaining balance is on **Overview**, as the **SMS remaining** card. Both an administrator and a regular user can see it.\n\n"
+                        ."It comes from whichever provider is selected now: NextSMS, Beem Africa or SEWMR SMS. The card shows the count, the sender name, and the price per SMS when the provider returns one.\n\n"
+                        .'The same figure is on **Notifications & SMS** and under **Settings → APIs & external services**. Test mode has no balance to show.',
+                ],
+                'related' => ['notifications.send', 'api_settings.sms'],
             ],
             [
                 'id' => 'notifications.segments',

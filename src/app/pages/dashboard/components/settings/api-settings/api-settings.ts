@@ -6,6 +6,7 @@ import { ConfirmService } from '../../../../../core/confirm';
 import { httpErrorMessage } from '../../../../../core/http-error';
 import { I18nService, translate, TranslatePipe } from '../../../../../core/i18n';
 import { MessagesService, SmsBalance } from '../../../../../core/messages';
+import { SmsBalanceCard } from '../../../../../shared/sms-balance';
 
 interface ServiceState {
   draft: Record<string, string>;
@@ -27,7 +28,7 @@ const STATUS: Record<ApiServiceStatus, { label: string; classes: string }> = {
 @Component({
   selector: 'app-api-settings',
   changeDetection: ChangeDetectionStrategy.OnPush,
-  imports: [DatePipe, TranslatePipe],
+  imports: [DatePipe, TranslatePipe, SmsBalanceCard],
   templateUrl: './api-settings.html',
 })
 export class ApiSettings {
@@ -50,15 +51,6 @@ export class ApiSettings {
       void this.refresh();
       void this.loadSmsBalance();
     });
-  }
-
-  protected smsCount(value: number): string {
-    return value.toLocaleString(this.i18n.intlLocale());
-  }
-
-  protected smsBalanceProblem(): boolean {
-    const balance = this.smsBalance();
-    return balance !== null && (balance.available === null || balance.available === 0);
   }
 
   protected status(service: ApiService) {

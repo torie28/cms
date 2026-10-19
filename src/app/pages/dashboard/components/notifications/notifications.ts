@@ -31,6 +31,7 @@ import {
   STATUS_LABELS,
 } from '../../../../core/messages';
 import { FilterPanel, withinDateRange } from '../../../../shared/filter-panel';
+import { SmsBalanceCard } from '../../../../shared/sms-balance';
 import { matchesSearch, SearchBox } from '../../../../shared/search-box';
 
 type Tab = 'compose' | 'history';
@@ -54,7 +55,7 @@ const PICKER_LIMIT = 60;
 @Component({
   selector: 'app-notifications',
   changeDetection: ChangeDetectionStrategy.OnPush,
-  imports: [DatePipe, SearchBox, FilterPanel, TranslatePipe],
+  imports: [DatePipe, SearchBox, FilterPanel, TranslatePipe, SmsBalanceCard],
   templateUrl: './notifications.html',
 })
 export class NotificationsPage {
@@ -585,10 +586,6 @@ export class NotificationsPage {
     } finally {
       this.sending.set(false);
     }
-  }
-
-  protected balanceCount(value: number): string {
-    return value.toLocaleString(this.i18n.intlLocale());
   }
 
   protected async loadBalance(): Promise<void> {

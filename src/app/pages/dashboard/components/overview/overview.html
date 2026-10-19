@@ -119,6 +119,8 @@
     </section>
   }
 
+  <app-sms-balance [balance]="smsBalance()" [link]="smsHref()" />
+
   @if (metrics().length > 0) {
     <section class="grid gap-4 sm:grid-cols-2 xl:grid-cols-3">
       @for (metric of metrics(); track metric.label; let i = $index) {

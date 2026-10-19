@@ -8,6 +8,7 @@ import { Offering, OFFERING_CATEGORIES, OfferingService } from '../../../../core
 import { Jumuiya, Kanda, ParishService } from '../../../../core/parish';
 import { UsersService } from '../../../../core/users';
 import { FilterPanel } from '../../../../shared/filter-panel';
+import { SmsBalanceCard } from '../../../../shared/sms-balance';
 import { matchesSearch, SearchBox } from '../../../../shared/search-box';
 
 const RESULT_LIMIT = 5;
@@ -75,7 +76,7 @@ function isoDay(date: Date): string {
 
 @Component({
   selector: 'app-overview',
-  imports: [RouterLink, DatePipe, NgTemplateOutlet, SearchBox, FilterPanel, TranslatePipe],
+  imports: [RouterLink, DatePipe, NgTemplateOutlet, SearchBox, FilterPanel, TranslatePipe, SmsBalanceCard],
   templateUrl: './overview.html',
 })
 export class Overview {
@@ -102,7 +103,11 @@ export class Overview {
   private readonly userCount = signal<number | null>(null);
   private readonly unreadCount = signal<number | null>(null);
   /** Undefined until the provider answers; null when the request itself failed. */
-  private readonly smsBalance = signal<SmsBalance | null | undefined>(undefined);
+  protected readonly smsBalance = signal<SmsBalance | null | undefined>(undefined);
+
+  protected readonly smsHref = computed(() =>
+    this.can.notifications ? '/notifications' : this.can.apis ? '/settings/apis' : null,
+  );
 
   protected readonly loading = computed(() => this.jumuiyas() === null);
   protected readonly offeringsLoading = computed(() => this.can.sadaka && this.offerings() === null);
@@ -252,51 +257,8 @@ export class Overview {
       });
     }
 
-    cards.push(this.smsMetric());
-
     return cards;
   });
-
-  private smsMetric(): Metric {
-    const balance = this.smsBalance();
-    const link = this.can.notifications ? '/notifications' : this.can.apis ? '/settings/apis' : null;
-
-    if (balance === undefined) {
-      return {
-        label: translate('SMS zilizobaki'),
-        value: '—',
-        caption: '',
-        link,
-        pending: true,
-      };
-    }
-
-    if (balance === null || balance.available === null) {
-      return {
-        label: translate('SMS zilizobaki'),
-        value: '—',
-        caption: translate(balance?.error ?? 'Imeshindwa kupakia salio la SMS.'),
-        link,
-        tone: 'text-negative',
-      };
-    }
-
-    const caption = [
-      translate('{provider} · mtumaji {sender}', { provider: balance.provider, sender: balance.sender_id }),
-      balance.rate ? translate('bei {rate} kwa SMS', { rate: balance.rate }) : '',
-      balance.available === 0 ? translate('Salio limeisha') : '',
-    ]
-      .filter(Boolean)
-      .join(' · ');
-
-    return {
-      label: translate('SMS zilizobaki'),
-      value: balance.available.toLocaleString(this.i18n.intlLocale()),
-      caption,
-      link,
-      tone: balance.available === 0 ? 'text-negative' : '',
-    };
-  }
 
   protected readonly months = computed<MonthBar[]>(() => {
     const format = new Intl.DateTimeFormat(this.i18n.intlLocale(), { month: 'short' });

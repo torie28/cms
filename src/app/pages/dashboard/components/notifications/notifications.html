@@ -28,25 +28,9 @@
         }
       </p>
     }
-    @if (balanceLoading()) {
-      <span class="skeleton h-8 w-36"></span>
-    } @else if (balance(); as bal) {
-      <p
-        class="rounded border px-3 py-1.5 text-xs tabular-nums"
-        [class.border-negative/40]="bal.available === 0 || bal.available === null"
-        [class.bg-negative/10]="bal.available === 0 || bal.available === null"
-        [class.text-negative]="bal.available === 0 || bal.available === null"
-        [class.border-line]="bal.available !== null && bal.available > 0"
-        [class.text-muted]="bal.available !== null && bal.available > 0"
-      >
-        @if (bal.available !== null) {
-          {{ 'SMS zilizobaki: {count}' | t: { count: balanceCount(bal.available) } }}
-        } @else {
-          {{ bal.error | t }}
-        }
-      </p>
-    }
   </div>
+
+  <app-sms-balance [balance]="balanceLoading() ? undefined : balance()" />
 
   <section class="grid gap-4 sm:grid-cols-2 xl:grid-cols-4" [attr.aria-label]="'Takwimu za ujumbe' | t">
     @for (stat of stats(); track stat.label) {

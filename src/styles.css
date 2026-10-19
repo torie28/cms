@@ -203,6 +203,62 @@ textarea {
   animation: row-in 0.35s ease-out both;
 }
 
+/* Classic SMS ledger: the count and the price each get their own figure. */
+@keyframes sms-figure-in {
+  from { opacity: 0; transform: translateY(12px); }
+  to { opacity: 1; transform: none; }
+}
+
+.sms-ledger {
+  animation: rise-in 0.45s cubic-bezier(0.2, 0.8, 0.3, 1) both;
+  transition:
+    border-color 0.2s ease,
+    box-shadow 0.2s ease,
+    transform 0.2s ease,
+    background-color 0.2s ease;
+}
+
+.sms-ledger:hover {
+  transform: translateY(-3px);
+  border-color: var(--brass);
+  box-shadow: 0 12px 28px color-mix(in oklch, var(--brass) 22%, transparent);
+}
+
+.sms-ledger:active {
+  transform: translateY(-1px);
+}
+
+.sms-figure {
+  animation: sms-figure-in 0.55s cubic-bezier(0.2, 0.8, 0.3, 1) both;
+  transition:
+    background-color 0.2s ease,
+    border-color 0.2s ease,
+    transform 0.2s ease;
+}
+
+.sms-figure:nth-child(2) {
+  animation-delay: 0.1s;
+}
+
+.sms-ledger:hover .sms-figure {
+  transform: translateY(-2px);
+  border-color: color-mix(in oklch, var(--brass) 55%, var(--line));
+  background-color: var(--brass-tint);
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .sms-ledger,
+  .sms-figure {
+    animation: none;
+  }
+
+  .sms-ledger:hover,
+  .sms-ledger:hover .sms-figure,
+  .sms-ledger:active {
+    transform: none;
+  }
+}
+
 @keyframes shimmer {
   to { background-position: -200% 0; }
 }

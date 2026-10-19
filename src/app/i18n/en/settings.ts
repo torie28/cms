@@ -113,10 +113,14 @@ export const SETTINGS: Record<string, string> = {
   'Mtoa huduma anayetumika kutuma SMS kwa waumini, jumuiya na watumiaji.':
     'The provider used to send SMS to parishioners, communities and users.',
   'Mtoa huduma': 'Provider',
+  'SMS zilizobaki: {count} · {provider}': 'SMS remaining: {count} · {provider}',
   'Majaribio (huandikwa kwenye log, hazitumwi)': 'Test (written to the log, not sent)',
   'Jina la mtumaji (Sender ID)': 'Sender name (Sender ID)',
-  'Herufi zisizozidi 11. Liandike sawasawa kabisa na lilivyoidhinishwa na mtoa huduma (NextSMS au Beem).':
-    'At most 11 characters. Type it exactly as approved by the provider (NextSMS or Beem).',
+  'Herufi 3–11. Liandike sawasawa kabisa na lilivyoidhinishwa na mtoa huduma. Kwa SEWMR SMS omba Sender ID: https://www.sewmrsms.co.tz/console/sender-ids/requests':
+    '3–11 characters. Type it exactly as approved by the provider. For SEWMR SMS request a Sender ID at: https://www.sewmrsms.co.tz/console/sender-ids/requests',
+  'SEWMR SMS API Token': 'SEWMR SMS API Token',
+  'Tengeneza token kwenye akaunti yako ya SEWMR SMS (Developers / API tokens). Omba Sender ID: https://www.sewmrsms.co.tz/console/sender-ids/requests':
+    'Create a token in your SEWMR SMS account (Developers / API tokens). Request a Sender ID at: https://www.sewmrsms.co.tz/console/sender-ids/requests',
   'Jina la mtumiaji unaloingia nalo kwenye app.nextsms.co.tz.': 'The username you sign in with on app.nextsms.co.tz.',
   'Nenosiri la akaunti ya NextSMS (API hutumia username na password kwa Basic Auth).':
     'Your NextSMS account password (the API uses username and password with Basic Auth).',

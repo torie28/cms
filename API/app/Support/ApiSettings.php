@@ -38,6 +38,7 @@ class ApiSettings
                         'log' => 'Majaribio (huandikwa kwenye log, hazitumwi)',
                         'nextsms' => 'NextSMS',
                         'beem' => 'Beem Africa',
+                        'sewmrsms' => 'SEWMR SMS',
                     ],
                 ],
                 'sender_id' => [
@@ -47,7 +48,7 @@ class ApiSettings
                     'required' => true,
                     'max' => 11,
                     'placeholder' => 'ST MATHIAS',
-                    'help' => 'Herufi zisizozidi 11. Liandike sawasawa kabisa na lilivyoidhinishwa na mtoa huduma (NextSMS au Beem).',
+                    'help' => 'Herufi 3–11. Liandike sawasawa kabisa na lilivyoidhinishwa na mtoa huduma. Kwa SEWMR SMS omba Sender ID: https://www.sewmrsms.co.tz/console/sender-ids/requests',
                 ],
                 'nextsms_username' => [
                     'label' => 'NextSMS Username',
@@ -91,6 +92,14 @@ class ApiSettings
                     'config' => 'services.sms.beem.secret_key',
                     'required' => true,
                     'show_when' => ['driver', 'beem'],
+                ],
+                'sewmrsms_api_token' => [
+                    'label' => 'SEWMR SMS API Token',
+                    'type' => 'secret',
+                    'config' => 'services.sms.sewmrsms.api_token',
+                    'required' => true,
+                    'show_when' => ['driver', 'sewmrsms'],
+                    'help' => 'Tengeneza token kwenye akaunti yako ya SEWMR SMS (Developers / API tokens). Omba Sender ID: https://www.sewmrsms.co.tz/console/sender-ids/requests',
                 ],
             ],
         ],

@@ -29,7 +29,7 @@ return [
     ],
 
     'sms' => [
-        // "log" writes messages to storage/logs instead of sending; "nextsms" and "beem" send for real.
+        // "log" writes messages to storage/logs instead of sending; the other drivers send for real.
         'driver' => env('SMS_DRIVER', 'log'),
         'sender_id' => env('SMS_SENDER_ID', 'PAROKIA'),
         'nextsms' => [
@@ -41,6 +41,11 @@ return [
         'beem' => [
             'api_key' => env('BEEM_API_KEY'),
             'secret_key' => env('BEEM_SECRET_KEY'),
+        ],
+        'sewmrsms' => [
+            // API token from the SEWMR console (Bearer auth). Request a Sender ID at
+            // https://www.sewmrsms.co.tz/console/sender-ids/requests
+            'api_token' => env('SEWMRSMS_API_TOKEN'),
         ],
     ],
 

@@ -16,10 +16,13 @@ class SmsGateway
     /** NextSMS status groups that mean the message will not reach the phone. */
     private const NEXTSMS_FAILED_GROUPS = ['REJECTED', 'UNDELIVERABLE', 'EXPIRED'];
 
+    private const SEWMRSMS_BASE_URL = 'https://api.sewmrsms.co.tz/api/v1';
+
     public const PROVIDERS = [
         'log' => 'Majaribio (log)',
         'nextsms' => 'NextSMS',
         'beem' => 'Beem Africa',
+        'sewmrsms' => 'SEWMR SMS',
     ];
 
     public static function driver(): string
@@ -37,12 +40,45 @@ class SmsGateway
         return (string) config('services.sms.sender_id', 'PAROKIA');
     }
 
+    /**
+     * Remaining SMS credits on the active provider. `available` is null when the
+     * provider has no balance (log mode) or the request failed; `error` says why.
+     *
+     * @return array{driver: string, provider: string, sender_id: string, test_mode: bool, available: int|float|null, rate: string|null, error: string|null}
+     */
+    public function balance(): array
+    {
+        $result = [
+            'driver' => self::driver(),
+            'provider' => self::providerLabel(),
+            'sender_id' => self::senderId(),
+            'test_mode' => self::isTestMode(),
+            'available' => null,
+            'rate' => null,
+            'error' => null,
+        ];
+
+        try {
+            $fetched = match (self::driver()) {
+                'nextsms' => $this->nextSmsBalance(),
+                'beem' => $this->beemBalance(),
+                'sewmrsms' => $this->sewmrBalance(),
+                default => ['error' => 'Salio halipatikani katika hali ya majaribio.'],
+            };
+        } catch (Throwable $exception) {
+            report($exception);
+            $fetched = ['error' => 'Hitilafu ya mtandao: '.$exception->getMessage()];
+        }
+
+        return array_merge($result, $fetched);
+    }
+
     /** True when messages are only simulated (written to the log or sent to a provider sandbox). */
     public static function isTestMode(): bool
     {
         return match (self::driver()) {
             'nextsms' => self::nextSmsSandbox(),
-            'beem' => false,
+            'beem', 'sewmrsms' => false,
             default => true,
         };
     }
@@ -84,6 +120,7 @@ class SmsGateway
             $outcome = match (self::driver()) {
                 'nextsms' => $this->sendViaNextSms($text, $phones),
                 'beem' => $this->sendViaBeem($text, $phones),
+                'sewmrsms' => $this->sendViaSewmrSms($text, $phones),
                 default => $this->sendViaLog($text, $phones),
             };
         } catch (Throwable $exception) {
@@ -188,9 +225,185 @@ class SmsGateway
         return (string) ($response->json('message') ?? $response->json('data.message') ?? 'Beem ilikataa ombi (HTTP '.$response->status().').');
     }
 
+    /**
+     * SEWMR SMS quick-send: one message to many numbers (comma-separated).
+     * Docs: https://api.sewmrsms.co.tz/docs — request Sender IDs at
+     * https://www.sewmrsms.co.tz/console/sender-ids/requests
+     *
+     * @param  list<string>  $phones
+     */
+    private function sendViaSewmrSms(string $text, array $phones): ?string
+    {
+        $token = config('services.sms.sewmrsms.api_token');
+
+        if (! $token) {
+            return 'SEWMR SMS haijasanidiwa (SEWMRSMS_API_TOKEN).';
+        }
+
+        $response = Http::withToken((string) $token)
+            ->acceptJson()
+            ->timeout(30)
+            ->post(self::SEWMRSMS_BASE_URL.'/sms/quick-send', [
+                'sender_id' => self::senderId(),
+                'message' => $text,
+                'recipients' => implode(',', $phones),
+            ]);
+
+        if ($response->successful() && $response->json('success') === true) {
+            return null;
+        }
+
+        return self::sewmrSmsError($response);
+    }
+
+    /**
+     * @return array{available?: int|float, rate?: string|null, error?: string}
+     */
+    private function nextSmsBalance(): array
+    {
+        $username = config('services.sms.nextsms.username');
+        $password = config('services.sms.nextsms.password');
+
+        if (! $username || ! $password) {
+            return ['error' => 'NextSMS haijasanidiwa (username / password).'];
+        }
+
+        $response = Http::withBasicAuth((string) $username, (string) $password)
+            ->acceptJson()
+            ->timeout(20)
+            ->get(self::NEXTSMS_BASE_URL.'/balance');
+
+        if (! $response->successful()) {
+            return ['error' => self::nextSmsError($response)];
+        }
+
+        $available = self::asCount($response->json('sms_balance'));
+
+        if ($available === null) {
+            return ['error' => 'NextSMS haijarudisha salio.'];
+        }
+
+        $rate = $response->json('display');
+
+        return [
+            'available' => $available,
+            'rate' => is_string($rate) && $rate !== '' ? $rate : null,
+        ];
+    }
+
+    /**
+     * @return array{available?: int|float, error?: string}
+     */
+    private function beemBalance(): array
+    {
+        $key = config('services.sms.beem.api_key');
+        $secret = config('services.sms.beem.secret_key');
+
+        if (! $key || ! $secret) {
+            return ['error' => 'Beem haijasanidiwa (BEEM_API_KEY / BEEM_SECRET_KEY).'];
+        }
+
+        $response = Http::withBasicAuth((string) $key, (string) $secret)
+            ->acceptJson()
+            ->timeout(20)
+            ->get('https://apisms.beem.africa/public/v1/vendors/balance');
+
+        if (! $response->successful()) {
+            return ['error' => (string) ($response->json('message') ?? 'Beem ilikataa ombi la salio (HTTP '.$response->status().').')];
+        }
+
+        $available = self::firstCount($response->json() ?? [], ['data.credit_balance', 'credit_balance']);
+
+        return $available === null
+            ? ['error' => 'Beem haijarudisha salio.']
+            : ['available' => $available];
+    }
+
+    /**
+     * @return array{available?: int|float, error?: string}
+     */
+    private function sewmrBalance(): array
+    {
+        $token = config('services.sms.sewmrsms.api_token');
+
+        if (! $token) {
+            return ['error' => 'SEWMR SMS haijasanidiwa (SEWMRSMS_API_TOKEN).'];
+        }
+
+        $response = Http::withToken((string) $token)
+            ->acceptJson()
+            ->timeout(20)
+            ->get(self::SEWMRSMS_BASE_URL.'/sms/remaining-sms');
+
+        if (! $response->successful()) {
+            return ['error' => self::sewmrSmsError($response)];
+        }
+
+        $available = self::firstCount($response->json() ?? [], [
+            'remaining_sms',
+            'sms_balance',
+            'balance',
+            'credits',
+            'remaining',
+            'data.remaining_sms',
+            'data.sms_balance',
+            'data.balance',
+            'data.credits',
+            'data.remaining',
+        ]);
+
+        return $available === null
+            ? ['error' => 'SEWMR SMS haijarudisha salio.']
+            : ['available' => $available];
+    }
+
+    /** @param array<string, mixed> $payload */
+    private static function firstCount(array $payload, array $paths): int|float|null
+    {
+        foreach ($paths as $path) {
+            $count = self::asCount(data_get($payload, $path));
+
+            if ($count !== null) {
+                return $count;
+            }
+        }
+
+        return null;
+    }
+
+    private static function asCount(mixed $value): int|float|null
+    {
+        if (is_string($value) && is_numeric($value)) {
+            $value = str_contains($value, '.') ? (float) $value : (int) $value;
+        }
+
+        if (! is_int($value) && ! is_float($value)) {
+            return null;
+        }
+
+        return $value < 0 ? null : $value;
+    }
+
     private static function nextSmsSandbox(): bool
     {
         return config('services.sms.nextsms.environment') === 'sandbox';
+    }
+
+    private static function sewmrSmsError(Response $response): string
+    {
+        $detail = $response->json('message')
+            ?? $response->json('detail')
+            ?? $response->json('errors.0.message');
+
+        if (is_array($detail)) {
+            $detail = $detail['msg'] ?? $detail['message'] ?? json_encode($detail);
+        }
+
+        if ($response->status() === 401 || (is_string($detail) && str_contains(strtolower($detail), 'token'))) {
+            return 'SEWMR SMS imekataa API token'.(is_string($detail) && $detail !== '' ? ": {$detail}" : ' (HTTP '.$response->status().').');
+        }
+
+        return 'SEWMR SMS ilikataa ombi'.(is_string($detail) && $detail !== '' ? ": {$detail}" : ' (HTTP '.$response->status().').');
     }
 
     private static function nextSmsError(Response $response): string

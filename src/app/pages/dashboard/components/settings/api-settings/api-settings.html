@@ -58,6 +58,12 @@
           }
         </header>
 
+        @if (service.key === 'sms') {
+          <div class="border-b border-line bg-canvas/40 px-5 py-4">
+            <app-sms-balance [balance]="smsBalanceLoading() ? undefined : smsBalance()" />
+          </div>
+        }
+
         <form class="space-y-4 px-5 py-4" (submit)="$event.preventDefault(); save(service)">
           @if (st.error) {
             <p class="alert-in rounded border border-negative/40 bg-negative/10 px-3 py-2 text-sm text-negative" role="alert">

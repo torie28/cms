@@ -1,13 +1,14 @@
-import { DatePipe } from '@angular/common';
+import { DatePipe, NgTemplateOutlet } from '@angular/common';
 import { afterNextRender, Component, computed, effect, inject, Injector, signal } from '@angular/core';
 import { RouterLink } from '@angular/router';
 import { AuthService } from '../../../../core/auth';
 import { I18nService, translate, TranslatePipe } from '../../../../core/i18n';
-import { MessagesService } from '../../../../core/messages';
+import { MessagesService, SmsBalance } from '../../../../core/messages';
 import { Offering, OFFERING_CATEGORIES, OfferingService } from '../../../../core/offerings';
 import { Jumuiya, Kanda, ParishService } from '../../../../core/parish';
 import { UsersService } from '../../../../core/users';
 import { FilterPanel } from '../../../../shared/filter-panel';
+import { SmsBalanceCard } from '../../../../shared/sms-balance';
 import { matchesSearch, SearchBox } from '../../../../shared/search-box';
 
 const RESULT_LIMIT = 5;
@@ -52,9 +53,11 @@ interface Metric {
   label: string;
   value: string;
   caption: string;
-  link: string;
+  link: string | null;
   change?: string;
   trend?: 'up' | 'down';
+  pending?: boolean;
+  tone?: string;
 }
 
 interface MonthBar {
@@ -73,7 +76,7 @@ function isoDay(date: Date): string {
 
 @Component({
   selector: 'app-overview',
-  imports: [RouterLink, DatePipe, SearchBox, FilterPanel, TranslatePipe],
+  imports: [RouterLink, DatePipe, NgTemplateOutlet, SearchBox, FilterPanel, TranslatePipe, SmsBalanceCard],
   templateUrl: './overview.html',
 })
 export class Overview {
@@ -91,6 +94,7 @@ export class Overview {
     kanda: this.auth.canAccess('kanda'),
     users: this.auth.canAccess('users'),
     notifications: this.auth.canAccess('notifications'),
+    apis: this.auth.canAccess('api_settings'),
   };
 
   private readonly jumuiyas = signal<Jumuiya[] | null>(null);
@@ -98,6 +102,12 @@ export class Overview {
   private readonly offerings = signal<Offering[] | null>(null);
   private readonly userCount = signal<number | null>(null);
   private readonly unreadCount = signal<number | null>(null);
+  /** Undefined until the provider answers; null when the request itself failed. */
+  protected readonly smsBalance = signal<SmsBalance | null | undefined>(undefined);
+
+  protected readonly smsHref = computed(() =>
+    this.can.notifications ? '/notifications' : this.can.apis ? '/settings/apis' : null,
+  );
 
   protected readonly loading = computed(() => this.jumuiyas() === null);
   protected readonly offeringsLoading = computed(() => this.can.sadaka && this.offerings() === null);
@@ -324,6 +334,7 @@ export class Overview {
       effect(() => localStorage.setItem(CHART_STYLE_KEY, this.chartStyle()), { injector: this.injector });
 
       void this.loadParish();
+      void this.loadSmsBalance();
       if (this.can.sadaka) {
         void this.loadOfferings();
       }
@@ -389,6 +400,14 @@ export class Overview {
       this.userCount.set((await this.usersApi.list()).length);
     } catch {
       // The card is simply left out.
+    }
+  }
+
+  private async loadSmsBalance(): Promise<void> {
+    try {
+      this.smsBalance.set(await this.messagesApi.balance());
+    } catch {
+      this.smsBalance.set(null);
     }
   }
 

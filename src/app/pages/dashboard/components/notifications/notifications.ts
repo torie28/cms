@@ -24,12 +24,14 @@ import {
   MessagesService,
   MessageStatus,
   NAME_PLACEHOLDER,
+  SmsBalance,
   normalizePhone,
   renderMessage,
   smsLength,
   STATUS_LABELS,
 } from '../../../../core/messages';
 import { FilterPanel, withinDateRange } from '../../../../shared/filter-panel';
+import { SmsBalanceCard } from '../../../../shared/sms-balance';
 import { matchesSearch, SearchBox } from '../../../../shared/search-box';
 
 type Tab = 'compose' | 'history';
@@ -53,7 +55,7 @@ const PICKER_LIMIT = 60;
 @Component({
   selector: 'app-notifications',
   changeDetection: ChangeDetectionStrategy.OnPush,
-  imports: [DatePipe, SearchBox, FilterPanel, TranslatePipe],
+  imports: [DatePipe, SearchBox, FilterPanel, TranslatePipe, SmsBalanceCard],
   templateUrl: './notifications.html',
 })
 export class NotificationsPage {
@@ -337,6 +339,8 @@ export class NotificationsPage {
 
   // ---------- History ----------
 
+  protected readonly balance = signal<SmsBalance | null>(null);
+  protected readonly balanceLoading = signal(true);
   protected readonly history = signal<Message[]>([]);
   protected readonly historyLoading = signal(true);
   protected readonly historyError = signal<string | null>(null);
@@ -450,6 +454,7 @@ export class NotificationsPage {
     afterNextRender(() => {
       void this.loadContacts();
       void this.loadHistory();
+      void this.loadBalance();
     });
   }
 
@@ -575,10 +580,31 @@ export class NotificationsPage {
       this.history.update((current) => [sent, ...current]);
       this.notice.set(this.outcome(sent));
       this.resetCompose();
+      void this.loadBalance();
     } catch (error) {
       this.error.set(httpErrorMessage(error, 'Imeshindwa kutuma ujumbe huo.'));
     } finally {
       this.sending.set(false);
+    }
+  }
+
+  protected async loadBalance(): Promise<void> {
+    this.balanceLoading.set(true);
+
+    try {
+      this.balance.set(await this.messages.balance());
+    } catch (error) {
+      this.balance.set({
+        driver: '',
+        provider: '',
+        sender_id: '',
+        test_mode: false,
+        available: null,
+        rate: null,
+        error: httpErrorMessage(error, 'Imeshindwa kupakia salio la SMS.'),
+      });
+    } finally {
+      this.balanceLoading.set(false);
     }
   }
 

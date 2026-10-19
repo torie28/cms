@@ -30,6 +30,8 @@
     }
   </div>
 
+  <app-sms-balance [balance]="balanceLoading() ? undefined : balance()" />
+
   <section class="grid gap-4 sm:grid-cols-2 xl:grid-cols-4" [attr.aria-label]="'Takwimu za ujumbe' | t">
     @for (stat of stats(); track stat.label) {
       <div class="rounded border border-line bg-surface px-4 py-3">

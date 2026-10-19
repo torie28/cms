@@ -49,6 +49,17 @@ export interface ContactBook {
   gateway: { driver: string; provider: string; test_mode: boolean; sender_id: string };
 }
 
+/** Remaining credits on whichever SMS provider is selected in settings. */
+export interface SmsBalance {
+  driver: string;
+  provider: string;
+  sender_id: string;
+  test_mode: boolean;
+  available: number | null;
+  rate: string | null;
+  error: string | null;
+}
+
 export interface MessagePayload {
   channel: MessageChannel;
   audience: AudienceType;
@@ -193,6 +204,11 @@ export class MessagesService {
 
   contacts(): Promise<ContactBook> {
     return firstValueFrom(this.http.get<ContactBook>(`${API_BASE}/messages/contacts`));
+  }
+
+  /** SMS credits left with the active provider. Any signed-in user may call this. */
+  balance(): Promise<SmsBalance> {
+    return firstValueFrom(this.http.get<SmsBalance>(`${API_BASE}/sms/balance`));
   }
 
   list(): Promise<Message[]> {

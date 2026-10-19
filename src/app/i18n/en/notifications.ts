@@ -7,6 +7,7 @@ export const NOTIFICATIONS: Record<string, string> = {
     'Choose a real provider in Settings → APIs & external services to send for real',
   'Hali ya majaribio · SMS haziendi kwenye simu': 'Test mode · SMS are not delivered to phones',
   'Mtoa huduma: {driver} · Mtumaji {sender}': 'Provider: {driver} · Sender {sender}',
+  'SMS zilizobaki: {count}': 'SMS remaining: {count}',
   'Takwimu za ujumbe': 'Message statistics',
   'Sehemu za arifa': 'Notification sections',
   'Tuma ujumbe': 'Send message',
@@ -186,4 +187,8 @@ export const NOTIFICATIONS: Record<string, string> = {
   'Beem haijasanidiwa (BEEM_API_KEY / BEEM_SECRET_KEY).': 'Beem is not configured (BEEM_API_KEY / BEEM_SECRET_KEY).',
   'NextSMS haijasanidiwa (username / password).': 'NextSMS is not configured (username / password).',
   'NextSMS imekataa username au password (HTTP 401).': 'NextSMS rejected the username or password (HTTP 401).',
+  'SEWMR SMS haijasanidiwa (SEWMRSMS_API_TOKEN).': 'SEWMR SMS is not configured (SEWMRSMS_API_TOKEN).',
+  'NextSMS haijarudisha salio.': 'NextSMS did not return a balance.',
+  'Beem haijarudisha salio.': 'Beem did not return a balance.',
+  'SEWMR SMS haijarudisha salio.': 'SEWMR SMS did not return a balance.',
 };

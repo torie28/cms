@@ -234,11 +234,13 @@ class Knowledge
                         ."1. Bofya kengele kuona arifa zako.\n"
                         ."2. Bofya arifa kuisoma yote; itawekwa kuwa imesomwa.\n"
                         ."3. **Weka zote zimesomwa** huondoa namba nyekundu kwa mara moja.\n\n"
+                        ."Mtu mwenye moduli ya Arifa na SMS pia huona hapa kumbusho la salio la akaunti ya SMS (NextSMS au mtoa huduma mwingine) likishuka hadi kikomo alichoweka.\n\n"
                         .'Hii ni tofauti na moduli ya Arifa na SMS, ambayo ni ya kutuma ujumbe.',
                     'en' => "Every user has a **bell** at the top right. The red number is how many you haven't read.\n\n"
                         ."1. Click the bell to see your notifications.\n"
                         ."2. Click one to read it in full; it is marked as read.\n"
                         ."3. **Mark all as read** clears the red number at once.\n\n"
+                        ."Someone who can open Notifications & SMS also sees a reminder here when the SMS account balance (NextSMS or another provider) falls to the limit they set.\n\n"
                         .'This is separate from the Notifications & SMS module, which is for sending messages.',
                 ],
                 'related' => ['notifications.send'],
@@ -832,12 +834,34 @@ class Knowledge
                 'answer' => [
                     'sw' => "Salio linalobaki linaonekana kwenye **Muhtasari**, kama kadi ya **SMS zilizobaki**. Msimamizi na mtumiaji wa kawaida wanaweza kuliona.\n\n"
                         ."Linatoka kwa mtoa huduma aliyechaguliwa sasa: NextSMS, Beem Africa au SEWMR SMS. Kadi inaonyesha idadi, jina la mtumaji, na bei kwa SMS ikipatikana.\n\n"
-                        .'Kadi hiyo hiyo ipo kwenye **Arifa na SMS** na kwenye **Mipangilio → API na huduma za nje**. Hali ya majaribio haina salio la kuonyesha.',
+                        ."Kadi hiyo hiyo ipo kwenye **Arifa na SMS** na kwenye **Mipangilio → API na huduma za nje**. Hali ya majaribio haina salio la kuonyesha.\n\n"
+                        .'Ukitaka kumbukumbu salio likipungua, weka **kikomo cha salio** kwenye Arifa na SMS.',
                     'en' => "The remaining balance is on **Overview**, as the **SMS remaining** card. Both an administrator and a regular user can see it.\n\n"
                         ."It comes from whichever provider is selected now: NextSMS, Beem Africa or SEWMR SMS. The card shows the count, the sender name, and the price per SMS when the provider returns one.\n\n"
-                        .'The same figure is on **Notifications & SMS** and under **Settings → APIs & external services**. Test mode has no balance to show.',
+                        ."The same figure is on **Notifications & SMS** and under **Settings → APIs & external services**. Test mode has no balance to show.\n\n"
+                        .'To be reminded when it runs low, set an **SMS limit** on Notifications & SMS.',
                 ],
-                'related' => ['notifications.send', 'api_settings.sms'],
+                'related' => ['notifications.send', 'notifications.alert', 'api_settings.sms'],
+            ],
+            [
+                'id' => 'notifications.alert',
+                'module' => 'notifications',
+                'actions' => [],
+                'keywords' => ['kikomo cha salio', 'kikomo cha sms', 'sms limit', 'low balance alert', 'salio linapopungua', 'kumbusha kuongeza', 'ongeza salio', 'remind me to add sms', 'top up sms', 'niarifu salio', 'balance threshold', 'sms zikibaki'],
+                'title' => ['sw' => 'Kikomo cha salio la SMS', 'en' => 'SMS balance limit'],
+                'answer' => [
+                    'sw' => "1. Fungua **Arifa na SMS**.\n"
+                        ."2. Chini ya salio, washa **Niarifu salio linapopungua**.\n"
+                        ."3. Andika idadi ya SMS zitakazobaki (mfano 20), kisha **Hifadhi kikomo**.\n\n"
+                        ."Salio halisi la akaunti (NextSMS, Beem au SEWMR) likifika hiyo idadi au chini, arifa inaonekana kwenye **kengele**. Inarudia kila siku mpaka uongeze salio, na tena likishuka baada ya kuongezwa.\n\n"
+                        .'Mtu asiye na moduli ya Arifa na SMS haoni kumbusho hilo.',
+                    'en' => "1. Open **Notifications & SMS**.\n"
+                        ."2. Under the balance, turn on **Notify me when the balance runs low**.\n"
+                        ."3. Enter how many SMS may remain (for example 20), then **Save limit**.\n\n"
+                        ."When the live account balance (NextSMS, Beem or SEWMR) reaches that number or less, a reminder appears in the **bell**. It repeats each day until you add credit, and again if the balance drops after a top-up.\n\n"
+                        .'Someone without the Notifications & SMS module does not see that reminder.',
+                ],
+                'related' => ['notifications.balance', 'general.inbox'],
             ],
             [
                 'id' => 'notifications.segments',

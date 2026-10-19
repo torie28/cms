@@ -8,6 +8,7 @@ import {
   inject,
   signal,
 } from '@angular/core';
+import { RouterLink } from '@angular/router';
 import { I18nService, TranslatePipe } from '../core/i18n';
 import { InboxItem, MessagesService } from '../core/messages';
 import { Icon } from './icon';
@@ -17,7 +18,7 @@ const POLL_MS = 60_000;
 @Component({
   selector: 'app-notification-bell',
   changeDetection: ChangeDetectionStrategy.OnPush,
-  imports: [DatePipe, Icon, TranslatePipe],
+  imports: [DatePipe, Icon, RouterLink, TranslatePipe],
   host: {
     class: 'relative',
     '(document:click)': 'closeIfOutside($event)',
@@ -59,27 +60,50 @@ const POLL_MS = 60_000;
         </header>
         <ul class="min-h-0 flex-1 divide-y divide-line overflow-y-auto">
           @for (item of items(); track item.id) {
-            <li>
+            <li [class.bg-brass-tint]="!item.read_at">
               <button
                 type="button"
                 class="block w-full px-4 py-3 text-left hover:bg-sunken"
-                [class.bg-brass-tint]="!item.read_at"
                 (click)="read(item)"
               >
                 <span class="flex items-start justify-between gap-2">
                   <span class="text-sm" [class.font-medium]="!item.read_at">
-                    {{ item.title || ('Ujumbe kutoka {sender}' | t: { sender: item.sender || ('parokia' | t) }) }}
+                    @if (item.kind === 'sms_balance' && item.alert; as alert) {
+                      {{ (alert.empty ? 'Salio la SMS limeisha' : 'Salio la SMS linakaribia kuisha') | t }}
+                    } @else {
+                      {{ item.title || ('Ujumbe kutoka {sender}' | t: { sender: item.sender || ('parokia' | t) }) }}
+                    }
                   </span>
                   @if (!item.read_at) {
                     <span class="mt-1.5 h-2 w-2 shrink-0 rounded-full bg-brass-strong" [attr.aria-label]="'Mpya' | t"></span>
                   }
                 </span>
                 <span class="mt-1 block text-xs leading-relaxed whitespace-pre-wrap text-muted"
-                      [class.line-clamp-3]="expanded() !== item.id">{{ item.body }}</span>
+                      [class.line-clamp-3]="expanded() !== item.id">
+                  @if (item.kind === 'sms_balance' && item.alert; as alert) {
+                    {{
+                      (alert.empty
+                        ? 'Hakuna SMS iliyobaki kwa {provider}. Ongeza salio ili uendelee kutuma ujumbe.'
+                        : 'Zimebaki SMS {available} kwa {provider}. Kikomo ulichoweka ni {threshold}. Ongeza salio ili usikose kutuma ujumbe.')
+                        | t: { provider: alert.provider, available: alert.available, threshold: alert.threshold }
+                    }}
+                  } @else {
+                    {{ item.body }}
+                  }
+                </span>
                 <span class="mt-1 block text-[0.65rem] text-faint">
                   {{ item.sender }} · {{ item.created_at | date: 'd MMM y, HH:mm' : undefined : i18n.dateLocale() }}
                 </span>
               </button>
+              @if (expanded() === item.id && item.kind === 'sms_balance') {
+                <a
+                  routerLink="/notifications"
+                  class="block px-4 pb-3 text-xs text-brass-strong hover:underline"
+                  (click)="open.set(false)"
+                >
+                  {{ 'Angalia salio na kikomo' | t }}
+                </a>
+              }
             </li>
           } @empty {
             <li class="px-4 py-8 text-center text-sm text-muted">{{ 'Huna arifa bado.' | t }}</li>
@@ -97,7 +121,7 @@ export class NotificationBell {
   protected readonly open = signal(false);
   protected readonly unread = signal(0);
   protected readonly items = signal<InboxItem[]>([]);
-  protected readonly expanded = signal<number | null>(null);
+  protected readonly expanded = signal<string | null>(null);
 
   constructor() {
     const destroyRef = inject(DestroyRef);

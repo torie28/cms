@@ -66,6 +66,7 @@ Route::middleware('auth:sanctum')->group(function () {
     Route::delete('/offerings/{offering}', [OfferingController::class, 'destroy']);
 
     Route::get('/sms/balance', [MessageController::class, 'balance']);
+    Route::put('/sms/alert', [MessageController::class, 'updateAlert']);
     Route::get('/messages/contacts', [MessageController::class, 'contacts']);
     Route::get('/messages', [MessageController::class, 'index']);
     Route::post('/messages', [MessageController::class, 'store']);
@@ -74,7 +75,7 @@ Route::middleware('auth:sanctum')->group(function () {
 
     Route::get('/inbox', [MessageController::class, 'inbox']);
     Route::post('/inbox/read-all', [MessageController::class, 'markAllRead']);
-    Route::post('/inbox/{recipient}/read', [MessageController::class, 'markRead'])->whereNumber('recipient');
+    Route::post('/inbox/read', [MessageController::class, 'markRead']);
 
     Route::get('/activity-logs', [ActivityLogController::class, 'index']);
     Route::post('/activity-logs', [ActivityLogController::class, 'store']);

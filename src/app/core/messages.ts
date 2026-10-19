@@ -49,6 +49,13 @@ export interface ContactBook {
   gateway: { driver: string; provider: string; test_mode: boolean; sender_id: string };
 }
 
+/** The parish limit that posts a bell reminder when remaining SMS fall to it. */
+export interface SmsBalanceAlertState {
+  enabled: boolean;
+  threshold: number | null;
+  low: boolean;
+}
+
 /** Remaining credits on whichever SMS provider is selected in settings. */
 export interface SmsBalance {
   driver: string;
@@ -58,6 +65,7 @@ export interface SmsBalance {
   available: number | null;
   rate: string | null;
   error: string | null;
+  alert?: SmsBalanceAlertState;
 }
 
 export interface MessagePayload {
@@ -72,13 +80,22 @@ export interface MessagePayload {
   body: string;
 }
 
+export interface InboxBalanceAlert {
+  available: number;
+  threshold: number;
+  provider: string;
+  empty: boolean;
+}
+
 export interface InboxItem {
-  id: number;
+  id: string;
+  kind: 'message' | 'sms_balance';
   read_at: string | null;
   created_at: string;
   sender: string | null;
   title: string | null;
   body: string;
+  alert?: InboxBalanceAlert | null;
 }
 
 export const NAME_PLACEHOLDER = '{jina}';
@@ -211,6 +228,11 @@ export class MessagesService {
     return firstValueFrom(this.http.get<SmsBalance>(`${API_BASE}/sms/balance`));
   }
 
+  /** Saves the remaining-SMS limit. Requires the notifications module. */
+  saveAlert(payload: { enabled: boolean; threshold: number | null }): Promise<SmsBalance> {
+    return firstValueFrom(this.http.put<SmsBalance>(`${API_BASE}/sms/alert`, payload));
+  }
+
   list(): Promise<Message[]> {
     return firstValueFrom(this.http.get<Message[]>(`${API_BASE}/messages`));
   }
@@ -231,8 +253,8 @@ export class MessagesService {
     return firstValueFrom(this.http.get<{ unread: number; items: InboxItem[] }>(`${API_BASE}/inbox`));
   }
 
-  markRead(id: number): Promise<void> {
-    return firstValueFrom(this.http.post<void>(`${API_BASE}/inbox/${id}/read`, {}));
+  markRead(id: string): Promise<void> {
+    return firstValueFrom(this.http.post<void>(`${API_BASE}/inbox/read`, { id }));
   }
 
   markAllRead(): Promise<void> {

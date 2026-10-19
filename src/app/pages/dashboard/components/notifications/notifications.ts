@@ -341,6 +341,12 @@ export class NotificationsPage {
 
   protected readonly balance = signal<SmsBalance | null>(null);
   protected readonly balanceLoading = signal(true);
+  protected readonly alertEnabled = signal(false);
+  protected readonly alertThreshold = signal('');
+  protected readonly alertSaving = signal(false);
+  protected readonly alertError = signal<string | null>(null);
+  protected readonly alertSaved = signal(false);
+  private readonly alertDirty = signal(false);
   protected readonly history = signal<Message[]>([]);
   protected readonly historyLoading = signal(true);
   protected readonly historyError = signal<string | null>(null);
@@ -588,11 +594,61 @@ export class NotificationsPage {
     }
   }
 
+  protected setAlertEnabled(enabled: boolean): void {
+    this.alertEnabled.set(enabled);
+    this.alertDirty.set(true);
+    this.alertSaved.set(false);
+    this.alertError.set(null);
+  }
+
+  protected setAlertThreshold(value: string): void {
+    this.alertThreshold.set(value);
+    this.alertDirty.set(true);
+    this.alertSaved.set(false);
+    this.alertError.set(null);
+  }
+
+  protected async saveAlert(): Promise<void> {
+    if (this.alertSaving()) {
+      return;
+    }
+
+    const enabled = this.alertEnabled();
+    const raw = this.alertThreshold().trim();
+    const threshold = raw === '' ? null : Number(raw);
+
+    if (
+      (raw !== '' && (threshold === null || !Number.isInteger(threshold) || threshold < 0 || threshold > 1_000_000)) ||
+      (enabled && threshold === null)
+    ) {
+      this.alertError.set(translate('Weka idadi kamili ya SMS, kuanzia sifuri.'));
+      return;
+    }
+
+    this.alertSaving.set(true);
+    this.alertError.set(null);
+    this.alertSaved.set(false);
+
+    try {
+      const updated = await this.messages.saveAlert({ enabled, threshold });
+      this.balance.set(updated);
+      this.alertDirty.set(false);
+      this.seedAlert(updated);
+      this.alertSaved.set(true);
+    } catch (error) {
+      this.alertError.set(httpErrorMessage(error, 'Imeshindwa kuhifadhi kikomo cha salio.'));
+    } finally {
+      this.alertSaving.set(false);
+    }
+  }
+
   protected async loadBalance(): Promise<void> {
     this.balanceLoading.set(true);
 
     try {
-      this.balance.set(await this.messages.balance());
+      const balance = await this.messages.balance();
+      this.balance.set(balance);
+      this.seedAlert(balance);
     } catch (error) {
       this.balance.set({
         driver: '',
@@ -606,6 +662,16 @@ export class NotificationsPage {
     } finally {
       this.balanceLoading.set(false);
     }
+  }
+
+  private seedAlert(balance: SmsBalance): void {
+    if (this.alertDirty()) {
+      return;
+    }
+
+    const alert = balance.alert;
+    this.alertEnabled.set(alert?.enabled ?? false);
+    this.alertThreshold.set(alert?.threshold != null ? String(alert.threshold) : '');
   }
 
   protected async loadHistory(): Promise<void> {

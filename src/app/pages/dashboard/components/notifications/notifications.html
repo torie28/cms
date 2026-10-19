@@ -32,6 +32,52 @@
 
   <app-sms-balance [balance]="balanceLoading() ? undefined : balance()" />
 
+  <section class="rounded border border-line bg-surface p-5">
+    <h2 class="font-serif text-lg">{{ 'Kikomo cha salio' | t }}</h2>
+    <p class="mt-1 max-w-2xl text-sm text-muted">
+      {{ 'Weka SMS zitakazobaki kabla ya kukumbushwa. Salio la akaunti ya SMS (NextSMS au mtoa huduma aliyechaguliwa) likifika hapo, arifa inaonekana kwenye kengele ili ukumbuke kuongeza salio.' | t }}
+    </p>
+    <form class="mt-4 flex flex-wrap items-end gap-4" (submit)="$event.preventDefault(); saveAlert()">
+      <label class="flex items-center gap-2 pb-2 text-sm">
+        <input
+          type="checkbox"
+          class="accent-brass-strong"
+          [checked]="alertEnabled()"
+          (change)="setAlertEnabled($any($event.target).checked)"
+        />
+        {{ 'Niarifu salio linapopungua' | t }}
+      </label>
+      <div class="w-40">
+        <label for="sms-alert-threshold" class="filter-label">{{ 'Nikumbushe SMS zinapobaki' | t }}</label>
+        <input
+          id="sms-alert-threshold"
+          type="number"
+          min="0"
+          step="1"
+          inputmode="numeric"
+          class="filter-input"
+          [value]="alertThreshold()"
+          [attr.aria-describedby]="alertError() ? 'sms-alert-error' : null"
+          (input)="setAlertThreshold($any($event.target).value)"
+        />
+      </div>
+      <button
+        type="submit"
+        class="rounded bg-brass-strong px-4 py-2 text-sm font-medium text-canvas hover:opacity-90 disabled:opacity-50"
+        [disabled]="alertSaving() || balanceLoading()"
+      >
+        {{ (alertSaving() ? 'Inahifadhi…' : 'Hifadhi kikomo') | t }}
+      </button>
+    </form>
+    @if (alertError()) {
+      <p id="sms-alert-error" class="alert-in mt-3 text-sm text-negative" role="alert">{{ alertError() }}</p>
+    } @else if (alertSaved()) {
+      <p class="alert-in mt-3 text-sm text-positive" role="status">
+        {{ 'Kikomo kimehifadhiwa. Utakumbushwa kwenye kengele kila siku salio likiwa kwenye kikomo hiki au chini.' | t }}
+      </p>
+    }
+  </section>
+
   <section class="grid gap-4 sm:grid-cols-2 xl:grid-cols-4" [attr.aria-label]="'Takwimu za ujumbe' | t">
     @for (stat of stats(); track stat.label) {
       <div class="rounded border border-line bg-surface px-4 py-3">

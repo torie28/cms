@@ -19,7 +19,9 @@
 
 <ng-template #ledger>
   <span
-    class="absolute inset-y-0 left-0 w-1 bg-brass transition-[width] duration-200 group-hover:w-1.5"
+    class="absolute inset-y-0 left-0 w-1 transition-[width] duration-200 group-hover:w-1.5"
+    [class.bg-brass]="!balance()?.alert?.low"
+    [class.bg-negative]="balance()?.alert?.low"
     aria-hidden="true"
   ></span>
 
@@ -53,12 +55,13 @@
     @if (bal.available === null) {
       <p class="px-5 py-6 pl-6 text-sm text-negative">{{ (bal.error || 'Imeshindwa kupakia salio la SMS.') | t }}</p>
     } @else {
-      <div class="mt-4 grid gap-3 px-5 pb-5 pl-6 sm:grid-cols-2">
+      <div class="mt-4 grid gap-3 px-5 pl-6 sm:grid-cols-2" [class.pb-5]="!bal.alert?.low" [class.pb-3]="bal.alert?.low">
         <div class="sms-figure rounded border border-line bg-canvas px-4 py-3">
           <p class="text-xs tracking-[0.14em] text-faint uppercase">{{ 'Idadi ya SMS' | t }}</p>
           <p
             class="mt-1 font-serif text-4xl tabular-nums tracking-tight"
             [class.text-negative]="bal.available === 0"
+            [class.text-brass-strong]="bal.alert?.low && bal.available !== 0"
           >
             {{ messages() }}
           </p>
@@ -74,6 +77,20 @@
           </p>
         </div>
       </div>
+      @if (bal.alert?.low) {
+        <p
+          class="px-5 pb-5 pl-6 text-sm"
+          [class.text-negative]="bal.available === 0"
+          [class.text-brass-strong]="bal.available !== 0"
+        >
+          {{
+            (bal.available === 0
+              ? 'Salio limeisha. Ongeza SMS ili uendelee kutuma.'
+              : 'Zimebaki chini ya kikomo cha {threshold}. Ongeza SMS ili usikose kutuma.')
+              | t: { threshold: bal.alert?.threshold }
+          }}
+        </p>
+      }
     }
   } @else {
     <p class="px-5 py-6 pl-6 text-sm text-negative">{{ 'Imeshindwa kupakia salio la SMS.' | t }}</p>

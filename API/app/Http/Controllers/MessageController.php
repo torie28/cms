@@ -7,10 +7,13 @@ use App\Models\JumuiyaMember;
 use App\Models\Kanda;
 use App\Models\Message;
 use App\Models\MessageRecipient;
+use App\Models\SmsBalanceAlert;
+use App\Models\SystemNotice;
 use App\Models\User;
 use App\Support\ActivityLogger;
 use App\Support\Modules;
 use App\Support\Sms\Audience;
+use App\Support\Sms\BalanceAlert;
 use App\Support\Sms\Outbox;
 use App\Support\Sms\SmsGateway;
 use Illuminate\Http\JsonResponse;
@@ -46,7 +49,54 @@ class MessageController extends Controller
     /** Remaining SMS on the active provider. Any signed-in user may read it. */
     public function balance(): JsonResponse
     {
-        return response()->json(app(SmsGateway::class)->balance());
+        return response()->json($this->balancePayload(app(BalanceAlert::class)->sync(fresh: true)));
+    }
+
+    /** The remaining-SMS limit that posts a reminder into the notification bell. */
+    public function updateAlert(Request $request): JsonResponse
+    {
+        abort_unless(
+            Modules::canAccess($request->user(), 'notifications'),
+            403,
+            'Huna ruhusa ya kuweka kikomo cha salio la SMS.',
+        );
+
+        $data = $request->validate([
+            'enabled' => ['required', 'boolean'],
+            'threshold' => ['nullable', 'integer', 'min:0', 'max:1000000', 'required_if:enabled,true'],
+        ], [
+            'threshold.required_if' => 'Weka idadi ya SMS zitakazobaki kabla ya kukumbushwa.',
+            'threshold.integer' => 'Kikomo lazima kiwe namba kamili.',
+            'threshold.min' => 'Kikomo hakiwezi kuwa chini ya sifuri.',
+            'threshold.max' => 'Kikomo ni kikubwa mno.',
+        ]);
+
+        $alert = SmsBalanceAlert::current();
+        $alert->enabled = $request->boolean('enabled');
+        $alert->threshold = $data['threshold'] ?? null;
+        $alert->updated_by = $request->user()->name;
+
+        if (! $alert->enabled) {
+            $alert->active = false;
+            $alert->last_notified_on = null;
+        }
+
+        $alert->save();
+
+        app(ActivityLogger::class)->record(
+            $request->user(),
+            'updated',
+            $alert->enabled
+                ? 'Kikomo cha salio la SMS: '.$alert->threshold
+                : 'Kikomo cha salio la SMS kimezimwa',
+            'sms_balance_alert',
+            $request,
+            $alert,
+        );
+
+        $service = app(BalanceAlert::class);
+
+        return response()->json($this->balancePayload($service->sync(fresh: true)));
     }
 
     public function index(Request $request): JsonResponse
@@ -188,58 +238,130 @@ class MessageController extends Controller
         return response()->json($message);
     }
 
-    /** In-app notifications addressed to the signed-in user. */
+    /** In-app notifications addressed to the signed-in user, plus SMS balance reminders. */
     public function inbox(Request $request): JsonResponse
     {
-        $query = MessageRecipient::query()
+        app(BalanceAlert::class)->sync();
+
+        $user = $request->user();
+        $messages = MessageRecipient::query()
             ->where('channel', 'app')
             ->where('recipient_type', 'user')
-            ->where('recipient_id', $request->user()->id);
-
-        $items = (clone $query)
+            ->where('recipient_id', $user->id)
             ->with('message:id,sender,title,body,created_at')
             ->orderByDesc('id')
             ->limit(30)
             ->get(['id', 'message_id', 'read_at', 'created_at']);
 
-        return response()->json([
-            'unread' => (clone $query)->whereNull('read_at')->count(),
-            'items' => $items->map(fn (MessageRecipient $item) => [
-                'id' => $item->id,
+        $notices = SystemNotice::query()
+            ->where('user_id', $user->id)
+            ->orderByDesc('id')
+            ->limit(30)
+            ->get();
+
+        $items = $messages
+            ->map(fn (MessageRecipient $item) => [
+                'id' => 'message:'.$item->id,
+                'kind' => 'message',
                 'read_at' => $item->read_at,
                 'created_at' => $item->created_at,
                 'sender' => $item->message?->sender,
                 'title' => $item->message?->title,
-                'body' => Outbox::render((string) $item->message?->body, $request->user()->name),
-            ]),
+                'body' => Outbox::render((string) $item->message?->body, $user->name),
+                'alert' => null,
+                'sort' => $item->created_at?->getTimestamp() ?? 0,
+            ])
+            ->concat($notices->map(fn (SystemNotice $notice) => [
+                'id' => 'notice:'.$notice->id,
+                'kind' => $notice->kind,
+                'read_at' => $notice->read_at,
+                'created_at' => $notice->created_at,
+                'sender' => $notice->sender,
+                'title' => $notice->title,
+                'body' => $notice->body,
+                'alert' => $notice->meta,
+                'sort' => $notice->created_at?->getTimestamp() ?? 0,
+            ]))
+            ->sortByDesc('sort')
+            ->take(30)
+            ->map(fn (array $item) => collect($item)->except('sort')->all())
+            ->values();
+
+        $unread = MessageRecipient::query()
+            ->where('channel', 'app')
+            ->where('recipient_type', 'user')
+            ->where('recipient_id', $user->id)
+            ->whereNull('read_at')
+            ->count()
+            + SystemNotice::query()->where('user_id', $user->id)->whereNull('read_at')->count();
+
+        return response()->json([
+            'unread' => $unread,
+            'items' => $items,
         ]);
     }
 
-    public function markRead(Request $request, MessageRecipient $recipient): JsonResponse
+    public function markRead(Request $request): JsonResponse
     {
-        abort_unless(
-            $recipient->channel === 'app'
-                && $recipient->recipient_type === 'user'
-                && $recipient->recipient_id === $request->user()->id,
-            404,
-        );
+        $id = (string) $request->validate([
+            'id' => ['required', 'string', 'max:40'],
+        ])['id'];
 
-        $recipient->read_at ??= now();
-        $recipient->save();
+        if (preg_match('/^notice:(\d+)$/', $id, $match) === 1) {
+            $notice = SystemNotice::query()
+                ->where('user_id', $request->user()->id)
+                ->whereKey((int) $match[1])
+                ->firstOrFail();
+            $notice->read_at ??= now();
+            $notice->save();
 
-        return response()->json(['read_at' => $recipient->read_at]);
+            return response()->json(['read_at' => $notice->read_at]);
+        }
+
+        if (preg_match('/^message:(\d+)$/', $id, $match) === 1) {
+            $recipient = MessageRecipient::query()->findOrFail((int) $match[1]);
+            abort_unless(
+                $recipient->channel === 'app'
+                    && $recipient->recipient_type === 'user'
+                    && $recipient->recipient_id === $request->user()->id,
+                404,
+            );
+
+            $recipient->read_at ??= now();
+            $recipient->save();
+
+            return response()->json(['read_at' => $recipient->read_at]);
+        }
+
+        abort(404);
     }
 
     public function markAllRead(Request $request): JsonResponse
     {
+        $now = now();
+
         MessageRecipient::query()
             ->where('channel', 'app')
             ->where('recipient_type', 'user')
             ->where('recipient_id', $request->user()->id)
             ->whereNull('read_at')
-            ->update(['read_at' => now()]);
+            ->update(['read_at' => $now]);
+
+        SystemNotice::query()
+            ->where('user_id', $request->user()->id)
+            ->whereNull('read_at')
+            ->update(['read_at' => $now]);
 
         return response()->json(['message' => 'Zote zimesomwa.']);
+    }
+
+    /** @param  array<string, mixed>  $balance */
+    private function balancePayload(array $balance): array
+    {
+        return [
+            ...$balance,
+            'alert' => app(BalanceAlert::class)->describe($balance),
+        ];
     }
 
     private function summary(Message $message): string

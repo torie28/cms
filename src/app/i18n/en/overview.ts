@@ -34,6 +34,9 @@ export const OVERVIEW: Record<string, string> = {
   'Bei haijarejeshwa na mtoa huduma.': 'The provider did not return a price.',
   'Salio halipatikani katika hali ya majaribio.': 'Balance is not available in test mode.',
   'Salio limeisha': 'Balance is empty',
+  'Salio limeisha. Ongeza SMS ili uendelee kutuma.': 'The balance is empty. Add SMS to keep sending.',
+  'Zimebaki chini ya kikomo cha {threshold}. Ongeza SMS ili usikose kutuma.':
+    'Remaining SMS are under your limit of {threshold}. Add SMS so sending does not stop.',
   'Imeshindwa kupakia salio la SMS.': 'Could not load the SMS balance.',
   '{label}: {value}. Fungua moduli': '{label}: {value}. Open module',
   '{label}: {value}': '{label}: {value}',

@@ -117,6 +117,13 @@ export const COMMON: Record<string, string> = {
   parokia: 'the parish',
   Mpya: 'New',
   'Huna arifa bado.': 'You have no notifications yet.',
+  'Salio la SMS limeisha': 'SMS balance is empty',
+  'Salio la SMS linakaribia kuisha': 'SMS balance is running low',
+  'Hakuna SMS iliyobaki kwa {provider}. Ongeza salio ili uendelee kutuma ujumbe.':
+    'No SMS remain with {provider}. Add credit to keep sending messages.',
+  'Zimebaki SMS {available} kwa {provider}. Kikomo ulichoweka ni {threshold}. Ongeza salio ili usikose kutuma ujumbe.':
+    '{available} SMS remain with {provider}. Your limit is {threshold}. Add credit so sending does not stop.',
+  'Angalia salio na kikomo': 'View balance and limit',
 
   // Offline screen
   'Hakuna muunganisho': 'No connection',

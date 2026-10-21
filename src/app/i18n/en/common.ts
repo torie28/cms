@@ -167,7 +167,6 @@ export const COMMON: Record<string, string> = {
   '“Tuangaliane sisi kwa sisi, ili kuhimizana katika upendo na matendo mema.”':
     '“And let us consider how we may spur one another on toward love and good deeds.”',
   'Waebrania 10:24': 'Hebrews 10:24',
-  'Tukiihudumia jumuiya ya waamini tangu 1908': 'Serving the congregation since 1908',
   'Karibu tena': 'Welcome back',
   'Ingia kwenye mfumo wa usimamizi wa kanisa.': 'Sign in to the church management system.',
   'Wanachama pekee': 'Members only',

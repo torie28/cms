@@ -89,12 +89,13 @@ export interface InboxBalanceAlert {
 
 export interface InboxItem {
   id: string;
-  kind: 'message' | 'sms_balance';
+  kind: 'message' | 'sms_balance' | 'deletion_request' | 'deletion_approved' | 'deletion_rejected' | string;
   read_at: string | null;
   created_at: string;
   sender: string | null;
   title: string | null;
   body: string;
+  /** SMS balance fields, or deletion-request meta (request_id, href, …). */
   alert?: InboxBalanceAlert | null;
 }
 

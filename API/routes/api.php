@@ -3,6 +3,7 @@
 use App\Http\Controllers\ActivityLogController;
 use App\Http\Controllers\ApiSettingController;
 use App\Http\Controllers\AuthController;
+use App\Http\Controllers\DeletionRequestController;
 use App\Http\Controllers\JumuiyaController;
 use App\Http\Controllers\JumuiyaMemberController;
 use App\Http\Controllers\KandaController;
@@ -47,6 +48,11 @@ Route::middleware('auth:sanctum')->group(function () {
     Route::post('/kandas/{kanda}/split', [KandaController::class, 'split'])->whereNumber('kanda');
     Route::put('/kandas/{kanda}', [KandaController::class, 'update'])->whereNumber('kanda');
     Route::delete('/kandas/{kanda}', [KandaController::class, 'destroy'])->whereNumber('kanda');
+
+    Route::get('/deletion-requests', [DeletionRequestController::class, 'index']);
+    Route::post('/deletion-requests', [DeletionRequestController::class, 'store']);
+    Route::post('/deletion-requests/{deletionRequest}/approve', [DeletionRequestController::class, 'approve'])->whereNumber('deletionRequest');
+    Route::post('/deletion-requests/{deletionRequest}/reject', [DeletionRequestController::class, 'reject'])->whereNumber('deletionRequest');
 
     Route::get('/jumuiyas', [JumuiyaController::class, 'index']);
     Route::post('/jumuiyas', [JumuiyaController::class, 'store']);

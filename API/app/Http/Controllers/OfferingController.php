@@ -2,9 +2,11 @@
 
 namespace App\Http\Controllers;
 
+use App\Models\DeletionRequest;
 use App\Models\Offering;
 use App\Support\ActivityLogger;
 use App\Support\Modules;
+use App\Support\RecordDeletion;
 use App\Support\Recycle;
 use App\Support\Sms\Phone;
 use App\Support\Sms\ThankYou;
@@ -98,18 +100,14 @@ class OfferingController extends Controller
     public function destroy(Request $request, Offering $offering): JsonResponse
     {
         $this->ensureCan($request, 'sadaka', 'delete');
+        $this->ensureImmediateDeleteAllowed($request);
 
-        $snapshot = Recycle::snapshot($offering);
-        $offering->delete();
-
-        app(ActivityLogger::class)->record(
+        RecordDeletion::run($request->user(), 'offering', $offering->id, $request);
+        DeletionRequest::cancelPending(
+            DeletionRequest::TYPE_OFFERING,
+            $offering->id,
             $request->user(),
-            'deleted',
-            $this->describe($offering),
-            'offering',
-            $request,
-            $offering,
-            ['snapshot' => $snapshot],
+            'Sadaka/mchango umefutwa moja kwa moja na msimamizi.',
         );
 
         return response()->json(['message' => 'Offering removed.']);

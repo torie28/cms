@@ -124,6 +124,7 @@ export const COMMON: Record<string, string> = {
   'Zimebaki SMS {available} kwa {provider}. Kikomo ulichoweka ni {threshold}. Ongeza salio ili usikose kutuma ujumbe.':
     '{available} SMS remain with {provider}. Your limit is {threshold}. Add credit so sending does not stop.',
   'Angalia salio na kikomo': 'View balance and limit',
+  'Fungua maombi ya kufuta': 'Open deletion requests',
 
   // Offline screen
   'Hakuna muunganisho': 'No connection',

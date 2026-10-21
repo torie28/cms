@@ -11,6 +11,11 @@ import {
 import { ActivityEntry, ActivityService, isDeletion, isPendingDeletion } from '../../../../../core/activity';
 import { AuthService } from '../../../../../core/auth';
 import { ConfirmService } from '../../../../../core/confirm';
+import {
+  deletionRequestNotice,
+  DeletionRequestsService,
+  needsDeleteApproval,
+} from '../../../../../core/deletion-requests';
 import { httpErrorMessage } from '../../../../../core/http-error';
 import { I18nService, translate, TranslatePipe } from '../../../../../core/i18n';
 import { FilterPanel, withinDateRange } from '../../../../../shared/filter-panel';
@@ -23,6 +28,8 @@ const ACTION_LABELS: Record<string, string> = {
   created: 'Aliongeza',
   updated: 'Alihariri',
   deleted: 'Alifuta',
+  delete_requested: 'Aliomba kufuta',
+  delete_rejected: 'Alikataa ombi la kufuta',
   imported: 'Aliingiza (Excel)',
   exported: 'Alipakua',
   restored: 'Alirejesha',
@@ -70,8 +77,10 @@ export class ActivityLogs {
   private polling = false;
 
   private readonly auth = inject(AuthService);
+  private readonly deletions = inject(DeletionRequestsService);
   protected readonly canRestore = computed(() => this.auth.can('activity_logs', 'update'));
   protected readonly canPurge = computed(() => this.auth.can('activity_logs', 'delete'));
+  protected readonly needsDeleteApproval = computed(() => needsDeleteApproval(this.auth));
   protected readonly retentionDays = RETENTION_DAYS;
   protected readonly pendingCount = computed(
     () => this.deletedLogs().filter((entry) => isPendingDeletion(entry, this.now())).length,
@@ -345,11 +354,35 @@ export class ActivityLogs {
   }
 
   protected async purge(entry: ActivityEntry): Promise<void> {
-    const question = translate(
-      'Futa kabisa "{subject}"? Hatua hii haiwezi kutenduliwa, ingawa maelezo yake yatabaki kwenye kumbukumbu.',
-      { subject: entry.subject },
-    );
-    if (!(await this.confirm.ask({ message: question, confirmLabel: 'Futa kabisa', tone: 'danger' }))) {
+    const requestApproval = this.needsDeleteApproval();
+    const question = requestApproval
+      ? translate('Tuma ombi la kufuta kabisa "{subject}"?', { subject: entry.subject })
+      : translate(
+          'Futa kabisa "{subject}"? Hatua hii haiwezi kutenduliwa, ingawa maelezo yake yatabaki kwenye kumbukumbu.',
+          { subject: entry.subject },
+        );
+    if (
+      !(await this.confirm.ask({
+        message: question,
+        confirmLabel: requestApproval ? 'Tuma ombi' : 'Futa kabisa',
+        tone: 'danger',
+      }))
+    ) {
+      return;
+    }
+
+    if (requestApproval) {
+      this.busyId.set(entry.id);
+      this.error.set(null);
+      this.notice.set(null);
+      try {
+        await this.deletions.request({ subject_type: 'activity_log', subject_id: entry.id });
+        this.notice.set(deletionRequestNotice(entry.subject));
+      } catch (error) {
+        this.error.set(httpErrorMessage(error, 'Imeshindwa kutuma ombi la kufuta.'));
+      } finally {
+        this.busyId.set(null);
+      }
       return;
     }
 

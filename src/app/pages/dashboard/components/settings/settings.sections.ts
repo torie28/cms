@@ -1,5 +1,6 @@
-import { inject, Type } from '@angular/core';
-import { CanActivateFn, Router, Routes } from '@angular/router';
+import { isPlatformBrowser } from '@angular/common';
+import { inject, PLATFORM_ID, Type } from '@angular/core';
+import { CanActivateFn, RedirectCommand, Router, Routes } from '@angular/router';
 import { AuthService } from '../../../../core/auth';
 import { moduleGuard, noAccessUrl } from '../../../../core/auth-guard';
 
@@ -13,6 +14,8 @@ export interface SettingsSection {
    * Leave out for personal sections every signed-in user may open.
    */
   module?: string;
+  /** When true, only administrators may open this section. */
+  adminOnly?: boolean;
   loadComponent: () => Promise<Type<unknown>>;
 }
 
@@ -49,6 +52,13 @@ export const SETTINGS_SECTIONS: SettingsSection[] = [
     module: 'activity_logs',
     loadComponent: () => import('./activity-logs/activity-logs').then((m) => m.ActivityLogs),
   },
+  {
+    path: 'deletion-requests',
+    label: 'Maombi ya kufuta',
+    description: 'Idhinisha au kataa maombi ya kufuta kutoka moduli zote',
+    adminOnly: true,
+    loadComponent: () => import('./deletion-requests/deletion-requests').then((m) => m.DeletionRequestsSettings),
+  },
 ];
 
 export const SETTINGS_MODULES = SETTINGS_SECTIONS.flatMap((section) => (section.module ? [section.module] : []));
@@ -59,8 +69,23 @@ export const SETTINGS_ACCESS: readonly string[] | undefined = SETTINGS_SECTIONS.
   : undefined;
 
 export function canOpenSection(auth: AuthService, section: SettingsSection): boolean {
+  if (section.adminOnly && !auth.isAdmin()) {
+    return false;
+  }
   return !section.module || auth.canAccess(section.module);
 }
+
+const adminGuard: CanActivateFn = (_route, state) => {
+  if (!isPlatformBrowser(inject(PLATFORM_ID))) {
+    return true;
+  }
+
+  if (inject(AuthService).isAdmin()) {
+    return true;
+  }
+
+  return new RedirectCommand(noAccessUrl(inject(Router), 'settings'), { browserUrl: state.url });
+};
 
 export const SETTINGS_ROUTES: Routes = [
   {
@@ -75,7 +100,10 @@ export const SETTINGS_ROUTES: Routes = [
   ...SETTINGS_SECTIONS.map((section) => ({
     path: section.path,
     title: `${section.label} · Mfumo wa Usimamizi wa Kanisa`,
-    canActivate: section.module ? [moduleGuard(section.module)] : ([] as CanActivateFn[]),
+    canActivate: [
+      ...(section.adminOnly ? [adminGuard] : []),
+      ...(section.module ? [moduleGuard(section.module)] : []),
+    ] as CanActivateFn[],
     loadComponent: section.loadComponent,
   })),
 ];

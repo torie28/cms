@@ -15,6 +15,11 @@ import { matchesSearch, SearchBox } from '../../../../shared/search-box';
 import { ActivityService } from '../../../../core/activity';
 import { AuthService } from '../../../../core/auth';
 import { ConfirmService } from '../../../../core/confirm';
+import {
+  deletionRequestNotice,
+  DeletionRequestsService,
+  needsDeleteApproval,
+} from '../../../../core/deletion-requests';
 import { httpErrorMessage } from '../../../../core/http-error';
 import { translate, TranslatePipe } from '../../../../core/i18n';
 import { EXPORT_FORMATS, FORMAT_NAMES, SPREADSHEET_ACCEPT } from '../../../../core/spreadsheet';
@@ -49,10 +54,12 @@ export class JumuiyaPage {
   private readonly offeringsApi = inject(OfferingService);
   private readonly fb = inject(FormBuilder);
   private readonly confirm = inject(ConfirmService);
+  private readonly deletions = inject(DeletionRequestsService);
   private readonly auth = inject(AuthService);
   protected readonly canCreate = computed(() => this.auth.can('jumuiya', 'create'));
   protected readonly canUpdate = computed(() => this.auth.can('jumuiya', 'update'));
   protected readonly canDelete = computed(() => this.auth.can('jumuiya', 'delete'));
+  protected readonly needsDeleteApproval = computed(() => needsDeleteApproval(this.auth));
   protected readonly canSplit = computed(() => this.canCreate() && this.canUpdate());
   protected readonly splitTarget = signal<Jumuiya | null>(null);
   protected readonly moveTarget = signal<Jumuiya | null>(null);
@@ -443,8 +450,15 @@ export class JumuiyaPage {
     if (this.saving()) {
       return;
     }
+    const requestApproval = this.needsDeleteApproval();
     const confirmed = await this.confirm.ask({
-      message: translate('Futa {name}? Wanajumuiya wake wote wataondolewa pia.', { name: group.name }),
+      message: requestApproval
+        ? translate(
+            'Tuma ombi la kufuta {name}? Wanajumuiya wake wataondolewa baada ya msimamizi kuidhinisha.',
+            { name: group.name },
+          )
+        : translate('Futa {name}? Wanajumuiya wake wote wataondolewa pia.', { name: group.name }),
+      confirmLabel: requestApproval ? 'Tuma ombi' : 'Futa',
       tone: 'danger',
     });
     if (!confirmed || this.saving()) {
@@ -455,6 +469,12 @@ export class JumuiyaPage {
     this.error.set(null);
 
     try {
+      if (requestApproval) {
+        await this.deletions.request({ subject_type: 'jumuiya', subject_id: group.id });
+        this.notice.set(deletionRequestNotice(group.name));
+        return;
+      }
+
       await this.parish.deleteJumuiya(group.id);
       this.jumuiyas.update((current) => current.filter((item) => item.id !== group.id));
 
@@ -464,7 +484,9 @@ export class JumuiyaPage {
         this.viewOpen.set(false);
       }
     } catch (error) {
-      this.error.set(httpErrorMessage(error, 'Imeshindwa kufuta jumuiya hiyo.'));
+      this.error.set(
+        httpErrorMessage(error, requestApproval ? 'Imeshindwa kutuma ombi la kufuta.' : 'Imeshindwa kufuta jumuiya hiyo.'),
+      );
     } finally {
       this.saving.set(false);
     }
@@ -476,9 +498,15 @@ export class JumuiyaPage {
     if (!jumuiya || this.saving()) {
       return;
     }
+    const requestApproval = this.needsDeleteApproval();
     const confirmed = await this.confirm.ask({
-      message: translate('Mwondoe {member} kutoka {jumuiya}?', { member: member.name, jumuiya: jumuiya.name }),
-      confirmLabel: 'Ondoa',
+      message: requestApproval
+        ? translate('Tuma ombi la kumwondoa {member} kutoka {jumuiya}?', {
+            member: member.name,
+            jumuiya: jumuiya.name,
+          })
+        : translate('Mwondoe {member} kutoka {jumuiya}?', { member: member.name, jumuiya: jumuiya.name }),
+      confirmLabel: requestApproval ? 'Tuma ombi' : 'Ondoa',
       tone: 'danger',
     });
     if (!confirmed || this.saving()) {
@@ -489,11 +517,26 @@ export class JumuiyaPage {
     this.error.set(null);
 
     try {
+      if (requestApproval) {
+        await this.deletions.request({
+          subject_type: 'jumuiya_member',
+          subject_id: member.id,
+          jumuiya_id: jumuiya.id,
+        });
+        this.notice.set(deletionRequestNotice(member.name));
+        return;
+      }
+
       const { jumuiya: updated } = await this.parish.deleteJumuiyaMember(jumuiya.id, member.id);
       this.upsertJumuiya(updated);
       this.members.update((current) => current.filter((item) => item.id !== member.id));
     } catch (error) {
-      this.error.set(httpErrorMessage(error, 'Imeshindwa kumwondoa mwanajumuiya huyo.'));
+      this.error.set(
+        httpErrorMessage(
+          error,
+          requestApproval ? 'Imeshindwa kutuma ombi la kufuta.' : 'Imeshindwa kumwondoa mwanajumuiya huyo.',
+        ),
+      );
     } finally {
       this.saving.set(false);
     }

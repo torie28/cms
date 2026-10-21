@@ -2,9 +2,11 @@
 
 namespace App\Http\Controllers;
 
+use App\Models\DeletionRequest;
 use App\Models\Jumuiya;
 use App\Models\JumuiyaMember;
 use App\Support\ActivityLogger;
+use App\Support\RecordDeletion;
 use App\Support\Recycle;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
@@ -69,18 +71,21 @@ class JumuiyaMemberController extends Controller
     public function destroy(Request $request, Jumuiya $jumuiya, JumuiyaMember $member): JsonResponse
     {
         $this->ensureCan($request, 'jumuiya', 'delete');
+        $this->ensureImmediateDeleteAllowed($request);
         $this->ensureMember($jumuiya, $member);
-        $snapshot = Recycle::snapshot($member);
-        $member->delete();
 
-        app(ActivityLogger::class)->record(
+        RecordDeletion::run(
             $request->user(),
-            'deleted',
-            $member->name.' from '.$jumuiya->name,
             'jumuiya_member',
+            $member->id,
             $request,
-            $member,
-            ['snapshot' => $snapshot],
+            ['jumuiya_id' => $jumuiya->id],
+        );
+        DeletionRequest::cancelPending(
+            DeletionRequest::TYPE_JUMUIYA_MEMBER,
+            $member->id,
+            $request->user(),
+            'Mwanajumuiya amefutwa moja kwa moja na msimamizi.',
         );
 
         return response()->json([

@@ -2,8 +2,10 @@
 
 namespace App\Http\Controllers;
 
+use App\Models\DeletionRequest;
 use App\Models\Role;
 use App\Support\ActivityLogger;
+use App\Support\RecordDeletion;
 use App\Support\Recycle;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
@@ -84,21 +86,14 @@ class RoleController extends Controller
     public function destroy(Request $request, Role $role): JsonResponse
     {
         $this->ensureCan($request, 'users', 'delete');
+        $this->ensureImmediateDeleteAllowed($request);
 
-        abort_if($role->is_system, 422, 'Wadhifa huu wa mfumo hauwezi kufutwa.');
-        abort_if($role->users()->exists(), 422, 'Wadhifa huu una watumiaji. Wahamishie wadhifa mwingine kwanza.');
-
-        $snapshot = Recycle::snapshot($role);
-        $role->delete();
-
-        app(ActivityLogger::class)->record(
+        RecordDeletion::run($request->user(), 'role', $role->id, $request);
+        DeletionRequest::cancelPending(
+            DeletionRequest::TYPE_ROLE,
+            $role->id,
             $request->user(),
-            'deleted',
-            $role->label,
-            'role',
-            $request,
-            $role,
-            ['snapshot' => $snapshot],
+            'Wadhifa umefutwa moja kwa moja na msimamizi.',
         );
 
         return response()->json(['message' => 'Role removed.']);

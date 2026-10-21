@@ -10,6 +10,11 @@ import { FormBuilder, ReactiveFormsModule, Validators } from '@angular/forms';
 import { ActivatedRoute, RouterLink } from '@angular/router';
 import { ActivityService } from '../../../../core/activity';
 import { AuthService } from '../../../../core/auth';
+import {
+  deletionRequestNotice,
+  DeletionRequestsService,
+  needsDeleteApproval,
+} from '../../../../core/deletion-requests';
 import { httpErrorMessage } from '../../../../core/http-error';
 import { I18nService, translate, TranslatePipe } from '../../../../core/i18n';
 import {
@@ -74,14 +79,18 @@ export class KandaPage {
   private readonly parish = inject(ParishService);
   private readonly offeringsApi = inject(OfferingService);
   private readonly activity = inject(ActivityService);
+  private readonly deletions = inject(DeletionRequestsService);
   private readonly auth = inject(AuthService);
   private readonly i18n = inject(I18nService);
   protected readonly canCreate = computed(() => this.auth.can('kanda', 'create'));
   protected readonly canUpdate = computed(() => this.auth.can('kanda', 'update'));
   protected readonly canDelete = computed(() => this.auth.can('kanda', 'delete'));
+  /** Non-admins with delete privilege must ask an admin; admins still delete immediately. */
+  protected readonly needsDeleteApproval = computed(() => needsDeleteApproval(this.auth));
   protected readonly editingKanda = signal<Kanda | null>(null);
   protected readonly deleteTarget = signal<Kanda | null>(null);
   protected readonly deleteMoveTo = signal(0);
+  protected readonly deleteReason = signal('');
   protected readonly deleting = signal(false);
   protected readonly deleteError = signal<string | null>(null);
   protected readonly deleteMoveOptions = computed(() =>
@@ -270,6 +279,7 @@ export class KandaPage {
     this.deleteTarget.set(kanda);
     this.deleteError.set(null);
     this.deleteMoveTo.set(0);
+    this.deleteReason.set('');
   }
 
   protected closeDelete(): void {
@@ -296,6 +306,20 @@ export class KandaPage {
 
     try {
       const target = needsMove ? this.kandas().find((item) => item.id === this.deleteMoveTo()) : undefined;
+
+      if (this.needsDeleteApproval()) {
+        await this.deletions.request({
+          subject_type: 'kanda',
+          subject_id: kanda.id,
+          reason: this.deleteReason().trim() || undefined,
+          move_to_kanda_id: target?.id,
+        });
+        this.deleting.set(false);
+        this.deleteTarget.set(null);
+        this.notice.set(deletionRequestNotice(kanda.name));
+        return;
+      }
+
       await this.parish.deleteKanda(kanda.id, target?.id);
       this.deleting.set(false);
       this.deleteTarget.set(null);
@@ -315,7 +339,14 @@ export class KandaPage {
       );
       await this.refresh();
     } catch (error) {
-      this.deleteError.set(httpErrorMessage(error, 'Imeshindwa kufuta kanda hiyo.'));
+      this.deleteError.set(
+        httpErrorMessage(
+          error,
+          this.needsDeleteApproval()
+            ? 'Imeshindwa kutuma ombi la kufuta.'
+            : 'Imeshindwa kufuta kanda hiyo.',
+        ),
+      );
     } finally {
       this.deleting.set(false);
     }

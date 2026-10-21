@@ -37,6 +37,16 @@ class Recycle
 
     public const SYSTEM_ACTOR = 'Mfumo (baada ya siku 30)';
 
+    /** Snapshot fields that leave the parish when a soft-deleted row is purged. */
+    private const SNAPSHOT_SECRETS = [
+        'Simu',
+        'Barua pepe',
+        'Simu ya mtoaji',
+        'Jina la mtumiaji',
+        'Kiasi',
+        'Namba ya risiti',
+    ];
+
     public static function restoreDeadline(ActivityLog $log): Carbon
     {
         return $log->created_at->copy()->addDays(self::RETENTION_DAYS);
@@ -74,7 +84,11 @@ class Recycle
                     if ($model?->trashed()) {
                         $model->forceDelete();
                     }
-                    $log->update(['purged_at' => now(), 'purged_by' => self::SYSTEM_ACTOR]);
+                    $log->update([
+                        'purged_at' => now(),
+                        'purged_by' => self::SYSTEM_ACTOR,
+                        'details' => self::scrubDetails($log->details),
+                    ]);
                 });
             } catch (QueryException) {
                 // Still referenced by another deleted record (e.g. a role used by a deleted
@@ -102,6 +116,28 @@ class Recycle
         $class = self::TYPES[$type] ?? null;
 
         return $class ? $class::withTrashed()->find($id) : null;
+    }
+
+    /**
+     * Mask phones, emails and amounts in a deletion snapshot once the live row is gone.
+     * The log still shows what kind of record it was; the personal values do not stay forever.
+     *
+     * @param  array<string, mixed>|null  $details
+     * @return array<string, mixed>|null
+     */
+    public static function scrubDetails(?array $details): ?array
+    {
+        if ($details === null || ! isset($details['snapshot']) || ! is_array($details['snapshot'])) {
+            return $details;
+        }
+
+        foreach (self::SNAPSHOT_SECRETS as $field) {
+            if (filled($details['snapshot'][$field] ?? null)) {
+                $details['snapshot'][$field] = '••••';
+            }
+        }
+
+        return $details;
     }
 
     /**

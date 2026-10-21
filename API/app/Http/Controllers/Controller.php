@@ -13,6 +13,16 @@ abstract class Controller
         abort_unless($request->user()?->role === Roles::ADMIN, 403, 'Ni msimamizi pekee anayeweza kufanya hivi.');
     }
 
+    /** Non-admins with delete privilege must send a deletion request instead. */
+    protected function ensureImmediateDeleteAllowed(Request $request): void
+    {
+        abort_unless(
+            $request->user()?->role === Roles::ADMIN,
+            403,
+            'Kufuta kunahitaji idhini ya msimamizi. Tuma ombi la kufuta.',
+        );
+    }
+
     protected function ensureAnyModule(Request $request, string ...$keys): void
     {
         foreach ($keys as $key) {

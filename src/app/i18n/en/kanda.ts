@@ -99,16 +99,37 @@ export const KANDA: Record<string, string> = {
   // Kanda edit & delete
   'Hariri kanda': 'Edit zone',
   'Futa {name}?': 'Delete {name}?',
-  'Kanda hii ina jumuiya {count} zenye wanajumuiya {members}. Hazitafutwa — chagua kanda ambayo zitahamia.':
-    'This zone has {count} communities with {members} members. They will not be deleted — choose the zone they will move to.',
+  'Omba kufuta {name}?': 'Request deletion of {name}?',
+  'Kufuta kunahitaji idhini ya msimamizi. Tutuma ombi; baada ya kuidhinishwa, kanda itafutwa kiotomatiki hata usipokuwepo.':
+    'Deletion needs admin approval. We will send a request; once approved, the zone is deleted automatically even if you are offline.',
+  'Unafuta kanda hii. Kanda yenyewe haihamishwi — ili kuunda kanda mpya tumia Gawanya.':
+    'You are deleting this zone. The zone itself is not moved — use Split to create a new zone.',
+  'Sababu (si lazima)': 'Reason (optional)',
+  'Kwa nini unataka kufuta kanda hii?': 'Why do you want to delete this zone?',
+  'Inatuma ombi…': 'Sending request…',
+  'Tuma ombi kwa msimamizi': 'Send request to admin',
+  'Ombi la kufuta {name} limetumwa kwa msimamizi. Baada ya kuidhinishwa, kitafutwa kiotomatiki hata usipokuwepo.':
+    'A request to delete {name} was sent to the admin. Once approved, it will be deleted automatically even if you are offline.',
+  'Imeshindwa kutuma ombi la kufuta.': 'Could not send the deletion request.',
+  'Tuma ombi': 'Send request',
+  'Tuma ombi la kufuta {name}? Wanajumuiya wake wataondolewa baada ya msimamizi kuidhinisha.':
+    'Send a request to delete {name}? Its members will be removed after the admin approves.',
+  'Tuma ombi la kumwondoa {member} kutoka {jumuiya}?':
+    'Send a request to remove {member} from {jumuiya}?',
+  'Tuma ombi la kufuta {label}?': 'Send a request to delete {label}?',
+  '{category} ya {amount} ({date})': '{category} of {amount} ({date})',
+  'Tuma ombi la kufuta akaunti ya {name}?': 'Send a request to delete the account of {name}?',
+  'Tuma ombi la kufuta wadhifa wa {role}?': 'Send a request to delete the {role} role?',
+  'Tuma ombi la kufuta kabisa "{subject}"?': 'Send a request to permanently delete "{subject}"?',
+  'Kanda hii ina jumuiya {count} zenye wanajumuiya {members}. Jumuiya hizo hazitafutwa — chagua kanda nyingine watakayohamia.':
+    'This zone has {count} communities with {members} members. Those communities are not deleted — choose another zone they will move to.',
   'Hakuna kanda nyingine ya kuhamishia jumuiya hizi. Ongeza kanda nyingine kwanza.':
     'There is no other zone to move these communities to. Add another zone first.',
-  'Hamishia jumuiya zake kanda': 'Move its communities to zone',
+  'Jumuiya zihamishiwe kanda': 'Move communities to zone',
   'Kanda hii haina jumuiya.': 'This zone has no communities.',
   'Unaweza kuirejesha ndani ya siku 30 kutoka kumbukumbu za shughuli.':
     'You can restore it within 30 days from the activity log.',
   'Inafuta…': 'Deleting…',
-  'Hamisha na ufute': 'Move and delete',
   'Chagua kanda ya kuhamishia jumuiya zake.': 'Choose a zone to move its communities to.',
   '{name} imefutwa. Jumuiya zake {count} zimehamishiwa {target}.':
     '{name} was deleted. Its {count} communities were moved to {target}.',

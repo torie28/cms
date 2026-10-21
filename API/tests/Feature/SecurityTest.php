@@ -57,9 +57,16 @@ class SecurityTest extends TestCase
         $this->getJson("/api/jumuiyas/{$jumuiya->id}")->assertForbidden();
         $this->getJson("/api/jumuiyas/{$jumuiya->id}/members")->assertForbidden();
         $this->getJson("/api/kandas/{$kanda->id}")->assertForbidden();
+        $this->getJson('/api/kandas')->assertForbidden();
+        $this->getJson('/api/sms/balance')->assertForbidden();
+        $this->postJson('/api/activity-logs', [
+            'action' => 'exported',
+            'subject' => '1 kandas',
+            'subject_type' => 'kanda',
+        ])->assertForbidden();
 
+        // Offering forms need jumuiya names; zone lists stay behind the kanda/jumuiya modules.
         $this->getJson('/api/jumuiyas')->assertOk();
-        $this->getJson('/api/kandas')->assertOk();
     }
 
     public function test_users_with_the_module_can_still_read_it(): void
@@ -125,6 +132,24 @@ class SecurityTest extends TestCase
 
         $this->getJson('/api/user')
             ->assertHeader('X-Content-Type-Options', 'nosniff')
-            ->assertHeader('X-Frame-Options', 'DENY');
+            ->assertHeader('X-Frame-Options', 'DENY')
+            ->assertHeader('Content-Security-Policy', "default-src 'none'; frame-ancestors 'none'; base-uri 'none'");
+    }
+
+    public function test_import_export_logs_require_the_matching_module(): void
+    {
+        Sanctum::actingAs($this->makeUser('member', ['kanda']));
+
+        $this->postJson('/api/activity-logs', [
+            'action' => 'exported',
+            'subject' => '3 kandas',
+            'subject_type' => 'kanda',
+        ])->assertCreated();
+
+        $this->postJson('/api/activity-logs', [
+            'action' => 'exported',
+            'subject' => '2 offerings',
+            'subject_type' => 'offering',
+        ])->assertForbidden();
     }
 }

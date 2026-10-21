@@ -3,6 +3,7 @@
 use App\Http\Controllers\ActivityLogController;
 use App\Http\Controllers\ApiSettingController;
 use App\Http\Controllers\AuthController;
+use App\Http\Controllers\DeletionRequestController;
 use App\Http\Controllers\JumuiyaController;
 use App\Http\Controllers\JumuiyaMemberController;
 use App\Http\Controllers\KandaController;
@@ -48,6 +49,11 @@ Route::middleware('auth:sanctum')->group(function () {
     Route::put('/kandas/{kanda}', [KandaController::class, 'update'])->whereNumber('kanda');
     Route::delete('/kandas/{kanda}', [KandaController::class, 'destroy'])->whereNumber('kanda');
 
+    Route::get('/deletion-requests', [DeletionRequestController::class, 'index']);
+    Route::post('/deletion-requests', [DeletionRequestController::class, 'store']);
+    Route::post('/deletion-requests/{deletionRequest}/approve', [DeletionRequestController::class, 'approve'])->whereNumber('deletionRequest');
+    Route::post('/deletion-requests/{deletionRequest}/reject', [DeletionRequestController::class, 'reject'])->whereNumber('deletionRequest');
+
     Route::get('/jumuiyas', [JumuiyaController::class, 'index']);
     Route::post('/jumuiyas', [JumuiyaController::class, 'store']);
     Route::get('/jumuiyas/{jumuiya}', [JumuiyaController::class, 'show']);
@@ -69,9 +75,9 @@ Route::middleware('auth:sanctum')->group(function () {
     Route::put('/sms/alert', [MessageController::class, 'updateAlert']);
     Route::get('/messages/contacts', [MessageController::class, 'contacts']);
     Route::get('/messages', [MessageController::class, 'index']);
-    Route::post('/messages', [MessageController::class, 'store']);
+    Route::post('/messages', [MessageController::class, 'store'])->middleware('throttle:messages');
     Route::get('/messages/{message}', [MessageController::class, 'show'])->whereNumber('message');
-    Route::post('/messages/{message}/retry', [MessageController::class, 'retry'])->whereNumber('message');
+    Route::post('/messages/{message}/retry', [MessageController::class, 'retry'])->middleware('throttle:messages')->whereNumber('message');
 
     Route::get('/inbox', [MessageController::class, 'inbox']);
     Route::post('/inbox/read-all', [MessageController::class, 'markAllRead']);

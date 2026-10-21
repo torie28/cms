@@ -2,10 +2,12 @@
 
 namespace App\Http\Controllers;
 
+use App\Models\DeletionRequest;
 use App\Models\Module;
 use App\Models\User;
 use App\Support\ActivityLogger;
 use App\Support\Modules;
+use App\Support\RecordDeletion;
 use App\Support\Recycle;
 use App\Support\Roles;
 use Illuminate\Http\JsonResponse;
@@ -125,27 +127,14 @@ class UserController extends Controller
     public function destroy(Request $request, User $user): JsonResponse
     {
         $this->ensureCan($request, 'users', 'delete');
+        $this->ensureImmediateDeleteAllowed($request);
 
-        abort_if($user->is($request->user()), 422, 'Huwezi kufuta akaunti yako mwenyewe.');
-        abort_if(
-            $user->role === Roles::ADMIN && $request->user()->role !== Roles::ADMIN,
-            403,
-            'Ni msimamizi pekee anayeweza kufuta msimamizi.',
-        );
-
-        $subject = $user->name.' ('.$user->username.')';
-        $snapshot = Recycle::snapshot($user);
-        $user->tokens()->delete();
-        $user->delete();
-
-        app(ActivityLogger::class)->record(
+        RecordDeletion::run($request->user(), 'user', $user->id, $request);
+        DeletionRequest::cancelPending(
+            DeletionRequest::TYPE_USER,
+            $user->id,
             $request->user(),
-            'deleted',
-            $subject,
-            'user',
-            $request,
-            $user,
-            ['snapshot' => $snapshot],
+            'Mtumiaji amefutwa moja kwa moja na msimamizi.',
         );
 
         return response()->json(['message' => 'User removed.']);

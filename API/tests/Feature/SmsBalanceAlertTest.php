@@ -167,7 +167,7 @@ class SmsBalanceAlertTest extends TestCase
         $this->getJson('/api/inbox')->assertOk()->assertJsonPath('unread', 0);
     }
 
-    public function test_only_someone_who_can_open_notifications_may_set_the_limit(): void
+    public function test_only_someone_who_can_send_notifications_may_set_the_limit(): void
     {
         $this->putJson('/api/sms/alert', ['enabled' => true, 'threshold' => 5])->assertUnauthorized();
 
@@ -183,6 +183,16 @@ class SmsBalanceAlertTest extends TestCase
         ]);
 
         $this->fakeBalance(12);
+        $this->putJson('/api/sms/alert', ['enabled' => true, 'threshold' => 15])->assertForbidden();
+
+        $member->modules()->updateExistingPivot(
+            Module::query()->where('key', 'notifications')->value('id'),
+            ['can_create' => true],
+        );
+        // Reload the relation Modules::can() may have cached on the user instance.
+        $member->unsetRelation('modules');
+        Sanctum::actingAs($member->fresh(['modules']));
+
         $this->putJson('/api/sms/alert', ['enabled' => true, 'threshold' => 15])->assertOk();
         $this->getJson('/api/inbox')->assertOk()->assertJsonPath('unread', 1);
 

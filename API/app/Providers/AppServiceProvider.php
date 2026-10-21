@@ -49,5 +49,14 @@ class AppServiceProvider extends ServiceProvider
                 Limit::perMinute(10)->by($request->ip()),
             ];
         });
+
+        RateLimiter::for('messages', function (Request $request) {
+            $userId = $request->user()?->getAuthIdentifier() ?? $request->ip();
+
+            return [
+                Limit::perMinute(10)->by('messages:'.$userId),
+                Limit::perDay(100)->by('messages-day:'.$userId),
+            ];
+        });
     }
 }

@@ -2,10 +2,11 @@
 
 namespace App\Http\Controllers;
 
+use App\Models\DeletionRequest;
 use App\Models\Kanda;
 use App\Support\ActivityLogger;
+use App\Support\KandaDeletion;
 use App\Support\Modules;
-use App\Support\Recycle;
 use Illuminate\Database\Eloquent\Collection;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
@@ -14,8 +15,10 @@ use Illuminate\Validation\Rule;
 
 class KandaController extends Controller
 {
-    public function index(): JsonResponse
+    public function index(Request $request): JsonResponse
     {
+        $this->ensureAnyModule($request, 'kanda', 'jumuiya');
+
         return response()->json($this->listing());
     }
 
@@ -186,12 +189,13 @@ class KandaController extends Controller
     }
 
     /**
-     * Soft-deletes a kanda. Its jumuiyas must not be lost with it, so a kanda that still
-     * has any must name another kanda (`move_to_kanda_id`) to take them over first.
+     * Soft-deletes a kanda. Only admins delete immediately; users with delete privilege
+     * must send a deletion request that an admin approves. Jumuiyas must move first.
      */
     public function destroy(Request $request, Kanda $kanda): JsonResponse
     {
         $this->ensureCan($request, 'kanda', 'delete');
+        $this->ensureImmediateDeleteAllowed($request);
 
         $data = $request->validate([
             'move_to_kanda_id' => [
@@ -202,40 +206,17 @@ class KandaController extends Controller
             ],
         ]);
 
-        $jumuiyaCount = $kanda->jumuiyas()->count();
-        $target = isset($data['move_to_kanda_id']) ? Kanda::query()->find($data['move_to_kanda_id']) : null;
+        $moveTo = isset($data['move_to_kanda_id']) ? (int) $data['move_to_kanda_id'] : null;
+        $result = KandaDeletion::run($request->user(), $kanda, $moveTo, $request);
 
-        abort_if(
-            $jumuiyaCount > 0 && ! $target,
-            422,
-            "Kanda hii ina jumuiya {$jumuiyaCount}. Chagua kanda ya kuzihamishia kabla ya kuifuta.",
-        );
-
-        $snapshot = Recycle::snapshot($kanda);
-
-        DB::transaction(function () use ($kanda, $target) {
-            if ($target) {
-                $kanda->jumuiyas()->update(['kanda_id' => $target->id]);
-            }
-            $kanda->delete();
-        });
-
-        $subject = $kanda->name;
-        if ($target && $jumuiyaCount > 0) {
-            $subject .= ' ('.$jumuiyaCount.' jumuiyas moved to '.$target->name.')';
-        }
-
-        app(ActivityLogger::class)->record(
+        DeletionRequest::cancelPending(
+            DeletionRequest::TYPE_KANDA,
+            $kanda->id,
             $request->user(),
-            'deleted',
-            $subject,
-            'kanda',
-            $request,
-            $kanda,
-            ['snapshot' => $snapshot],
+            'Kanda imefutwa moja kwa moja na msimamizi.',
         );
 
-        return response()->json(['message' => 'Kanda removed.', 'moved' => $target ? $jumuiyaCount : 0]);
+        return response()->json(['message' => 'Kanda removed.', 'moved' => $result['moved']]);
     }
 
     public function import(Request $request): JsonResponse

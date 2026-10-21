@@ -11,6 +11,11 @@ import {
 import { AuthService } from '../../../../../core/auth';
 import { onAutoRefresh } from '../../../../../core/auto-refresh';
 import { ConfirmService } from '../../../../../core/confirm';
+import {
+  deletionRequestNotice,
+  DeletionRequestsService,
+  needsDeleteApproval,
+} from '../../../../../core/deletion-requests';
 import { httpErrorMessage } from '../../../../../core/http-error';
 import { I18nService, translate, TranslatePipe } from '../../../../../core/i18n';
 import { AppModule, MODULE_ACTIONS, ModulesService } from '../../../../../core/modules';
@@ -33,6 +38,7 @@ export class UserList {
   private readonly rolesApi = inject(RolesService);
   private readonly modulesApi = inject(ModulesService);
   private readonly auth = inject(AuthService);
+  private readonly deletions = inject(DeletionRequestsService);
   private readonly locale = inject(LOCALE_ID);
   private readonly confirm = inject(ConfirmService);
   protected readonly i18n = inject(I18nService);
@@ -40,6 +46,7 @@ export class UserList {
   protected readonly canCreate = computed(() => this.auth.can('users', 'create'));
   protected readonly canUpdate = computed(() => this.auth.can('users', 'update'));
   protected readonly canDelete = computed(() => this.auth.can('users', 'delete'));
+  protected readonly needsDeleteApproval = computed(() => needsDeleteApproval(this.auth));
   protected readonly currentUserId = computed(() => this.auth.user()?.id);
   protected readonly genderLabel = genderLabel;
   protected readonly skeletonRows = [1, 2, 3, 4, 5];
@@ -48,6 +55,7 @@ export class UserList {
   protected readonly roles = signal<Role[]>([]);
   protected readonly modules = signal<AppModule[]>([]);
   protected readonly loading = signal(true);
+  protected readonly notice = signal<string | null>(null);
   protected readonly error = signal<string | null>(null);
 
   protected readonly dialogOpen = signal(false);
@@ -164,8 +172,12 @@ export class UserList {
   }
 
   protected async remove(person: ManagedUser): Promise<void> {
+    const requestApproval = this.needsDeleteApproval();
     const confirmed = await this.confirm.ask({
-      message: translate('Futa akaunti ya {name}? Hataweza kuingia tena.', { name: person.name }),
+      message: requestApproval
+        ? translate('Tuma ombi la kufuta akaunti ya {name}?', { name: person.name })
+        : translate('Futa akaunti ya {name}? Hataweza kuingia tena.', { name: person.name }),
+      confirmLabel: requestApproval ? 'Tuma ombi' : 'Futa',
       tone: 'danger',
     });
     if (!confirmed) {
@@ -173,10 +185,18 @@ export class UserList {
     }
 
     try {
+      if (requestApproval) {
+        await this.deletions.request({ subject_type: 'user', subject_id: person.id });
+        this.notice.set(deletionRequestNotice(person.name));
+        return;
+      }
+
       await this.usersApi.remove(person.id);
       this.users.update((current) => current.filter((item) => item.id !== person.id));
     } catch (error) {
-      this.error.set(httpErrorMessage(error, 'Imeshindwa kumfuta mtumiaji huyo.'));
+      this.error.set(
+        httpErrorMessage(error, requestApproval ? 'Imeshindwa kutuma ombi la kufuta.' : 'Imeshindwa kumfuta mtumiaji huyo.'),
+      );
     }
   }
 

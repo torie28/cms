@@ -104,6 +104,15 @@ const POLL_MS = 60_000;
                   {{ 'Angalia salio na kikomo' | t }}
                 </a>
               }
+              @if (expanded() === item.id && item.kind === 'deletion_request') {
+                <a
+                  routerLink="/settings/deletion-requests"
+                  class="block px-4 pb-3 text-xs text-brass-strong hover:underline"
+                  (click)="open.set(false)"
+                >
+                  {{ 'Fungua maombi ya kufuta' | t }}
+                </a>
+              }
             </li>
           } @empty {
             <li class="px-4 py-8 text-center text-sm text-muted">{{ 'Huna arifa bado.' | t }}</li>

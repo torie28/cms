@@ -3,13 +3,14 @@
   <aside
     class="relative hidden overflow-hidden bg-chancel px-12 py-16 text-chancel-ink lg:flex lg:w-[42%] lg:flex-col lg:justify-between"
   >
+    <img
+      src="/church-portrait-768.webp"
+      alt=""
+      class="absolute inset-0 h-full w-full object-cover"
+      aria-hidden="true"
+    />
     <div
-      class="pointer-events-none absolute inset-0 opacity-15"
-      style="
-        background-image:
-          repeating-linear-gradient(90deg, transparent 0 78px, currentColor 78px 79px),
-          repeating-linear-gradient(0deg, transparent 0 78px, currentColor 78px 79px);
-      "
+      class="pointer-events-none absolute inset-0 bg-gradient-to-t from-chancel via-chancel/75 to-chancel/45"
       aria-hidden="true"
     ></div>
 
@@ -30,10 +31,6 @@
       </p>
       <p class="mt-4 text-sm tracking-[0.2em] uppercase opacity-70">{{ 'Waebrania 10:24' | t }}</p>
     </div>
-
-    <p class="relative text-xs text-chancel-ink/60">
-      {{ 'Tukiihudumia jumuiya ya waamini tangu 1908' | t }}
-    </p>
   </aside>
 
   <!-- Sign-in form -->

@@ -944,14 +944,31 @@
       aria-labelledby="kanda-delete-title"
       (click)="$event.stopPropagation()"
     >
-      <div class="h-1 bg-negative"></div>
+      <div class="h-1" [class.bg-negative]="!needsDeleteApproval()" [class.bg-brass]="needsDeleteApproval()"></div>
       <div class="p-5">
-        <h2 id="kanda-delete-title" class="font-serif text-xl">{{ 'Futa {name}?' | t: { name: kanda.name } }}</h2>
+        <h2 id="kanda-delete-title" class="font-serif text-xl">
+          {{
+            (needsDeleteApproval() ? 'Omba kufuta {name}?' : 'Futa {name}?')
+              | t: { name: kanda.name }
+          }}
+        </h2>
+
+        <p class="mt-2 text-sm text-muted">
+          {{ 'Unafuta kanda hii. Kanda yenyewe haihamishwi — ili kuunda kanda mpya tumia Gawanya.' | t }}
+        </p>
+        @if (needsDeleteApproval()) {
+          <p class="mt-2 text-sm text-muted">
+            {{
+              'Kufuta kunahitaji idhini ya msimamizi. Tutuma ombi; baada ya kuidhinishwa, kanda itafutwa kiotomatiki hata usipokuwepo.'
+                | t
+            }}
+          </p>
+        }
 
         @if (kanda.jumuiyas_count > 0) {
           <p class="mt-2 text-sm text-muted">
             {{
-              'Kanda hii ina jumuiya {count} zenye wanajumuiya {members}. Hazitafutwa — chagua kanda ambayo zitahamia.'
+              'Kanda hii ina jumuiya {count} zenye wanajumuiya {members}. Jumuiya hizo hazitafutwa — chagua kanda nyingine watakayohamia.'
                 | t: { count: kanda.jumuiyas_count, members: kanda.members_count ?? 0 }
             }}
           </p>
@@ -961,7 +978,7 @@
             </p>
           } @else {
             <label for="kanda-delete-move" class="mt-4 mb-1 block text-xs tracking-[0.12em] text-muted uppercase">
-              {{ 'Hamishia jumuiya zake kanda' | t }}
+              {{ 'Jumuiya zihamishiwe kanda' | t }}
             </label>
             <select
               id="kanda-delete-move"
@@ -979,7 +996,21 @@
           <p class="mt-2 text-sm text-muted">{{ 'Kanda hii haina jumuiya.' | t }}</p>
         }
 
-        <p class="mt-3 text-xs text-faint">{{ 'Unaweza kuirejesha ndani ya siku 30 kutoka kumbukumbu za shughuli.' | t }}</p>
+        @if (needsDeleteApproval()) {
+          <label for="kanda-delete-reason" class="mt-4 mb-1 block text-xs tracking-[0.12em] text-muted uppercase">
+            {{ 'Sababu (si lazima)' | t }}
+          </label>
+          <textarea
+            id="kanda-delete-reason"
+            rows="2"
+            class="w-full rounded border border-line bg-canvas px-3 py-2 text-sm focus:border-brass focus:ring-1 focus:ring-brass focus:outline-none"
+            [value]="deleteReason()"
+            (input)="deleteReason.set($any($event.target).value)"
+            [placeholder]="'Kwa nini unataka kufuta kanda hii?' | t"
+          ></textarea>
+        } @else {
+          <p class="mt-3 text-xs text-faint">{{ 'Unaweza kuirejesha ndani ya siku 30 kutoka kumbukumbu za shughuli.' | t }}</p>
+        }
 
         @if (deleteError()) {
           <p class="alert-in mt-3 rounded border border-negative/40 bg-negative/10 px-3 py-2 text-sm text-negative" role="alert">
@@ -998,11 +1029,17 @@
         </button>
         <button
           type="button"
-          class="flex-1 rounded-lg bg-negative px-4 py-2.5 text-sm font-medium text-canvas shadow-sm hover:opacity-90 disabled:opacity-60"
+          class="flex-1 rounded-lg px-4 py-2.5 text-sm font-medium text-canvas shadow-sm hover:opacity-90 disabled:opacity-60"
+          [class.bg-negative]="!needsDeleteApproval()"
+          [class.bg-brass]="needsDeleteApproval()"
           [disabled]="deleting() || (kanda.jumuiyas_count > 0 && deleteMoveOptions().length === 0)"
           (click)="confirmDelete()"
         >
-          {{ (deleting() ? 'Inafuta…' : kanda.jumuiyas_count > 0 ? 'Hamisha na ufute' : 'Futa') | t }}
+          @if (needsDeleteApproval()) {
+            {{ (deleting() ? 'Inatuma ombi…' : 'Tuma ombi kwa msimamizi') | t }}
+          } @else {
+            {{ (deleting() ? 'Inafuta…' : 'Futa') | t }}
+          }
         </button>
       </div>
     </section>

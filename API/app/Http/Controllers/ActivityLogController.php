@@ -3,11 +3,12 @@
 namespace App\Http\Controllers;
 
 use App\Models\ActivityLog;
+use App\Models\DeletionRequest;
 use App\Support\ActivityLogger;
 use App\Support\Modules;
+use App\Support\RecordDeletion;
 use App\Support\Recycle;
 use Illuminate\Database\Eloquent\Model;
-use Illuminate\Database\QueryException;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
@@ -77,28 +78,17 @@ class ActivityLogController extends Controller
     public function purge(Request $request, ActivityLog $log): JsonResponse
     {
         $this->ensureCan($request, 'activity_logs', 'delete');
-        $model = $this->deletedModel($log);
+        $this->ensureImmediateDeleteAllowed($request);
 
-        try {
-            DB::transaction(function () use ($model, $log, $request) {
-                $model->forceDelete();
-                $log->update(['purged_at' => now(), 'purged_by' => $request->user()->name]);
-            });
-        } catch (QueryException) {
-            abort(422, 'Haiwezi kufutwa kabisa kwa sababu bado kuna kumbukumbu zinazoitegemea (mf. watumiaji waliofutwa wenye wadhifa huu).');
-        }
-
-        app(ActivityLogger::class)->record(
+        RecordDeletion::run($request->user(), 'activity_log', $log->id, $request);
+        DeletionRequest::cancelPending(
+            DeletionRequest::TYPE_ACTIVITY_LOG,
+            $log->id,
             $request->user(),
-            'purged',
-            $log->subject,
-            $log->subject_type,
-            $request,
-            null,
-            ['purged_from_log' => $log->id],
+            'Kumbukumbu imefutwa kabisa moja kwa moja na msimamizi.',
         );
 
-        return response()->json($this->present($log));
+        return response()->json($this->present($log->fresh()));
     }
 
     /** @return array<string, mixed> */
@@ -142,6 +132,19 @@ class ActivityLogController extends Controller
             'subject' => ['required', 'string', 'max:255'],
             'subject_type' => ['nullable', 'string', Rule::in(['kanda', 'jumuiya', 'jumuiya_member', 'offering'])],
         ]);
+
+        $module = match ($data['subject_type'] ?? null) {
+            'kanda' => 'kanda',
+            'jumuiya', 'jumuiya_member' => 'jumuiya',
+            'offering' => 'sadaka',
+            default => null,
+        };
+
+        abort_unless(
+            $module !== null && Modules::canAccess($request->user(), $module),
+            403,
+            'Huna ruhusa ya kuandika kumbukumbu za shughuli kwa moduli hii.',
+        );
 
         $log = app(ActivityLogger::class)->record(
             $request->user(),

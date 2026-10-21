@@ -16,6 +16,11 @@ import { ActivatedRoute } from '@angular/router';
 import { ActivityService } from '../../../../core/activity';
 import { AuthService } from '../../../../core/auth';
 import { ConfirmService } from '../../../../core/confirm';
+import {
+  deletionRequestNotice,
+  DeletionRequestsService,
+  needsDeleteApproval,
+} from '../../../../core/deletion-requests';
 import { httpErrorMessage } from '../../../../core/http-error';
 import { I18nService, translate, TranslatePipe } from '../../../../core/i18n';
 import { displayPhone, normalizePhone } from '../../../../core/messages';
@@ -115,11 +120,13 @@ export class Sadaka {
   private readonly fb = inject(FormBuilder);
   private readonly route = inject(ActivatedRoute);
   private readonly confirm = inject(ConfirmService);
+  private readonly deletions = inject(DeletionRequestsService);
   private readonly auth = inject(AuthService);
   protected readonly i18n = inject(I18nService);
   protected readonly canCreate = computed(() => this.auth.can('sadaka', 'create'));
   protected readonly canUpdate = computed(() => this.auth.can('sadaka', 'update'));
   protected readonly canDelete = computed(() => this.auth.can('sadaka', 'delete'));
+  protected readonly needsDeleteApproval = computed(() => needsDeleteApproval(this.auth));
 
   protected readonly categories = OFFERING_CATEGORIES;
   protected readonly paymentMethods = PAYMENT_METHODS;
@@ -589,12 +596,21 @@ export class Sadaka {
     if (this.saving()) {
       return;
     }
+    const requestApproval = this.needsDeleteApproval();
+    const label = translate('{category} ya {amount} ({date})', {
+      category: translate(this.categoryLabel(item.category)),
+      amount: this.money(item.amount),
+      date: item.received_on,
+    });
     const confirmed = await this.confirm.ask({
-      message: translate('Futa {category} ya {amount} ({date})?', {
-        category: translate(this.categoryLabel(item.category)),
-        amount: this.money(item.amount),
-        date: item.received_on,
-      }),
+      message: requestApproval
+        ? translate('Tuma ombi la kufuta {label}?', { label })
+        : translate('Futa {category} ya {amount} ({date})?', {
+            category: translate(this.categoryLabel(item.category)),
+            amount: this.money(item.amount),
+            date: item.received_on,
+          }),
+      confirmLabel: requestApproval ? 'Tuma ombi' : 'Futa',
       tone: 'danger',
     });
     if (!confirmed || this.saving()) {
@@ -605,11 +621,19 @@ export class Sadaka {
     this.error.set(null);
 
     try {
+      if (requestApproval) {
+        await this.deletions.request({ subject_type: 'offering', subject_id: item.id });
+        this.notice.set(deletionRequestNotice(label));
+        return;
+      }
+
       await this.offeringsApi.delete(item.id);
       this.offerings.update((current) => current.filter((entry) => entry.id !== item.id));
       this.notice.set(translate('Kumbukumbu imefutwa. Inaweza kurejeshwa kutoka kumbukumbu za shughuli ndani ya siku 30.'));
     } catch (error) {
-      this.error.set(httpErrorMessage(error, 'Imeshindwa kufuta kumbukumbu hiyo.'));
+      this.error.set(
+        httpErrorMessage(error, requestApproval ? 'Imeshindwa kutuma ombi la kufuta.' : 'Imeshindwa kufuta kumbukumbu hiyo.'),
+      );
     } finally {
       this.saving.set(false);
     }

@@ -82,7 +82,11 @@ class ActivityLogController extends Controller
         try {
             DB::transaction(function () use ($model, $log, $request) {
                 $model->forceDelete();
-                $log->update(['purged_at' => now(), 'purged_by' => $request->user()->name]);
+                $log->update([
+                    'purged_at' => now(),
+                    'purged_by' => $request->user()->name,
+                    'details' => Recycle::scrubDetails($log->details),
+                ]);
             });
         } catch (QueryException) {
             abort(422, 'Haiwezi kufutwa kabisa kwa sababu bado kuna kumbukumbu zinazoitegemea (mf. watumiaji waliofutwa wenye wadhifa huu).');
@@ -142,6 +146,19 @@ class ActivityLogController extends Controller
             'subject' => ['required', 'string', 'max:255'],
             'subject_type' => ['nullable', 'string', Rule::in(['kanda', 'jumuiya', 'jumuiya_member', 'offering'])],
         ]);
+
+        $module = match ($data['subject_type'] ?? null) {
+            'kanda' => 'kanda',
+            'jumuiya', 'jumuiya_member' => 'jumuiya',
+            'offering' => 'sadaka',
+            default => null,
+        };
+
+        abort_unless(
+            $module !== null && Modules::canAccess($request->user(), $module),
+            403,
+            'Huna ruhusa ya kuandika kumbukumbu za shughuli kwa moduli hii.',
+        );
 
         $log = app(ActivityLogger::class)->record(
             $request->user(),

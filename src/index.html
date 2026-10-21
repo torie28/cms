@@ -9,33 +9,13 @@
   <meta name="viewport" content="width=device-width, initial-scale=1">
   <meta name="theme-color" content="#f6f2ea" media="(prefers-color-scheme: light)">
   <meta name="theme-color" content="#16181f" media="(prefers-color-scheme: dark)">
+  <!-- Covers ng serve; the Express host in server.ts sets the same policy as a header. -->
+  <meta
+    http-equiv="Content-Security-Policy"
+    content="default-src 'self'; script-src 'self'; style-src 'self' 'unsafe-inline'; img-src 'self' data: blob:; font-src 'self' data:; connect-src 'self' http://127.0.0.1:8000 http://localhost:8000 https:; frame-ancestors 'none'; base-uri 'self'; form-action 'self'; object-src 'none'"
+  >
   <link rel="icon" type="image/x-icon" href="favicon.ico">
-  <script>
-    // Applied before first paint so the page never flashes the wrong theme.
-    (function () {
-      try {
-        var stored = localStorage.getItem('cms.theme');
-        var dark = stored === 'dark' || ((!stored || stored === 'system')
-          && window.matchMedia('(prefers-color-scheme: dark)').matches);
-        document.documentElement.classList.toggle('dark', dark);
-
-        var lang = localStorage.getItem('cms.lang');
-        if (lang === 'sw' || lang === 'en') {
-          document.documentElement.lang = lang;
-        }
-
-        // Text size and page zoom too, so the layout doesn't jump once Angular starts.
-        var prefs = JSON.parse(localStorage.getItem('cms.preferences') || '{}');
-        var sizes = { sm: '87.5%', md: '100%', lg: '112.5%', xl: '125%' };
-        if (sizes[prefs.fontSize]) {
-          document.documentElement.style.setProperty('--app-font-size', sizes[prefs.fontSize]);
-        }
-        if (typeof prefs.zoom === 'number' && prefs.zoom >= 75 && prefs.zoom <= 150) {
-          document.documentElement.style.setProperty('--page-zoom', String(prefs.zoom / 100));
-        }
-      } catch (e) {}
-    })();
-  </script>
+  <script src="boot.js"></script>
 </head>
 <body>
   <app-root></app-root>

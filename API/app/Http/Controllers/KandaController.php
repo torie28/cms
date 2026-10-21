@@ -14,8 +14,10 @@ use Illuminate\Validation\Rule;
 
 class KandaController extends Controller
 {
-    public function index(): JsonResponse
+    public function index(Request $request): JsonResponse
     {
+        $this->ensureAnyModule($request, 'kanda', 'jumuiya');
+
         return response()->json($this->listing());
     }
 

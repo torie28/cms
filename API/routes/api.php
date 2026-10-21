@@ -69,9 +69,9 @@ Route::middleware('auth:sanctum')->group(function () {
     Route::put('/sms/alert', [MessageController::class, 'updateAlert']);
     Route::get('/messages/contacts', [MessageController::class, 'contacts']);
     Route::get('/messages', [MessageController::class, 'index']);
-    Route::post('/messages', [MessageController::class, 'store']);
+    Route::post('/messages', [MessageController::class, 'store'])->middleware('throttle:messages');
     Route::get('/messages/{message}', [MessageController::class, 'show'])->whereNumber('message');
-    Route::post('/messages/{message}/retry', [MessageController::class, 'retry'])->whereNumber('message');
+    Route::post('/messages/{message}/retry', [MessageController::class, 'retry'])->middleware('throttle:messages')->whereNumber('message');
 
     Route::get('/inbox', [MessageController::class, 'inbox']);
     Route::post('/inbox/read-all', [MessageController::class, 'markAllRead']);

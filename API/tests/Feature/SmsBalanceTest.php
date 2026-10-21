@@ -2,7 +2,9 @@
 
 namespace Tests\Feature;
 
+use App\Models\Module;
 use App\Models\User;
+use App\Support\Modules;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Support\Facades\Http;
 use Laravel\Sanctum\Sanctum;
@@ -15,6 +17,13 @@ class SmsBalanceTest extends TestCase
     public function test_guests_cannot_read_the_sms_balance(): void
     {
         $this->getJson('/api/sms/balance')->assertUnauthorized();
+    }
+
+    public function test_members_without_notifications_or_api_settings_cannot_read_the_balance(): void
+    {
+        Sanctum::actingAs(User::factory()->create(['role' => 'member']));
+
+        $this->getJson('/api/sms/balance')->assertForbidden();
     }
 
     public function test_a_member_sees_the_nextsms_balance(): void
@@ -90,6 +99,9 @@ class SmsBalanceTest extends TestCase
 
     private function actingAsMember(): void
     {
-        Sanctum::actingAs(User::factory()->create(['role' => 'member']));
+        Modules::sync();
+        $user = User::factory()->create(['role' => 'member']);
+        $user->modules()->attach(Module::query()->where('key', 'notifications')->value('id'));
+        Sanctum::actingAs($user);
     }
 }

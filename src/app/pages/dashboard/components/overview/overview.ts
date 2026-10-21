@@ -333,8 +333,14 @@ export class Overview {
       }
       effect(() => localStorage.setItem(CHART_STYLE_KEY, this.chartStyle()), { injector: this.injector });
 
-      void this.loadParish();
-      void this.loadSmsBalance();
+      if (this.can.kanda || this.can.jumuiya || this.can.sadaka) {
+        void this.loadParish();
+      } else {
+        this.jumuiyas.set([]);
+      }
+      if (this.can.notifications || this.can.apis) {
+        void this.loadSmsBalance();
+      }
       if (this.can.sadaka) {
         void this.loadOfferings();
       }
@@ -375,8 +381,12 @@ export class Overview {
   private async loadParish(): Promise<void> {
     try {
       const [jumuiyas, kandas] = await Promise.all([
-        this.parish.listJumuiyas(),
-        this.parish.listKandas(),
+        this.can.jumuiya || this.can.kanda || this.can.sadaka
+          ? this.parish.listJumuiyas()
+          : Promise.resolve([] as Jumuiya[]),
+        this.can.kanda || this.can.jumuiya
+          ? this.parish.listKandas()
+          : Promise.resolve([] as Kanda[]),
       ]);
       this.kandas.set(kandas);
       this.jumuiyas.set(jumuiyas);

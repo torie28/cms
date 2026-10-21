@@ -13,8 +13,11 @@ use Illuminate\Validation\Rules\Exists;
 
 class JumuiyaController extends Controller
 {
-    public function index(): JsonResponse
+    public function index(Request $request): JsonResponse
     {
+        // Sadaka needs the names for the offering form; kanda/jumuiya open the parish pages.
+        $this->ensureAnyModule($request, 'jumuiya', 'kanda', 'sadaka');
+
         $jumuiyas = Jumuiya::query()
             ->with(['kanda:id,name', 'parent:id,name'])
             ->withCount('members')

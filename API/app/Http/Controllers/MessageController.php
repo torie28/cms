@@ -46,20 +46,18 @@ class MessageController extends Controller
         ]);
     }
 
-    /** Remaining SMS on the active provider. Any signed-in user may read it. */
-    public function balance(): JsonResponse
+    /** Remaining SMS on the active provider. Shown on Arifa na SMS and API settings. */
+    public function balance(Request $request): JsonResponse
     {
+        $this->ensureBalanceAccess($request);
+
         return response()->json($this->balancePayload(app(BalanceAlert::class)->sync(fresh: true)));
     }
 
     /** The remaining-SMS limit that posts a reminder into the notification bell. */
     public function updateAlert(Request $request): JsonResponse
     {
-        abort_unless(
-            Modules::canAccess($request->user(), 'notifications'),
-            403,
-            'Huna ruhusa ya kuweka kikomo cha salio la SMS.',
-        );
+        $this->ensureCan($request, 'notifications', 'create');
 
         $data = $request->validate([
             'enabled' => ['required', 'boolean'],
@@ -157,6 +155,8 @@ class MessageController extends Controller
         }
 
         $user = $request->user();
+        $this->ensureSmsBudget($user, count($sms));
+
         $message = Message::query()->create([
             'user_id' => $user->id,
             'sender' => $user->name,
@@ -210,6 +210,8 @@ class MessageController extends Controller
 
         $failed = $message->recipients()->where('channel', 'sms')->where('status', 'failed')->get();
         abort_if($failed->isEmpty(), 422, 'Hakuna SMS iliyoshindwa kwenye ujumbe huu.');
+
+        $this->ensureSmsBudget($request->user(), $failed->count());
 
         $results = app(SmsGateway::class)->send(
             $failed->mapWithKeys(fn (MessageRecipient $recipient) => [
@@ -383,6 +385,37 @@ class MessageController extends Controller
             Modules::canAccess($request->user(), 'notifications'),
             403,
             'Huna ruhusa ya kutuma arifa na SMS.',
+        );
+    }
+
+    private function ensureBalanceAccess(Request $request): void
+    {
+        abort_unless(
+            Modules::canAccess($request->user(), 'notifications')
+                || Modules::canAccess($request->user(), 'api_settings'),
+            403,
+            'Huna ruhusa ya kuona salio la SMS.',
+        );
+    }
+
+    /** Caps how many SMS one account may send in a calendar day (composer + retries). */
+    private function ensureSmsBudget(?User $user, int $pending): void
+    {
+        if ($user === null || $pending < 1) {
+            return;
+        }
+
+        $limit = 2000;
+        $already = MessageRecipient::query()
+            ->where('channel', 'sms')
+            ->whereDate('created_at', today())
+            ->whereHas('message', fn ($query) => $query->where('user_id', $user->id))
+            ->count();
+
+        abort_if(
+            $already + $pending > $limit,
+            422,
+            "Umefikia kikomo cha SMS za leo ({$limit}). Jaribu tena kesho au punguza wapokeaji.",
         );
     }
 }

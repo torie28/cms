@@ -109,6 +109,21 @@
       >
         {{ 'Tuma ujumbe' | t }}
       </button>
+      <button
+        type="button"
+        role="tab"
+        class="-mb-px flex items-center gap-2 border-b-2 px-4 py-2 text-sm"
+        [class.border-brass-strong]="tab() === 'templates'"
+        [class.font-medium]="tab() === 'templates'"
+        [class.text-brass-strong]="tab() === 'templates'"
+        [class.border-transparent]="tab() !== 'templates'"
+        [class.text-muted]="tab() !== 'templates'"
+        [attr.aria-selected]="tab() === 'templates'"
+        (click)="setTab('templates')"
+      >
+        {{ 'Violezo' | t }}
+        <span class="rounded-full bg-sunken px-1.5 text-xs tabular-nums text-faint">{{ templates().length }}</span>
+      </button>
     }
     <button
       type="button"
@@ -399,6 +414,87 @@
                 </div>
               }
             }
+
+            @if (audience() === 'kanda' || audience() === 'jumuiya') {
+              @if (audience() === 'kanda' ? selectedKandas().size === 0 : selectedJumuiyas().size === 0) {
+                <p class="mt-3 text-xs text-muted">
+                  {{
+                    (audience() === 'kanda'
+                      ? 'Chagua kanda. Wanajumuiya wake watachaguliwa wenyewe.'
+                      : 'Chagua jumuiya. Wanajumuiya wake watachaguliwa wenyewe.') | t
+                  }}
+                </p>
+              } @else {
+                <div class="alert-in mt-4 space-y-3">
+                  <div>
+                    <p class="text-sm font-medium">{{ 'Wanajumuiya' | t }}</p>
+                    <p class="mt-1 text-xs text-muted">
+                      {{
+                        'Majina yanachaguliwa yenyewe kutoka kwenye orodha. {jina} hubadilishwa na jina la kila mtu. Ondoa alama kwa asiyepaswa kupokea.'
+                          | t: { jina: placeholder }
+                      }}
+                    </p>
+                  </div>
+
+                  @if (chosenMembers().length > 0 && chosenMembers().length <= 12 && !allScopedMembersSelected()) {
+                    <div class="flex flex-wrap gap-2" [attr.aria-label]="'Waliochaguliwa' | t">
+                      @for (person of chosenMembers(); track person.id) {
+                        <span class="flex items-center gap-1.5 rounded-full border border-brass bg-brass-tint py-1 pr-1.5 pl-3 text-xs text-brass-strong">
+                          {{ person.name }}
+                          <button type="button" class="rounded-full px-1 text-base leading-none hover:bg-surface"
+                                  [attr.aria-label]="'Mwondoe {name}' | t: { name: person.name }" (click)="toggleMember(person.id)">
+                            ×
+                          </button>
+                        </span>
+                      }
+                    </div>
+                  }
+
+                  <div class="rounded border border-line">
+                    <div class="flex flex-wrap items-center justify-between gap-3 border-b border-line px-3 py-2.5">
+                      <app-search-box class="w-full sm:w-72"
+                                      [placeholder]="'Tafuta mwanajumuiya kwa jina au simu…' | t"
+                                      [(value)]="memberSearch" />
+                      <div class="flex items-center gap-3 text-sm">
+                        <label class="flex cursor-pointer items-center gap-2">
+                          <input type="checkbox" class="accent-brass-strong"
+                                 [checked]="allScopedMembersSelected()"
+                                 [disabled]="scopedMembers().length === 0"
+                                 (change)="toggleAllMembers()" />
+                          {{ 'Wote' | t }}
+                        </label>
+                        <span class="text-muted">{{ 'Wamechaguliwa {count}' | t: { count: chosenMembers().length } }}</span>
+                      </div>
+                    </div>
+                    <ul class="max-h-72 divide-y divide-line overflow-y-auto">
+                      @for (person of scopedMemberRows(); track person.id) {
+                        <li>
+                          <label class="flex cursor-pointer items-center gap-3 px-3 py-2 text-sm hover:bg-sunken"
+                                 [class.bg-brass-tint]="selectedMembers().has(person.id)">
+                            <input type="checkbox" class="accent-brass-strong" [checked]="selectedMembers().has(person.id)"
+                                   (change)="toggleMember(person.id)" />
+                            <span class="flex-1">
+                              <span class="font-medium">{{ person.name }}</span>
+                              <span class="block text-xs text-faint">{{ memberGroup(person.jumuiya_id) }}</span>
+                            </span>
+                            <span class="text-xs tabular-nums" [class.text-muted]="person.phone" [class.text-negative]="!person.phone">
+                              {{ person.phone || ('Hana simu' | t) }}
+                            </span>
+                          </label>
+                        </li>
+                      } @empty {
+                        <li class="px-3 py-6 text-center text-sm text-muted">{{ 'Hakuna mwanajumuiya katika ulizochagua.' | t }}</li>
+                      }
+                    </ul>
+                    @if (hiddenScopedMembers() > 0) {
+                      <p class="border-t border-line bg-sunken px-3 py-2 text-xs text-muted">
+                        {{ 'Wengine {count} hawajaonyeshwa — tafuta kwa jina au namba ili kuwapata.' | t: { count: hiddenScopedMembers() } }}
+                      </p>
+                    }
+                  </div>
+                </div>
+              }
+            }
           }
         </div>
 
@@ -406,21 +502,74 @@
         <div class="p-5">
           <h2 class="flex items-center gap-2 font-serif text-lg">
             <span class="flex h-6 w-6 items-center justify-center rounded-full bg-brass-tint text-xs text-brass-strong">3</span>
-            {{ 'Ujumbe' | t }}
+            {{ 'Ujumbe unahusu' | t }}
           </h2>
+          <p class="mt-1 text-sm text-muted">
+            {{ 'Chagua mada. Kiolezo cha shukrani kinajazwa chenyewe kwa michango; unaweza kukihariri kabla ya kutuma.' | t }}
+          </p>
 
-          <div class="mt-3 flex flex-wrap items-center gap-2">
-            <span class="text-xs text-faint">{{ 'Violezo:' | t }}</span>
-            @for (template of templates; track template.label) {
-              <button
-                type="button"
-                class="rounded-full border border-line px-3 py-1 text-xs text-muted hover:border-brass hover:text-brass-strong"
-                (click)="useTemplate(template.body)"
-              >
-                {{ template.label | t }}
-              </button>
-            }
+          <div class="mt-4" role="radiogroup" [attr.aria-label]="'Ujumbe unahusu' | t">
+            <p class="text-xs tracking-[0.14em] text-faint uppercase">{{ 'Matangazo' | t }}</p>
+            <div class="mt-2 grid gap-2 sm:grid-cols-2 xl:grid-cols-4">
+              @for (option of announcementTopics; track option.value) {
+                <button
+                  type="button"
+                  role="radio"
+                  class="rounded border px-3 py-3 text-left hover:bg-sunken"
+                  [class.border-brass]="topic() === option.value"
+                  [class.bg-brass-tint]="topic() === option.value"
+                  [class.border-line]="topic() !== option.value"
+                  [attr.aria-checked]="topic() === option.value"
+                  (click)="chooseTopic(option.value)"
+                >
+                  <span class="block text-xs tracking-[0.14em] uppercase" [class.text-brass-strong]="topic() === option.value" [class.text-faint]="topic() !== option.value">
+                    {{ option.label | t }}
+                  </span>
+                  <span class="mt-1.5 block text-xs leading-relaxed text-muted">{{ option.hint | t }}</span>
+                </button>
+              }
+            </div>
+
+            <p class="mt-4 text-xs tracking-[0.14em] text-faint uppercase">{{ 'Michango' | t }}</p>
+            <div class="mt-2 grid gap-2 sm:grid-cols-2 xl:grid-cols-4">
+              @for (option of offeringTopics; track option.value) {
+                <button
+                  type="button"
+                  role="radio"
+                  class="rounded border px-3 py-3 text-left hover:bg-sunken"
+                  [class.border-brass]="topic() === option.value"
+                  [class.bg-brass-tint]="topic() === option.value"
+                  [class.border-line]="topic() !== option.value"
+                  [attr.aria-checked]="topic() === option.value"
+                  (click)="chooseTopic(option.value)"
+                >
+                  <span class="block text-xs tracking-[0.14em] uppercase" [class.text-brass-strong]="topic() === option.value" [class.text-faint]="topic() !== option.value">
+                    {{ option.label | t }}
+                  </span>
+                  <span class="mt-1.5 block text-xs leading-relaxed text-muted">{{ option.hint | t }}</span>
+                </button>
+              }
+            </div>
           </div>
+
+          @if (composeTemplates().length > 0) {
+            <div class="mt-4">
+              <label for="compose-template" class="filter-label">{{ 'Kiolezo kilichohifadhiwa' | t }}</label>
+              <select
+                id="compose-template"
+                class="filter-input w-full"
+                [value]="selectedTemplateId() ?? ''"
+                (change)="onComposeTemplateChange($any($event.target).value)"
+              >
+                <option value="">{{ 'Chagua kiolezo…' | t }}</option>
+                @for (item of composeTemplates(); track item.id) {
+                  <option [value]="item.id">
+                    {{ item.name }}@if (item.is_default) { · {{ 'chaguo-msingi' | t }} }
+                  </option>
+                }
+              </select>
+            </div>
+          }
 
           @if (channel() !== 'sms') {
             <div class="mt-4">
@@ -434,6 +583,7 @@
                 [value]="title()"
                 (input)="title.set($any($event.target).value)"
               />
+              <p class="mt-1 text-xs text-muted">{{ 'Ukiwacha wazi, kichwa kitakuwa jina la mada.' | t }}</p>
             </div>
           }
 
@@ -486,6 +636,16 @@
         <section class="rounded border border-line bg-surface">
           <h2 class="border-b border-line px-4 py-3 font-serif text-lg">{{ 'Muhtasari' | t }}</h2>
           <dl class="divide-y divide-line text-sm">
+            <div class="flex justify-between gap-3 px-4 py-2.5">
+              <dt class="text-muted">{{ 'Mada' | t }}</dt>
+              <dd class="text-right font-medium">
+                @if (topic(); as selected) {
+                  {{ messageTopicLabel(selected) | t }}
+                } @else {
+                  —
+                }
+              </dd>
+            </div>
             <div class="flex justify-between gap-3 px-4 py-2.5">
               <dt class="text-muted">{{ 'Njia' | t }}</dt>
               <dd class="font-medium">{{ channelLabels[channel()] | t }}</dd>
@@ -547,6 +707,9 @@
           <div class="mx-auto mt-3 max-w-[16rem] rounded-[1.75rem] border-4 border-line-strong bg-canvas p-3">
             <p class="text-center text-[0.65rem] text-faint">{{ contacts()?.gateway?.sender_id ?? 'PAROKIA' }}</p>
             <div class="mt-2 min-h-24">
+              @if (topic(); as selected) {
+                <p class="mb-1 text-[0.65rem] tracking-[0.12em] text-brass-strong uppercase">{{ messageTopicLabel(selected) | t }}</p>
+              }
               @if (channel() !== 'sms' && title()) {
                 <p class="mb-1 text-xs font-medium">{{ title() }}</p>
               }
@@ -561,6 +724,247 @@
             <p class="mt-3 text-center text-xs text-muted">
               {{ 'Mfano kwa {name} — kila mmoja ataona jina lake.' | t: { name: previewName() || ('mpokeaji' | t) } }}
             </p>
+          }
+        </section>
+      </aside>
+    </div>
+  } @else if (tab() === 'templates' && canCreate()) {
+    <div class="grid gap-6 lg:grid-cols-[minmax(0,1fr)_22rem]">
+      <section class="space-y-4">
+        <div class="rounded border border-line bg-surface p-5">
+          <div class="flex flex-wrap items-start justify-between gap-3">
+            <div>
+              <h2 class="font-serif text-lg">
+                {{ (editingTemplateId() ? 'Hariri kiolezo' : 'Unda kiolezo') | t }}
+              </h2>
+              <p class="mt-1 text-sm text-muted">
+                {{ 'Violezo vya kutuma ujumbe, na SMS za shukrani zinazotumwa kiotomatiki baada ya kurekodi mchango.' | t }}
+              </p>
+            </div>
+            @if (editingTemplateId()) {
+              <button type="button" class="rounded border border-line px-3 py-1.5 text-sm hover:bg-sunken" (click)="resetTemplateForm()">
+                {{ 'Kiolezo kipya' | t }}
+              </button>
+            }
+          </div>
+
+          <div class="mt-4 grid gap-4 sm:grid-cols-2">
+            <div>
+              <label for="template-kind" class="filter-label">{{ 'Aina' | t }}</label>
+              <select
+                id="template-kind"
+                class="filter-input w-full"
+                [value]="templateForm().kind"
+                (change)="setTemplateField('kind', $any($event.target).value)"
+              >
+                @for (kind of templateKinds; track kind) {
+                  <option [value]="kind">{{ templateKindLabels[kind] | t }}</option>
+                }
+              </select>
+            </div>
+            <div>
+              <label for="template-topic" class="filter-label">{{ 'Mada' | t }}</label>
+              <select
+                id="template-topic"
+                class="filter-input w-full"
+                [value]="templateForm().topic"
+                (change)="setTemplateField('topic', $any($event.target).value)"
+              >
+                <option value="">{{ 'Chagua mada…' | t }}</option>
+                @for (option of templateFormTopics(); track option.value) {
+                  <option [value]="option.value">{{ option.label | t }}</option>
+                }
+              </select>
+            </div>
+          </div>
+
+          <div class="mt-4">
+            <label for="template-name" class="filter-label">{{ 'Jina la kiolezo' | t }}</label>
+            <input
+              id="template-name"
+              type="text"
+              maxlength="120"
+              class="w-full rounded border border-line bg-canvas px-3 py-2 text-sm focus:border-brass focus:ring-1 focus:ring-brass focus:outline-none"
+              [value]="templateForm().name"
+              (input)="setTemplateField('name', $any($event.target).value)"
+            />
+          </div>
+
+          <div class="mt-4">
+            <div class="mb-1 flex flex-wrap items-center justify-between gap-2">
+              <label for="template-body" class="text-xs tracking-[0.12em] text-muted uppercase">{{ 'Maandishi' | t }}</label>
+              <div class="flex flex-wrap gap-1">
+                <button
+                  type="button"
+                  class="rounded border border-line px-2 py-0.5 text-xs text-brass-strong hover:bg-brass-tint"
+                  (click)="insertTemplatePlaceholder(placeholder, templateBody)"
+                >
+                  {{ '+ Weka {token}' | t: { token: placeholder } }}
+                </button>
+                @if (templateForm().kind === 'thank_you') {
+                  <button
+                    type="button"
+                    class="rounded border border-line px-2 py-0.5 text-xs text-brass-strong hover:bg-brass-tint"
+                    (click)="insertTemplatePlaceholder(amountPlaceholder, templateBody)"
+                  >
+                    {{ '+ Weka {token}' | t: { token: amountPlaceholder } }}
+                  </button>
+                  <button
+                    type="button"
+                    class="rounded border border-line px-2 py-0.5 text-xs text-brass-strong hover:bg-brass-tint"
+                    (click)="insertTemplatePlaceholder(datePlaceholder, templateBody)"
+                  >
+                    {{ '+ Weka {token}' | t: { token: datePlaceholder } }}
+                  </button>
+                }
+              </div>
+            </div>
+            <textarea
+              #templateBody
+              id="template-body"
+              rows="6"
+              maxlength="1600"
+              class="w-full rounded border border-line bg-canvas px-3 py-2 text-sm leading-relaxed focus:border-brass focus:ring-1 focus:ring-brass focus:outline-none"
+              [value]="templateForm().body"
+              (input)="setTemplateField('body', $any($event.target).value)"
+            ></textarea>
+            <p class="mt-1 text-xs text-muted">
+              {{
+                'Herufi {characters} · SMS {segments} ({perSegment} kwa kila kipande) · zimebaki {remaining}'
+                  | t
+                    : {
+                        characters: templateLength().characters,
+                        segments: templateLength().segments || 0,
+                        perSegment: templateLength().perSegment,
+                        remaining: templateLength().remaining,
+                      }
+              }}
+            </p>
+            @if (templateForm().kind === 'thank_you') {
+              <p class="mt-2 text-xs text-muted">
+                {{ '{jina} = jina la mtoaji, {kiasi} = kiasi, {tarehe} = tarehe ya mchango.' | t }}
+              </p>
+            }
+          </div>
+
+          <label class="mt-4 flex items-center gap-2 text-sm">
+            <input
+              type="checkbox"
+              class="accent-brass-strong"
+              [checked]="templateForm().is_default"
+              (change)="setTemplateField('is_default', $any($event.target).checked)"
+            />
+            {{ 'Tumia kama chaguo-msingi kwa mada hii' | t }}
+          </label>
+
+          @if (templateError()) {
+            <p class="alert-in mt-3 text-sm text-negative" role="alert">{{ templateError() }}</p>
+          } @else if (templateNotice()) {
+            <p class="alert-in mt-3 text-sm text-positive" role="status">{{ templateNotice() }}</p>
+          }
+
+          <div class="mt-4 flex flex-wrap gap-2">
+            <button
+              type="button"
+              class="rounded bg-brass-strong px-4 py-2 text-sm font-medium text-canvas hover:opacity-90 disabled:opacity-50"
+              [disabled]="templateSaving()"
+              (click)="saveTemplate()"
+            >
+              {{ (templateSaving() ? 'Inahifadhi…' : editingTemplateId() ? 'Hifadhi mabadiliko' : 'Hifadhi kiolezo') | t }}
+            </button>
+            <button type="button" class="rounded px-4 py-2 text-sm text-muted hover:bg-sunken" (click)="resetTemplateForm()">
+              {{ 'Futa fomu' | t }}
+            </button>
+          </div>
+        </div>
+      </section>
+
+      <aside class="space-y-4 lg:sticky lg:top-20">
+        <section class="rounded border border-line bg-surface">
+          <div class="flex flex-wrap items-center justify-between gap-2 border-b border-line px-4 py-3">
+            <h2 class="font-serif text-lg">{{ 'Violezo vilivyohifadhiwa' | t }}</h2>
+            <button type="button" class="text-xs text-brass-strong hover:underline" (click)="loadTemplates()">
+              {{ 'Pakua upya' | t }}
+            </button>
+          </div>
+          <div class="grid gap-2 border-b border-line px-4 py-3 sm:grid-cols-2">
+            <div>
+              <label for="template-kind-filter" class="filter-label">{{ 'Aina' | t }}</label>
+              <select
+                id="template-kind-filter"
+                class="filter-input w-full"
+                [value]="templateKindFilter()"
+                (change)="templateKindFilter.set($any($event.target).value)"
+              >
+                <option value="">{{ 'Aina zote' | t }}</option>
+                @for (kind of templateKinds; track kind) {
+                  <option [value]="kind">{{ templateKindLabels[kind] | t }}</option>
+                }
+              </select>
+            </div>
+            <div>
+              <label for="template-topic-filter" class="filter-label">{{ 'Mada' | t }}</label>
+              <select
+                id="template-topic-filter"
+                class="filter-input w-full"
+                [value]="templateTopicFilter()"
+                (change)="templateTopicFilter.set($any($event.target).value)"
+              >
+                <option value="">{{ 'Mada zote' | t }}</option>
+                @for (option of topics; track option.value) {
+                  <option [value]="option.value">{{ option.label | t }}</option>
+                }
+              </select>
+            </div>
+          </div>
+
+          @if (templatesLoading()) {
+            <div class="space-y-3 p-4">
+              @for (row of skeletonRows; track row) {
+                <div class="skeleton h-16 w-full"></div>
+              }
+            </div>
+          } @else if (filteredTemplates().length === 0) {
+            <p class="px-4 py-8 text-center text-sm text-muted">{{ 'Hakuna kiolezo kinacholingana.' | t }}</p>
+          } @else {
+            <ul class="divide-y divide-line">
+              @for (item of filteredTemplates(); track item.id) {
+                <li class="px-4 py-3">
+                  <div class="flex items-start justify-between gap-2">
+                    <div class="min-w-0">
+                      <p class="text-[0.65rem] tracking-[0.14em] text-brass-strong uppercase">
+                        {{ messageTopicLabel(item.topic) | t }} · {{ templateKindLabels[item.kind] | t }}
+                      </p>
+                      <p class="mt-1 font-medium">{{ item.name }}</p>
+                      <p class="mt-1 line-clamp-2 text-xs text-muted">{{ item.body }}</p>
+                      <div class="mt-2 flex flex-wrap gap-2 text-[0.65rem] tracking-[0.08em] text-faint uppercase">
+                        @if (item.is_default) {
+                          <span>{{ 'Chaguo-msingi' | t }}</span>
+                        }
+                        @if (item.is_system) {
+                          <span>{{ 'Cha mfumo' | t }}</span>
+                        }
+                      </div>
+                    </div>
+                    <div class="flex shrink-0 flex-col gap-1">
+                      @if (item.kind === 'compose') {
+                        <button type="button" class="text-xs text-brass-strong hover:underline" (click)="applySavedTemplate(item.id, true)">
+                          {{ 'Tumia' | t }}
+                        </button>
+                      }
+                      <button type="button" class="text-xs text-brass-strong hover:underline" (click)="editTemplate(item)">
+                        {{ 'Hariri' | t }}
+                      </button>
+                      @if (!item.is_system) {
+                        <button type="button" class="text-xs text-negative hover:underline" (click)="deleteTemplate(item)">
+                          {{ 'Futa' | t }}
+                        </button>
+                      }
+                    </div>
+                  </div>
+                </li>
+              }
+            </ul>
           }
         </section>
       </aside>
@@ -587,6 +991,16 @@
             <option value="sms">{{ channelLabels.sms | t }}</option>
             <option value="app">{{ channelLabels.app | t }}</option>
             <option value="both">{{ channelLabels.both | t }}</option>
+          </select>
+        </div>
+        <div>
+          <label for="msg-topic-filter" class="filter-label">{{ 'Mada' | t }}</label>
+          <select id="msg-topic-filter" class="filter-input" [value]="topicFilter()"
+                  (change)="setTopicFilter($any($event.target).value)">
+            <option value="">{{ 'Mada zote' | t }}</option>
+            @for (option of topics; track option.value) {
+              <option [value]="option.value">{{ option.label | t }}</option>
+            }
           </select>
         </div>
         <div>
@@ -677,8 +1091,11 @@
                     </span>
                   </td>
                   <td class="max-w-md px-4 py-3">
-                    @if (item.title) {
-                      <span class="block font-medium">{{ item.title }}</span>
+                    @if (item.topic) {
+                      <span class="block text-[0.65rem] tracking-[0.14em] text-brass-strong uppercase">{{ messageTopicLabel(item.topic) | t }}</span>
+                    }
+                    @if (customTitle(item); as title) {
+                      <span class="block font-medium">{{ title }}</span>
                     }
                     <span class="line-clamp-2 text-muted">{{ item.body }}</span>
                   </td>
@@ -738,7 +1155,16 @@
           {{ channelLabels[message.channel] | t }} ·
           {{ message.created_at | date: 'EEE, d MMM y, HH:mm' : undefined : i18n.dateLocale() }}
         </p>
-        <h2 id="message-details-title" class="mt-1 font-serif text-xl">{{ message.title || audienceLabel(message.audience_label) }}</h2>
+        @if (customTitle(message); as title) {
+          @if (message.topic) {
+            <p class="mt-2 text-xs tracking-[0.14em] text-brass-strong uppercase">{{ messageTopicLabel(message.topic) | t }}</p>
+          }
+          <h2 id="message-details-title" class="mt-1 font-serif text-xl">{{ title }}</h2>
+        } @else if (message.topic) {
+          <h2 id="message-details-title" class="mt-1 font-serif text-xl">{{ messageTopicLabel(message.topic) | t }}</h2>
+        } @else {
+          <h2 id="message-details-title" class="mt-1 font-serif text-xl">{{ message.title || audienceLabel(message.audience_label) }}</h2>
+        }
         <p class="mt-1 text-sm text-muted">
           {{ 'Imetumwa na {sender} kwa {audience}' | t: { sender: message.sender, audience: audienceLabel(message.audience_label) } }}
         </p>
@@ -826,6 +1252,11 @@
                     <span class="block text-xs text-faint">
                       {{ recipient.group_name ? (recipient.group_name | t) : recipientTypeLabel(recipient.recipient_type) }}
                     </span>
+                    @if (message.body.includes(placeholder)) {
+                      <span class="mt-0.5 block max-w-md text-xs leading-relaxed text-muted">
+                        {{ renderMessage(message.body, recipient.name) }}
+                      </span>
+                    }
                   </td>
                   <td class="py-2 pr-3 whitespace-nowrap text-muted tabular-nums">{{ displayPhone(recipient.phone) }}</td>
                   <td class="py-2 pr-3 text-muted">{{ (recipient.channel === 'sms' ? 'SMS' : 'Arifa') | t }}</td>

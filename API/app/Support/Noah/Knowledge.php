@@ -715,12 +715,12 @@ class Knowledge
                         ."- **Zaka** na **Fungu la kumi** — za mtu binafsi; jina la mtoaji ni lazima.\n"
                         ."- **Majitoleo ya jumuiya** (thamani ya vipaji) — lazima yahusishwe na jumuiya.\n"
                         ."- **Shukrani**, **Mchango wa ujenzi**, **Matoleo mengineyo**.\n\n"
-                        .'Zaka, Fungu la kumi na Shukrani zikirekodiwa na namba ya simu ya mtoaji, anaweza kutumiwa SMS ya shukrani.',
+                        .'Sadaka, Zaka, Fungu la kumi, Majitoleo, Shukrani na Ujenzi zikirekodiwa na namba ya simu ya mtoaji, anaweza kutumiwa SMS ya shukrani. Hariri maandishi kwenye Arifa na SMS → Violezo.',
                     'en' => "- **Sadaka ya ibada** — Mass collections.\n"
                         ."- **Zaka** and **Fungu la kumi** (tithes) — personal; the giver's name is required.\n"
                         ."- **Majitoleo ya jumuiya** (community contributions) — must be linked to a community.\n"
                         ."- **Shukrani** (thanksgiving), **Ujenzi** (building fund), **Mengineyo** (other).\n\n"
-                        .'Zaka, Fungu la kumi and Shukrani recorded with the giver\'s phone number can trigger a thank-you SMS.',
+                        .'Sadaka, Zaka, Fungu la kumi, Majitoleo, Shukrani and Ujenzi recorded with the giver\'s phone number can trigger a thank-you SMS. Edit the wording under Notifications → Templates.',
                 ],
                 'related' => ['sadaka.create', 'sadaka.thankyou'],
             ],
@@ -731,15 +731,17 @@ class Knowledge
                 'keywords' => ['sms ya shukrani', 'thank you sms', 'thank-you', 'thank you message', 'shukuru mtoaji', 'thank giver'],
                 'title' => ['sw' => 'SMS ya shukrani kwa mtoaji', 'en' => 'Thank-you SMS to givers'],
                 'answer' => [
-                    'sw' => "Unaporekodi **Zaka**, **Fungu la kumi** au **Shukrani**:\n\n"
+                    'sw' => "Unaporekodi **Sadaka**, **Zaka**, **Fungu la kumi**, **Majitoleo**, **Shukrani** au **Ujenzi**:\n\n"
                         ."1. Weka **simu ya mtoaji**.\n"
                         ."2. Weka alama kwenye **Tuma SMS ya shukrani kwa mtoaji**.\n"
-                        ."3. Hifadhi. Mtoaji anapokea ujumbe wenye kiasi na tarehe.\n\n"
+                        ."3. Hifadhi. Mtoaji anapokea ujumbe wenye kiasi na tarehe (kutoka kiolezo cha shukrani).\n\n"
+                        ."Hariri maandishi kwenye **Arifa na SMS → Violezo** (aina: SMS ya shukrani). Tumia **{jina}**, **{kiasi}** na **{tarehe}**.\n\n"
                         .'Ukiingiza kwa Excel, unaweza kuwatumia watoaji wote wenye namba za simu kwa mara moja. SMS hizi hutozwa gharama, na kila mchango hutumiwa SMS mara moja tu.',
-                    'en' => "When recording **Zaka**, **Fungu la kumi** or **Shukrani**:\n\n"
+                    'en' => "When recording **Mass collection**, **Zaka**, **tithe**, **community gifts**, **thanksgiving** or **building fund**:\n\n"
                         ."1. Enter the **giver's phone**.\n"
                         ."2. Tick **Send the giver a thank-you SMS**.\n"
-                        ."3. Save. The giver receives a message with the amount and date.\n\n"
+                        ."3. Save. The giver receives a message with the amount and date (from the thank-you template).\n\n"
+                        ."Edit the wording under **Notifications & SMS → Templates** (type: Thank-you SMS). Use **{jina}**, **{kiasi}** and **{tarehe}**.\n\n"
                         .'When importing from Excel you can thank every giver with a phone number at once. These SMS cost money, and each offering is thanked only once.',
                 ],
             ],
@@ -794,36 +796,60 @@ class Knowledge
                 'keywords' => ['historia ya ujumbe', 'message history', 'sms zilizotumwa', 'sent messages', 'hali ya sms', 'delivery', 'zimefika', 'delivered'],
                 'title' => ['sw' => 'Moduli ya Arifa na SMS', 'en' => 'The Notifications & SMS module'],
                 'answer' => [
-                    'sw' => "**Arifa na SMS** ina sehemu mbili:\n\n"
+                    'sw' => "**Arifa na SMS** ina sehemu tatu:\n\n"
                         ."- **Tuma ujumbe** — tunga na tuma SMS au arifa ya mfumo.\n"
+                        ."- **Violezo** — unda na hariri violezo vya kutuma, pamoja na SMS za shukrani.\n"
                         .'- **Historia** — kila ujumbe uliotumwa, nani aliutuma, wapokeaji, vipande vya SMS, na hali ya kila mpokeaji (imetumwa / imeshindwa). Bofya **Angalia** kuona maelezo.',
-                    'en' => "**Notifications & SMS** has two parts:\n\n"
+                    'en' => "**Notifications & SMS** has three parts:\n\n"
                         ."- **Send message** — compose and send an SMS or in-app notification.\n"
+                        ."- **Templates** — create and edit send templates and thank-you SMS.\n"
                         .'- **History** — every message sent, who sent it, recipients, SMS segments, and each recipient\'s status (sent / failed). Click **View** for details.',
                 ],
-                'related' => ['notifications.send', 'notifications.retry'],
+                'related' => ['notifications.send', 'notifications.templates', 'notifications.retry'],
             ],
             [
                 'id' => 'notifications.send',
                 'module' => 'notifications',
                 'actions' => ['create'],
-                'keywords' => ['tuma sms', 'send sms', 'tuma ujumbe', 'send message', 'tangazo', 'announcement', 'wapokeaji', 'recipients', 'tuma kwa jumuiya', 'tuma kwa kanda', 'tuma kwa wote', 'send to all', 'message to all', 'send to members', 'bulk sms', 'jina lao', 'placeholder', 'violezo'],
+                'keywords' => ['tuma sms', 'send sms', 'tuma ujumbe', 'send message', 'tangazo', 'announcement', 'wapokeaji', 'recipients', 'tuma kwa jumuiya', 'tuma kwa kanda', 'tuma kwa wote', 'send to all', 'message to all', 'send to members', 'bulk sms', 'jina lao', 'placeholder', 'violezo', 'mada ya ujumbe', 'ujumbe unahusu', 'what the message is about', 'message subject'],
                 'title' => ['sw' => 'Kutuma SMS au arifa', 'en' => 'Sending an SMS or notification'],
                 'answer' => [
                     'sw' => "1. Fungua **Arifa na SMS → Tuma ujumbe**.\n"
                         ."2. Chagua **njia**: SMS, Arifa za mfumo, au zote mbili. (Arifa za mfumo zinafika kwa watumiaji wa mfumo tu; wanajumuiya wanapata SMS.)\n"
-                        ."3. Chagua **wapokeaji**: Wote waliosajiliwa, Kanda, Jumuiya, Watumiaji wa mfumo, au Watu maalum (mmoja mmoja au namba za kuandika).\n"
-                        ."4. Andika ujumbe, au anza na **kiolezo**. Bofya **+ Weka {jina}** ili kila mtu aone jina lake.\n"
+                        ."3. Chagua **wapokeaji**: Wote waliosajiliwa, Kanda, Jumuiya, Watumiaji wa mfumo, au Watu maalum (mmoja mmoja au namba za kuandika). Ukichagua Kanda au Jumuiya, wanajumuiya wake wanachaguliwa wenyewe. Kisanduku cha **Wote** kinawachagua wote tena; ondoa alama kwa asiyepaswa kupokea.\n"
+                        ."4. Chagua **ujumbe unahusu nini**: tangazo (misa, mkutano, matukio) au mchango (sadaka, zaka, fungu la kumi, majitoleo, shukrani, ujenzi). Kiolezo cha **shukrani** kinajazwa chenyewe kwa michango; unaweza kukihariri au kuchagua kiolezo kilichohifadhiwa. **{jina}** hubadilishwa na jina la kila mtu kutoka kwenye orodha.\n"
                         ."5. Kagua **onyesho la ujumbe** na idadi ya vipande vya SMS, kisha **Tuma**.\n\n"
                         .'Watu wasio na namba sahihi wanarukwa, na namba zinazojirudia zinatumiwa mara moja tu.',
                     'en' => "1. Open **Notifications & SMS → Send message**.\n"
                         ."2. Choose the **channel**: SMS, in-app notification, or both. (In-app reaches system users only; members get SMS.)\n"
-                        ."3. Choose **recipients**: Everyone registered, Zones, Communities, System users, or Specific people (pick or type numbers).\n"
-                        ."4. Write the message, or start from a **template**. Click **+ Insert {jina}** so each person sees their own name.\n"
+                        ."3. Choose **recipients**: Everyone registered, Zones, Communities, System users, or Specific people (pick or type numbers). Choosing a zone or community selects its members automatically. The **All** box selects them all again; untick anyone who should not receive it.\n"
+                        ."4. Choose **what the message is about**: an announcement (Mass, meeting, events) or a contribution (Mass collection, Zaka, tithe, community gifts, thanksgiving, building fund). A **thank-you** template is filled in for contributions; you can edit it or pick a saved template. **{jina}** is replaced with each person's name from the register.\n"
                         ."5. Check the **preview** and SMS segment count, then **Send**.\n\n"
                         .'People without a valid number are skipped, and duplicate numbers receive the message once.',
                 ],
-                'related' => ['notifications.balance', 'notifications.segments', 'notifications.retry', 'notifications.testmode'],
+                'related' => ['notifications.templates', 'notifications.balance', 'notifications.segments', 'notifications.retry', 'notifications.testmode'],
+            ],
+            [
+                'id' => 'notifications.templates',
+                'module' => 'notifications',
+                'actions' => ['create'],
+                'keywords' => ['violezo', 'kiolezo', 'templates', 'message template', 'sms template', 'thank you template', 'kiolezo cha shukrani', 'hariri kiolezo', 'unda kiolezo'],
+                'title' => ['sw' => 'Violezo vya ujumbe', 'en' => 'Message templates'],
+                'answer' => [
+                    'sw' => "1. Fungua **Arifa na SMS → Violezo**.\n"
+                        ."2. Chagua **aina**: Kutuma ujumbe (kwa matangazo na shukrani za mkusanyiko) au **SMS ya shukrani** (inayotumwa kiotomatiki baada ya kurekodi mchango).\n"
+                        ."3. Chagua **mada**, andika **jina** na **maandishi**. Tumia **{jina}**; kwa SMS ya shukrani ongeza **{kiasi}** na **{tarehe}**.\n"
+                        ."4. Weka alama **Tumia kama chaguo-msingi** ikiwa unataka kiolezo hiki kujazwa chenyewe.\n"
+                        ."5. **Hifadhi**. Violezo vya mfumo vinaweza kuhaririwa lakini haviwezi kufutwa.\n\n"
+                        .'Michango (sadaka, zaka, fungu la kumi, majitoleo, shukrani, ujenzi) hutumia lugha ya shukrani kwa kushiriki.',
+                    'en' => "1. Open **Notifications & SMS → Templates**.\n"
+                        ."2. Choose the **type**: Sending a message (broadcasts and thank-yous) or **Thank-you SMS** (sent automatically after recording a contribution).\n"
+                        ."3. Choose the **subject**, enter a **name** and **text**. Use **{jina}**; for thank-you SMS also add **{kiasi}** and **{tarehe}**.\n"
+                        ."4. Tick **Use as the default** if this template should fill in automatically.\n"
+                        ."5. **Save**. System templates can be edited but not deleted.\n\n"
+                        .'Contribution subjects (Mass collection, Zaka, tithe, community gifts, thanksgiving, building fund) use thank-you wording for taking part.',
+                ],
+                'related' => ['notifications.send', 'sadaka.thankyou'],
             ],
             [
                 'id' => 'notifications.balance',

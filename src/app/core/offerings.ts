@@ -27,7 +27,7 @@ export interface CategoryDefinition {
 }
 
 export const OFFERING_CATEGORIES: readonly CategoryDefinition[] = [
-  { value: 'sadaka', label: 'Sadaka ya ibada', hint: 'Sadaka inayokusanywa wakati wa misa na ibada.' },
+  { value: 'sadaka', label: 'Sadaka ya ibada', hint: 'Sadaka inayokusanywa wakati wa misa na ibada.', thankYou: true },
   { value: 'zaka', label: 'Zaka', hint: 'Zaka ya muumini kwa parokia.', personal: true, thankYou: true },
   { value: 'fungu_la_kumi', label: 'Fungu la kumi', hint: 'Sehemu ya kumi ya mapato ya muumini.', personal: true, thankYou: true },
   {
@@ -35,9 +35,10 @@ export const OFFERING_CATEGORIES: readonly CategoryDefinition[] = [
     label: 'Majitoleo ya jumuiya',
     hint: 'Thamani ya vipaji kutoka jumuiya ndogo ndogo.',
     jumuiya: true,
+    thankYou: true,
   },
   { value: 'shukrani', label: 'Shukrani', hint: 'Sadaka ya shukrani kwa Mungu.', thankYou: true },
-  { value: 'ujenzi', label: 'Mchango wa ujenzi', hint: 'Michango ya ujenzi na miradi ya parokia.' },
+  { value: 'ujenzi', label: 'Mchango wa ujenzi', hint: 'Michango ya ujenzi na miradi ya parokia.', thankYou: true },
   { value: 'mengineyo', label: 'Matoleo mengineyo', hint: 'Matoleo mengine yoyote; eleza kwenye maelezo.' },
 ];
 

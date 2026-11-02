@@ -21,6 +21,7 @@ export const NOTIFICATIONS: Record<string, string> = {
   'Takwimu za ujumbe': 'Message statistics',
   'Sehemu za arifa': 'Notification sections',
   'Tuma ujumbe': 'Send message',
+  Violezo: 'Templates',
   Historia: 'History',
 
   // Stats
@@ -49,8 +50,20 @@ export const NOTIFICATIONS: Record<string, string> = {
   Wapokeaji: 'Recipients',
   'Wote waliosajiliwa': 'Everyone registered',
   'Wanajumuiya wote na watumiaji wa mfumo': 'All members and system users',
-  'Wanajumuiya wa kanda ulizochagua': 'Members of the zones you select',
-  'Wanajumuiya wa jumuiya ulizochagua': 'Members of the communities you select',
+  'Wanajumuiya wa kanda ulizochagua. Majina yao yanachaguliwa yenyewe.':
+    'Members of the zones you select. Their names are selected automatically.',
+  'Wanajumuiya wa jumuiya ulizochagua. Majina yao yanachaguliwa yenyewe.':
+    'Members of the communities you select. Their names are selected automatically.',
+  'Chagua kanda. Wanajumuiya wake watachaguliwa wenyewe.':
+    'Select a zone. Its members will be selected automatically.',
+  'Chagua jumuiya. Wanajumuiya wake watachaguliwa wenyewe.':
+    'Select a community. Its members will be selected automatically.',
+  'Majina yanachaguliwa yenyewe kutoka kwenye orodha. {jina} hubadilishwa na jina la kila mtu. Ondoa alama kwa asiyepaswa kupokea.':
+    'Names are selected automatically from the register. {jina} is replaced with each person\'s name. Untick anyone who should not receive it.',
+  'Chagua angalau mwanajumuiya mmoja.': 'Select at least one member.',
+  'Tafuta mwanajumuiya kwa jina au simu…': 'Search members by name or phone…',
+  'Hakuna mwanajumuiya katika ulizochagua.': 'No members in what you selected.',
+  '{group} · watu {count}': '{group} · {count} people',
   'Watumiaji wa mfumo': 'System users',
   'Wenye akaunti ya kuingia kwenye mfumo': 'People with a login account',
   'Watu maalum': 'Specific people',
@@ -97,7 +110,84 @@ export const NOTIFICATIONS: Record<string, string> = {
 
   // Message
   Ujumbe: 'Message',
+  'Ujumbe unahusu': 'What the message is about',
+  'Chagua mada. Kiolezo cha shukrani kinajazwa chenyewe kwa michango; unaweza kukihariri kabla ya kutuma.':
+    'Choose the subject. A thank-you template is filled in for contributions; you can edit it before sending.',
+  Matangazo: 'Announcements',
+  Mada: 'Subject',
+  'Mada zote': 'All subjects',
+  'Mwaliko wa misa au ibada.': 'An invitation to Mass or a service.',
+  'Mkutano wa jumuiya au kanda.': 'A community or zone meeting.',
+  'Sherehe, siku maalum au tukio la parokia.': 'A feast, special day or parish event.',
+  'Tangazo lingine': 'Another announcement',
+  'Ujumbe usioingia katika mada zilizo hapo juu.': 'A message that does not fit the subjects above.',
+  'Shukrani kwa kushiriki katika sadaka ya ibada.': 'Thank you for taking part in the Mass collection.',
+  'Shukrani kwa kushiriki katika zaka ya parokia.': 'Thank you for taking part in parish Zaka.',
+  'Shukrani kwa kushiriki katika fungu la kumi.': 'Thank you for taking part in the tithe.',
+  'Shukrani kwa kushiriki katika majitoleo ya jumuiya.': 'Thank you for taking part in community gifts.',
+  'Shukrani kwa kushiriki katika sadaka ya shukrani.': 'Thank you for taking part in the thanksgiving offering.',
+  'Shukrani kwa kushiriki katika mchango wa ujenzi.': 'Thank you for taking part in the building fund.',
+  'Shukrani kwa matoleo mengine; eleza kwenye ujumbe.': 'Thank you for other offerings; describe them in the message.',
+  'Matoleo mengine yoyote; eleza kwenye ujumbe.': 'Any other offering; describe it in the message.',
+  'Tumsifu Yesu Kristu {jina}. Kutakuwa na tukio la ___ siku ya ___ saa ___. Karibu sana.':
+    'Praised be Jesus Christ, {jina}. There will be an event, ___, on ___ at ___. You are most welcome.',
+  'Tumsifu Yesu Kristu {jina}. Asante kwa kushiriki katika sadaka ya ibada. Mungu akubariki.':
+    'Praised be Jesus Christ, {jina}. Thank you for taking part in the Mass collection. God bless you.',
+  'Tumsifu Yesu Kristu {jina}. Asante kwa kushiriki katika zaka ya parokia. Mungu akubariki.':
+    'Praised be Jesus Christ, {jina}. Thank you for taking part in parish Zaka. God bless you.',
+  'Tumsifu Yesu Kristu {jina}. Asante kwa kushiriki katika fungu la kumi. Mungu akubariki.':
+    'Praised be Jesus Christ, {jina}. Thank you for taking part in the tithe. God bless you.',
+  'Tumsifu Yesu Kristu {jina}. Asante kwa kushiriki katika majitoleo ya jumuiya. Mungu akubariki.':
+    'Praised be Jesus Christ, {jina}. Thank you for taking part in community gifts. God bless you.',
+  'Tumsifu Yesu Kristu {jina}. Asante kwa kushiriki katika sadaka ya shukrani. Mungu akubariki.':
+    'Praised be Jesus Christ, {jina}. Thank you for taking part in the thanksgiving offering. God bless you.',
+  'Tumsifu Yesu Kristu {jina}. Asante kwa kushiriki katika mchango wa ujenzi. Mungu akubariki.':
+    'Praised be Jesus Christ, {jina}. Thank you for taking part in the building fund. God bless you.',
+  'Tumsifu Yesu Kristu {jina}. Asante kwa kushiriki katika ___. Mungu akubariki.':
+    'Praised be Jesus Christ, {jina}. Thank you for taking part in ___. God bless you.',
+  'Ukiwacha wazi, kichwa kitakuwa jina la mada.': 'If you leave this empty, the title will be the subject name.',
+  'Chagua ujumbe unahusu nini.': 'Choose what the message is about.',
+  'Badilisha ujumbe ulioandika ili uendane na mada hii?': 'Replace the message you wrote so it matches this subject?',
   'Violezo:': 'Templates:',
+  'Kiolezo kilichohifadhiwa': 'Saved template',
+  'Chagua kiolezo…': 'Choose a template…',
+  'chaguo-msingi': 'default',
+  'Chaguo-msingi': 'Default',
+  'Cha mfumo': 'System',
+  'Unda kiolezo': 'Create template',
+  'Hariri kiolezo': 'Edit template',
+  Tumia: 'Use',
+  'Kiolezo kipya': 'New template',
+  'Violezo vya kutuma ujumbe, na SMS za shukrani zinazotumwa kiotomatiki baada ya kurekodi mchango.':
+    'Templates for sending messages, and thank-you SMS sent automatically after recording a contribution.',
+  Aina: 'Type',
+  'Aina zote': 'All types',
+  'Kutuma ujumbe': 'Sending a message',
+  'Chagua mada…': 'Choose a subject…',
+  'Jina la kiolezo': 'Template name',
+  '{jina} = jina la mtoaji, {kiasi} = kiasi, {tarehe} = tarehe ya mchango.':
+    '{jina} = giver name, {kiasi} = amount, {tarehe} = contribution date.',
+  'Tumia kama chaguo-msingi kwa mada hii': 'Use as the default for this subject',
+  'Hifadhi kiolezo': 'Save template',
+  'Hifadhi mabadiliko': 'Save changes',
+  'Kiolezo kimeundwa.': 'Template created.',
+  'Kiolezo kimehifadhiwa.': 'Template saved.',
+  'Kiolezo kimefutwa.': 'Template deleted.',
+  'Violezo vilivyohifadhiwa': 'Saved templates',
+  'Pakua upya': 'Refresh',
+  'Hakuna kiolezo kinacholingana.': 'No matching templates.',
+  'Futa kiolezo “{name}”?': 'Delete template “{name}”?',
+  'Imeshindwa kupakia violezo.': 'Could not load templates.',
+  'Imeshindwa kuhifadhi kiolezo.': 'Could not save the template.',
+  'Imeshindwa kufuta kiolezo.': 'Could not delete the template.',
+  'Chagua mada ya kiolezo.': 'Choose the template subject.',
+  'Andika jina la kiolezo.': 'Enter a template name.',
+  'Andika maandishi ya kiolezo.': 'Write the template text.',
+  'Kiolezo cha mfumo hakiwezi kufutwa. Unaweza kukihariri au kuunda chako.':
+    'A system template cannot be deleted. You can edit it or create your own.',
+  'SMS ya shukrani inaruhusiwa kwa michango pekee (sadaka, zaka, fungu la kumi, majitoleo, shukrani, ujenzi).':
+    'Thank-you SMS templates are only for contributions (Mass collection, Zaka, tithe, community gifts, thanksgiving, building fund).',
+  'Kiolezo ni kirefu mno (herufi 1600 zinaruhusiwa).': 'The template is too long (1600 characters allowed).',
   'Tangazo la misa': 'Mass announcement',
   'Mkutano wa jumuiya': 'Community meeting',
   'Kumbusho la michango': 'Contributions reminder',

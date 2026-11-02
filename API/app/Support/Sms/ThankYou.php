@@ -3,19 +3,27 @@
 namespace App\Support\Sms;
 
 use App\Models\Message;
+use App\Models\MessageTemplate;
 use App\Models\Offering;
 use App\Models\User;
 
-/** Automatic thank-you SMS for Zaka, Fungu la kumi and Shukrani. */
+/** Automatic thank-you SMS after an offering is recorded with the giver's phone. */
 class ThankYou
 {
     public const AUDIENCE = 'offering';
 
-    /** @var array<string, string> Separate sentences because "fungu" takes different Swahili noun-class agreement. */
-    private const RECEIVED = [
-        'zaka' => 'Zaka yako ya TSh %s ya tarehe %s imepokelewa.',
-        'fungu_la_kumi' => 'Fungu lako la kumi la TSh %s la tarehe %s limepokelewa.',
-        'shukrani' => 'Sadaka yako ya shukrani ya TSh %s ya tarehe %s imepokelewa.',
+    public const AMOUNT_PLACEHOLDER = '{kiasi}';
+
+    public const DATE_PLACEHOLDER = '{tarehe}';
+
+    /** Fallback when no thank-you template is stored yet (e.g. before migrate). */
+    private const FALLBACK = [
+        'sadaka' => 'Tumsifu Yesu Kristu {jina}. Sadaka yako ya ibada ya TSh {kiasi} ya tarehe {tarehe} imepokelewa. Asante kwa kushiriki, Mungu akubariki.',
+        'zaka' => 'Tumsifu Yesu Kristu {jina}. Zaka yako ya TSh {kiasi} ya tarehe {tarehe} imepokelewa. Asante kwa kushiriki, Mungu akubariki.',
+        'fungu_la_kumi' => 'Tumsifu Yesu Kristu {jina}. Fungu lako la kumi la TSh {kiasi} la tarehe {tarehe} limepokelewa. Asante kwa kushiriki, Mungu akubariki.',
+        'majitoleo' => 'Tumsifu Yesu Kristu {jina}. Majitoleo yako ya jumuiya ya TSh {kiasi} ya tarehe {tarehe} yamepokelewa. Asante kwa kushiriki, Mungu akubariki.',
+        'shukrani' => 'Tumsifu Yesu Kristu {jina}. Sadaka yako ya shukrani ya TSh {kiasi} ya tarehe {tarehe} imepokelewa. Asante kwa kushiriki, Mungu akubariki.',
+        'ujenzi' => 'Tumsifu Yesu Kristu {jina}. Mchango wako wa ujenzi wa TSh {kiasi} wa tarehe {tarehe} umepokelewa. Asante kwa kushiriki, Mungu akubariki.',
     ];
 
     public static function applies(Offering $offering): bool
@@ -33,6 +41,7 @@ class ThankYou
             'audience' => self::AUDIENCE,
             'audience_ids' => ['offering_id' => $offering->id],
             'audience_label' => 'SMS ya shukrani · '.Offering::CATEGORIES[$offering->category],
+            'topic' => $offering->category,
             'title' => null,
             'body' => self::body($offering),
             'status' => 'sending',
@@ -53,14 +62,24 @@ class ThankYou
         return $message;
     }
 
+    /** Amount and date are filled here; {jina} stays for Outbox per recipient. */
     private static function body(Offering $offering): string
     {
-        $received = sprintf(
-            self::RECEIVED[$offering->category],
-            number_format((float) $offering->amount),
-            $offering->received_on->format('d/m/Y'),
-        );
+        $template = MessageTemplate::query()
+            ->where('topic', $offering->category)
+            ->where('kind', MessageTemplate::KIND_THANK_YOU)
+            ->where('is_default', true)
+            ->value('body')
+            ?? self::FALLBACK[$offering->category]
+            ?? self::FALLBACK['zaka'];
 
-        return 'Tumsifu Yesu Kristu '.Outbox::NAME_PLACEHOLDER.'. '.$received.' Asante kwa ukarimu wako, Mungu akubariki.';
+        return str_replace(
+            [self::AMOUNT_PLACEHOLDER, self::DATE_PLACEHOLDER],
+            [
+                number_format((float) $offering->amount),
+                $offering->received_on->format('d/m/Y'),
+            ],
+            $template,
+        );
     }
 }

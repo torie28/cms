@@ -9,12 +9,167 @@ export type MessageChannel = 'sms' | 'app' | 'both';
 export type AudienceType = 'all' | 'kanda' | 'jumuiya' | 'users' | 'custom' | 'offering';
 export type MessageStatus = 'sending' | 'sent' | 'partial' | 'failed';
 
+/** Keys match `Message::TOPICS` on the API. */
+export const NAME_PLACEHOLDER = '{jina}';
+
+export type MessageTopic =
+  | 'misa'
+  | 'mkutano'
+  | 'matukio'
+  | 'sadaka'
+  | 'zaka'
+  | 'fungu_la_kumi'
+  | 'majitoleo'
+  | 'shukrani'
+  | 'ujenzi'
+  | 'mengineyo'
+  | 'nyingine';
+
+export interface MessageTopicDefinition {
+  value: MessageTopic;
+  group: 'announcement' | 'offering';
+  label: string;
+  hint: string;
+  /** Suggested text. Empty means the sender writes the message themselves. */
+  body: string;
+}
+
+export const MESSAGE_TOPICS: readonly MessageTopicDefinition[] = [
+  {
+    value: 'misa',
+    group: 'announcement',
+    label: 'Tangazo la misa',
+    hint: 'Mwaliko wa misa au ibada.',
+    body: `Tumsifu Yesu Kristu ${NAME_PLACEHOLDER}. Unakaribishwa kwenye misa ya Jumapili saa 1:00 asubuhi. Mungu akubariki.`,
+  },
+  {
+    value: 'mkutano',
+    group: 'announcement',
+    label: 'Mkutano wa jumuiya',
+    hint: 'Mkutano wa jumuiya au kanda.',
+    body: `Tumsifu Yesu Kristu ${NAME_PLACEHOLDER}. Kutakuwa na mkutano wa jumuiya siku ya ___ saa ___. Karibu sana.`,
+  },
+  {
+    value: 'matukio',
+    group: 'announcement',
+    label: 'Matukio',
+    hint: 'Sherehe, siku maalum au tukio la parokia.',
+    body: `Tumsifu Yesu Kristu ${NAME_PLACEHOLDER}. Kutakuwa na tukio la ___ siku ya ___ saa ___. Karibu sana.`,
+  },
+  {
+    value: 'nyingine',
+    group: 'announcement',
+    label: 'Tangazo lingine',
+    hint: 'Ujumbe usioingia katika mada zilizo hapo juu.',
+    body: '',
+  },
+  {
+    value: 'sadaka',
+    group: 'offering',
+    label: 'Sadaka ya ibada',
+    hint: 'Shukrani kwa kushiriki katika sadaka ya ibada.',
+    body: `Tumsifu Yesu Kristu ${NAME_PLACEHOLDER}. Asante kwa kushiriki katika sadaka ya ibada. Mungu akubariki.`,
+  },
+  {
+    value: 'zaka',
+    group: 'offering',
+    label: 'Zaka',
+    hint: 'Shukrani kwa kushiriki katika zaka ya parokia.',
+    body: `Tumsifu Yesu Kristu ${NAME_PLACEHOLDER}. Asante kwa kushiriki katika zaka ya parokia. Mungu akubariki.`,
+  },
+  {
+    value: 'fungu_la_kumi',
+    group: 'offering',
+    label: 'Fungu la kumi',
+    hint: 'Shukrani kwa kushiriki katika fungu la kumi.',
+    body: `Tumsifu Yesu Kristu ${NAME_PLACEHOLDER}. Asante kwa kushiriki katika fungu la kumi. Mungu akubariki.`,
+  },
+  {
+    value: 'majitoleo',
+    group: 'offering',
+    label: 'Majitoleo ya jumuiya',
+    hint: 'Shukrani kwa kushiriki katika majitoleo ya jumuiya.',
+    body: `Tumsifu Yesu Kristu ${NAME_PLACEHOLDER}. Asante kwa kushiriki katika majitoleo ya jumuiya. Mungu akubariki.`,
+  },
+  {
+    value: 'shukrani',
+    group: 'offering',
+    label: 'Shukrani',
+    hint: 'Shukrani kwa kushiriki katika sadaka ya shukrani.',
+    body: `Tumsifu Yesu Kristu ${NAME_PLACEHOLDER}. Asante kwa kushiriki katika sadaka ya shukrani. Mungu akubariki.`,
+  },
+  {
+    value: 'ujenzi',
+    group: 'offering',
+    label: 'Mchango wa ujenzi',
+    hint: 'Shukrani kwa kushiriki katika mchango wa ujenzi.',
+    body: `Tumsifu Yesu Kristu ${NAME_PLACEHOLDER}. Asante kwa kushiriki katika mchango wa ujenzi. Mungu akubariki.`,
+  },
+  {
+    value: 'mengineyo',
+    group: 'offering',
+    label: 'Matoleo mengineyo',
+    hint: 'Shukrani kwa matoleo mengine; eleza kwenye ujumbe.',
+    body: `Tumsifu Yesu Kristu ${NAME_PLACEHOLDER}. Asante kwa kushiriki katika ___. Mungu akubariki.`,
+  },
+];
+
+export type MessageTemplateKind = 'compose' | 'thank_you';
+
+export interface MessageTemplate {
+  id: number;
+  user_id: number | null;
+  topic: MessageTopic;
+  kind: MessageTemplateKind;
+  name: string;
+  body: string;
+  is_default: boolean;
+  is_system: boolean;
+  created_at: string;
+  updated_at: string;
+}
+
+export interface MessageTemplatePayload {
+  topic: MessageTopic;
+  kind: MessageTemplateKind;
+  name: string;
+  body: string;
+  is_default: boolean;
+}
+
+export const TEMPLATE_KIND_LABELS: Record<MessageTemplateKind, string> = {
+  compose: 'Kutuma ujumbe',
+  thank_you: 'SMS ya shukrani',
+};
+
+export const AMOUNT_PLACEHOLDER = '{kiasi}';
+export const DATE_PLACEHOLDER = '{tarehe}';
+
+/** Topics that may have an automatic thank-you SMS template. */
+export const THANK_YOU_TOPICS: readonly MessageTopic[] = [
+  'sadaka',
+  'zaka',
+  'fungu_la_kumi',
+  'majitoleo',
+  'shukrani',
+  'ujenzi',
+];
+
+export function messageTopicLabel(topic: string | null | undefined): string {
+  return MESSAGE_TOPICS.find((item) => item.value === topic)?.label ?? '';
+}
+
+export function isMessageTopic(value: string | null | undefined): value is MessageTopic {
+  return MESSAGE_TOPICS.some((item) => item.value === value);
+}
+
 export interface Message {
   id: number;
   sender: string;
   channel: MessageChannel;
   audience: AudienceType;
   audience_label: string;
+  topic: MessageTopic | null;
   title: string | null;
   body: string;
   status: MessageStatus;
@@ -76,6 +231,7 @@ export interface MessagePayload {
   member_ids?: number[];
   user_ids?: number[];
   phones?: string[];
+  topic: MessageTopic;
   title: string;
   body: string;
 }
@@ -98,8 +254,6 @@ export interface InboxItem {
   /** SMS balance fields, or deletion-request meta (request_id, href, …). */
   alert?: InboxBalanceAlert | null;
 }
-
-export const NAME_PLACEHOLDER = '{jina}';
 
 export const CHANNEL_LABELS: Record<MessageChannel, string> = {
   sms: 'SMS',
@@ -124,10 +278,11 @@ export function audienceLabel(label: string): string {
     return translate(`${counted[1]} {count} ${counted[3]}`, { count: counted[2] });
   }
 
-  const named = label.match(/^(Kanda|Jumuiya): (.*?)(?: na nyingine (\d+))?$/);
+  const named = label.match(/^(Kanda|Jumuiya): (.*?)(?: na nyingine (\d+))?(?: · watu (\d+))?$/);
   if (named) {
     const names = named[3] ? translate('{names} na nyingine {count}', { names: named[2], count: named[3] }) : named[2];
-    return `${translate(named[1])}: ${names}`;
+    const group = `${translate(named[1])}: ${names}`;
+    return named[4] ? translate('{group} · watu {count}', { group, count: named[4] }) : group;
   }
 
   const thanks = label.match(/^SMS ya shukrani · (.*)$/);
@@ -248,6 +403,30 @@ export class MessagesService {
 
   retry(id: number): Promise<Message> {
     return firstValueFrom(this.http.post<Message>(`${API_BASE}/messages/${id}/retry`, {}));
+  }
+
+  templates(params?: { topic?: string; kind?: MessageTemplateKind }): Promise<MessageTemplate[]> {
+    const query = new URLSearchParams();
+    if (params?.topic) {
+      query.set('topic', params.topic);
+    }
+    if (params?.kind) {
+      query.set('kind', params.kind);
+    }
+    const suffix = query.toString() ? `?${query}` : '';
+    return firstValueFrom(this.http.get<MessageTemplate[]>(`${API_BASE}/message-templates${suffix}`));
+  }
+
+  createTemplate(payload: MessageTemplatePayload): Promise<MessageTemplate> {
+    return firstValueFrom(this.http.post<MessageTemplate>(`${API_BASE}/message-templates`, payload));
+  }
+
+  updateTemplate(id: number, payload: MessageTemplatePayload): Promise<MessageTemplate> {
+    return firstValueFrom(this.http.put<MessageTemplate>(`${API_BASE}/message-templates/${id}`, payload));
+  }
+
+  deleteTemplate(id: number): Promise<void> {
+    return firstValueFrom(this.http.delete<void>(`${API_BASE}/message-templates/${id}`));
   }
 
   inbox(): Promise<{ unread: number; items: InboxItem[] }> {

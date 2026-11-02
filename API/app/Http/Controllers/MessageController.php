@@ -132,11 +132,14 @@ class MessageController extends Controller
             'user_ids.*' => ['integer'],
             'phones' => ['sometimes', 'array', 'max:1000'],
             'phones.*' => ['string', 'max:40'],
+            'topic' => ['required', Rule::in(array_keys(Message::TOPICS))],
             'title' => ['nullable', 'string', 'max:120'],
             'body' => ['required', 'string', 'max:1600'],
         ], [
             'kanda_ids.required_if' => 'Chagua angalau kanda moja.',
             'jumuiya_ids.required_if' => 'Chagua angalau jumuiya moja.',
+            'topic.required' => 'Chagua ujumbe unahusu nini.',
+            'topic.in' => 'Chagua ujumbe unahusu nini.',
             'body.required' => 'Andika ujumbe kwanza.',
             'body.max' => 'Ujumbe ni mrefu mno (herufi 1600 zinaruhusiwa).',
         ]);
@@ -169,7 +172,8 @@ class MessageController extends Controller
                 'user_ids' => $data['user_ids'] ?? null,
             ]),
             'audience_label' => $resolved['label'],
-            'title' => $data['title'] ?? null,
+            'topic' => $data['topic'],
+            'title' => trim((string) ($data['title'] ?? '')) !== '' ? trim((string) $data['title']) : Message::TOPICS[$data['topic']],
             'body' => $data['body'],
             'status' => 'sending',
             'skipped_count' => $wantsSms ? $resolved['skipped'] : 0,
@@ -376,7 +380,9 @@ class MessageController extends Controller
             $parts[] = "arifa {$message->app_count}";
         }
 
-        return $message->audience_label.' · '.implode(', ', $parts);
+        $about = Message::TOPICS[$message->topic] ?? null;
+
+        return ($about ? $about.' · ' : '').$message->audience_label.' · '.implode(', ', $parts);
     }
 
     private function ensureModule(Request $request): void

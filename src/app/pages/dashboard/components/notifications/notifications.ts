@@ -13,28 +13,39 @@ import { ConfirmService } from '../../../../core/confirm';
 import { httpErrorMessage } from '../../../../core/http-error';
 import { I18nService, translate, TranslatePipe } from '../../../../core/i18n';
 import {
+  AMOUNT_PLACEHOLDER,
   audienceLabel,
   AudienceType,
   CHANNEL_LABELS,
   ContactBook,
+  DATE_PLACEHOLDER,
   displayPhone,
+  isMessageTopic,
   Message,
   MessageChannel,
   MessagePayload,
+  MESSAGE_TOPICS,
+  MessageTemplate,
+  MessageTemplateKind,
+  MessageTemplatePayload,
+  MessageTopic,
   MessagesService,
   MessageStatus,
+  messageTopicLabel,
   NAME_PLACEHOLDER,
   SmsBalance,
   normalizePhone,
   renderMessage,
   smsLength,
   STATUS_LABELS,
+  TEMPLATE_KIND_LABELS,
+  THANK_YOU_TOPICS,
 } from '../../../../core/messages';
 import { FilterPanel, withinDateRange } from '../../../../shared/filter-panel';
 import { SmsBalanceCard } from '../../../../shared/sms-balance';
 import { matchesSearch, SearchBox } from '../../../../shared/search-box';
 
-type Tab = 'compose' | 'history';
+type Tab = 'compose' | 'templates' | 'history';
 
 interface Person {
   key: string;
@@ -70,6 +81,15 @@ export class NotificationsPage {
   protected readonly audienceLabel = audienceLabel;
   protected readonly statusLabels = STATUS_LABELS;
   protected readonly placeholder = NAME_PLACEHOLDER;
+  protected readonly amountPlaceholder = AMOUNT_PLACEHOLDER;
+  protected readonly datePlaceholder = DATE_PLACEHOLDER;
+  protected readonly topics = MESSAGE_TOPICS;
+  protected readonly announcementTopics = MESSAGE_TOPICS.filter((topic) => topic.group === 'announcement');
+  protected readonly offeringTopics = MESSAGE_TOPICS.filter((topic) => topic.group === 'offering');
+  protected readonly thankYouTopics = THANK_YOU_TOPICS;
+  protected readonly templateKinds: MessageTemplateKind[] = ['compose', 'thank_you'];
+  protected readonly templateKindLabels = TEMPLATE_KIND_LABELS;
+  protected readonly messageTopicLabel = messageTopicLabel;
   protected readonly displayPhone = displayPhone;
   protected readonly skeletonRows = [1, 2, 3, 4, 5];
 
@@ -81,25 +101,10 @@ export class NotificationsPage {
 
   protected readonly audiences: { value: AudienceType; label: string; hint: string }[] = [
     { value: 'all', label: 'Wote waliosajiliwa', hint: 'Wanajumuiya wote na watumiaji wa mfumo' },
-    { value: 'kanda', label: 'Kanda', hint: 'Wanajumuiya wa kanda ulizochagua' },
-    { value: 'jumuiya', label: 'Jumuiya', hint: 'Wanajumuiya wa jumuiya ulizochagua' },
+    { value: 'kanda', label: 'Kanda', hint: 'Wanajumuiya wa kanda ulizochagua. Majina yao yanachaguliwa yenyewe.' },
+    { value: 'jumuiya', label: 'Jumuiya', hint: 'Wanajumuiya wa jumuiya ulizochagua. Majina yao yanachaguliwa yenyewe.' },
     { value: 'users', label: 'Watumiaji wa mfumo', hint: 'Wenye akaunti ya kuingia kwenye mfumo' },
     { value: 'custom', label: 'Watu maalum', hint: 'Chagua mmoja mmoja au andika namba' },
-  ];
-
-  protected readonly templates = [
-    {
-      label: 'Tangazo la misa',
-      body: `Tumsifu Yesu Kristu ${NAME_PLACEHOLDER}. Unakaribishwa kwenye misa ya Jumapili saa 1:00 asubuhi. Mungu akubariki.`,
-    },
-    {
-      label: 'Mkutano wa jumuiya',
-      body: `Tumsifu Yesu Kristu ${NAME_PLACEHOLDER}. Kutakuwa na mkutano wa jumuiya siku ya ___ saa ___. Karibu sana.`,
-    },
-    {
-      label: 'Kumbusho la michango',
-      body: `Tumsifu Yesu Kristu ${NAME_PLACEHOLDER}. Tunakukumbusha kuhusu michango ya parokia. Asante kwa ukarimu wako.`,
-    },
   ];
 
   // ---------- Compose ----------
@@ -112,14 +117,37 @@ export class NotificationsPage {
   protected readonly selectedJumuiyas = signal<ReadonlySet<number>>(new Set());
   protected readonly selectedUsers = signal<ReadonlySet<number>>(new Set());
   protected readonly selectedPeople = signal<ReadonlySet<string>>(new Set());
+  /** Members ticked inside the chosen kanda or jumuiya. Choosing a group ticks its members. */
+  protected readonly selectedMembers = signal<ReadonlySet<number>>(new Set());
   protected readonly pickerSearch = signal('');
+  protected readonly memberSearch = signal('');
   protected readonly jumuiyaKandaFilter = signal(0);
   protected readonly extraPhones = signal('');
+  protected readonly topic = signal<MessageTopic | ''>('');
   protected readonly title = signal('');
   protected readonly body = signal('');
+  protected readonly selectedTemplateId = signal<number | null>(null);
   protected readonly sending = signal(false);
   protected readonly error = signal<string | null>(null);
   protected readonly notice = signal<string | null>(null);
+
+  // ---------- Templates ----------
+
+  protected readonly templates = signal<MessageTemplate[]>([]);
+  protected readonly templatesLoading = signal(true);
+  protected readonly templateError = signal<string | null>(null);
+  protected readonly templateNotice = signal<string | null>(null);
+  protected readonly templateSaving = signal(false);
+  protected readonly editingTemplateId = signal<number | null>(null);
+  protected readonly templateKindFilter = signal<MessageTemplateKind | ''>('');
+  protected readonly templateTopicFilter = signal<MessageTopic | ''>('');
+  protected readonly templateForm = signal({
+    topic: '' as MessageTopic | '',
+    kind: 'compose' as MessageTemplateKind,
+    name: '',
+    body: '',
+    is_default: true,
+  });
 
   private readonly jumuiyaById = computed(
     () => new Map((this.contacts()?.jumuiyas ?? []).map((group) => [group.id, group])),
@@ -145,6 +173,47 @@ export class NotificationsPage {
         };
       })
       .filter((kanda) => matchesSearch(this.pickerSearch(), [kanda.name]));
+  });
+
+  /** Members who belong to the kanda or jumuiya currently selected. */
+  protected readonly scopedMembers = computed(() => {
+    const book = this.contacts();
+    const audience = this.audience();
+    if (!book || (audience !== 'kanda' && audience !== 'jumuiya')) {
+      return [];
+    }
+
+    return book.members.filter((member) => {
+      if (audience === 'kanda') {
+        return this.selectedKandas().has(this.jumuiyaById().get(member.jumuiya_id)?.kanda_id ?? -1);
+      }
+      return this.selectedJumuiyas().has(member.jumuiya_id);
+    });
+  });
+
+  private readonly matchingScopedMembers = computed(() =>
+    this.scopedMembers().filter((member) =>
+      matchesSearch(this.memberSearch(), [
+        member.name,
+        member.phone,
+        this.jumuiyaById().get(member.jumuiya_id)?.name,
+      ]),
+    ),
+  );
+
+  protected readonly scopedMemberRows = computed(() => this.matchingScopedMembers().slice(0, PICKER_LIMIT));
+  protected readonly hiddenScopedMembers = computed(() =>
+    Math.max(0, this.matchingScopedMembers().length - PICKER_LIMIT),
+  );
+
+  /** People ticked inside a kanda or jumuiya. Names come from the member register. */
+  protected readonly chosenMembers = computed(() =>
+    this.scopedMembers().filter((member) => this.selectedMembers().has(member.id)),
+  );
+
+  protected readonly allScopedMembersSelected = computed(() => {
+    const members = this.scopedMembers();
+    return members.length > 0 && members.every((member) => this.selectedMembers().has(member.id));
   });
 
   protected readonly jumuiyaRows = computed(() => {
@@ -236,18 +305,10 @@ export class NotificationsPage {
         members = book.members;
         users = book.users;
         break;
-      case 'kanda': {
-        const kandas = this.selectedKandas();
-        members = book.members.filter((member) =>
-          kandas.has(this.jumuiyaById().get(member.jumuiya_id)?.kanda_id ?? 0),
-        );
+      case 'kanda':
+      case 'jumuiya':
+        members = this.chosenMembers();
         break;
-      }
-      case 'jumuiya': {
-        const groups = this.selectedJumuiyas();
-        members = book.members.filter((member) => groups.has(member.jumuiya_id));
-        break;
-      }
       case 'users': {
         const ids = this.selectedUsers();
         users = ids.size === 0 ? book.users : book.users.filter((user) => ids.has(user.id));
@@ -287,8 +348,9 @@ export class NotificationsPage {
     };
   });
 
+  protected readonly renderMessage = renderMessage;
   protected readonly previewName = computed(
-    () => this.recipients().sms[0]?.name ?? this.recipients().app[0]?.name ?? null,
+    () => this.chosenMembers()[0]?.name ?? this.recipients().sms[0]?.name ?? this.recipients().app[0]?.name ?? null,
   );
   protected readonly previewText = computed(() => renderMessage(this.body(), this.previewName()));
   protected readonly length = computed(() => smsLength(this.previewText()));
@@ -308,9 +370,15 @@ export class NotificationsPage {
   protected readonly selectionMissing = computed(() => {
     switch (this.audience()) {
       case 'kanda':
-        return this.selectedKandas().size === 0 ? translate('Chagua angalau kanda moja.') : null;
-      case 'jumuiya':
-        return this.selectedJumuiyas().size === 0 ? translate('Chagua angalau jumuiya moja.') : null;
+      case 'jumuiya': {
+        const groups = this.audience() === 'kanda' ? this.selectedKandas() : this.selectedJumuiyas();
+        if (groups.size === 0) {
+          return this.audience() === 'kanda'
+            ? translate('Chagua angalau kanda moja.')
+            : translate('Chagua angalau jumuiya moja.');
+        }
+        return this.chosenMembers().length === 0 ? translate('Chagua angalau mwanajumuiya mmoja.') : null;
+      }
       case 'custom':
         return this.selectedPeople().size === 0 && this.parsedPhones().valid.length === 0
           ? translate('Chagua watu au andika angalau namba moja.')
@@ -324,6 +392,9 @@ export class NotificationsPage {
     const missing = this.selectionMissing();
     if (missing) {
       return missing;
+    }
+    if (!this.topic()) {
+      return translate('Chagua ujumbe unahusu nini.');
     }
     if (!this.body().trim()) {
       return translate('Andika ujumbe.');
@@ -352,6 +423,7 @@ export class NotificationsPage {
   protected readonly historyError = signal<string | null>(null);
   protected readonly search = signal('');
   protected readonly channelFilter = signal<MessageChannel | ''>('');
+  protected readonly topicFilter = signal<MessageTopic | ''>('');
   protected readonly statusFilter = signal<MessageStatus | ''>('');
   protected readonly senderFilter = signal('');
   protected readonly dateFrom = signal('');
@@ -385,13 +457,39 @@ export class NotificationsPage {
 
   protected readonly activeFilters = computed(
     () =>
-      [this.channelFilter(), this.statusFilter(), this.senderFilter(), this.dateFrom(), this.dateTo()].filter(
+      [this.channelFilter(), this.topicFilter(), this.statusFilter(), this.senderFilter(), this.dateFrom(), this.dateTo()].filter(
         Boolean,
       ).length + (this.oldestFirst() ? 1 : 0),
   );
 
+  protected readonly composeTemplates = computed(() => {
+    const topic = this.topic();
+    if (!topic) {
+      return [];
+    }
+    return this.templates().filter((item) => item.topic === topic && item.kind === 'compose');
+  });
+
+  protected readonly filteredTemplates = computed(() => {
+    const kind = this.templateKindFilter();
+    const topic = this.templateTopicFilter();
+    return this.templates().filter(
+      (item) => (kind === '' || item.kind === kind) && (topic === '' || item.topic === topic),
+    );
+  });
+
+  protected readonly templateFormTopics = computed(() => {
+    const kind = this.templateForm().kind;
+    return kind === 'thank_you'
+      ? MESSAGE_TOPICS.filter((topic) => THANK_YOU_TOPICS.includes(topic.value))
+      : MESSAGE_TOPICS;
+  });
+
+  protected readonly templateLength = computed(() => smsLength(this.templateForm().body));
+
   protected readonly filteredHistory = computed(() => {
     const channel = this.channelFilter();
+    const topic = this.topicFilter();
     const status = this.statusFilter();
     const sender = this.senderFilter();
     const locale = this.i18n.dateLocale();
@@ -400,11 +498,13 @@ export class NotificationsPage {
       .filter(
         (item) =>
           (channel === '' || item.channel === channel) &&
+          (topic === '' || item.topic === topic) &&
           (status === '' || item.status === status) &&
           (sender === '' || item.sender === sender) &&
           withinDateRange(formatDate(item.created_at, 'yyyy-MM-dd', locale), this.dateFrom(), this.dateTo()) &&
           matchesSearch(this.search(), [
             item.title,
+            item.topic ? messageTopicLabel(item.topic) : '',
             item.body,
             item.sender,
             item.audience_label,
@@ -452,7 +552,7 @@ export class NotificationsPage {
 
   constructor() {
     effect(() => {
-      if (!this.canCreate() && this.tab() === 'compose') {
+      if (!this.canCreate() && (this.tab() === 'compose' || this.tab() === 'templates')) {
         this.tab.set('history');
       }
     });
@@ -461,28 +561,63 @@ export class NotificationsPage {
       void this.loadContacts();
       void this.loadHistory();
       void this.loadBalance();
+      void this.loadTemplates();
     });
   }
 
   protected setTab(tab: Tab): void {
-    this.tab.set(tab === 'compose' && !this.canCreate() ? 'history' : tab);
+    if ((tab === 'compose' || tab === 'templates') && !this.canCreate()) {
+      this.tab.set('history');
+      return;
+    }
+    this.tab.set(tab);
   }
 
   protected setAudience(audience: AudienceType): void {
     this.audience.set(audience);
     this.pickerSearch.set('');
+    this.memberSearch.set('');
     this.error.set(null);
   }
 
-  protected toggle(target: 'kanda' | 'jumuiya' | 'user', id: number): void {
-    const store = { kanda: this.selectedKandas, jumuiya: this.selectedJumuiyas, user: this.selectedUsers }[target];
-    store.update((current) => {
+  protected toggleMember(id: number): void {
+    this.selectedMembers.update((current) => {
       const next = new Set(current);
       if (!next.delete(id)) {
         next.add(id);
       }
       return next;
     });
+  }
+
+  protected memberGroup(jumuiyaId: number): string {
+    return this.jumuiyaById().get(jumuiyaId)?.name ?? translate('Jumuiya');
+  }
+
+  /** Ticks every member of the chosen groups, or clears them when All is already on. */
+  protected toggleAllMembers(): void {
+    this.setGroupMembers(
+      this.audience() === 'kanda' ? 'kanda' : 'jumuiya',
+      this.audience() === 'kanda' ? [...this.selectedKandas()] : [...this.selectedJumuiyas()],
+      !this.allScopedMembersSelected(),
+    );
+  }
+
+  protected toggle(target: 'kanda' | 'jumuiya' | 'user', id: number): void {
+    const store = { kanda: this.selectedKandas, jumuiya: this.selectedJumuiyas, user: this.selectedUsers }[target];
+    const selecting = !store().has(id);
+    store.update((current) => {
+      const next = new Set(current);
+      if (selecting) {
+        next.add(id);
+      } else {
+        next.delete(id);
+      }
+      return next;
+    });
+    if (target !== 'user') {
+      this.setGroupMembers(target, [id], selecting);
+    }
   }
 
   protected setJumuiyaKandaFilter(value: string): void {
@@ -512,6 +647,27 @@ export class NotificationsPage {
       ids.forEach((id) => (allSelected ? next.delete(id) : next.add(id)));
       return next;
     });
+    if (target !== 'user') {
+      this.setGroupMembers(target, ids, !allSelected);
+    }
+  }
+
+  /** Adds or removes every member who belongs to the given kanda or jumuiya ids. */
+  private setGroupMembers(target: 'kanda' | 'jumuiya', groupIds: number[], selected: boolean): void {
+    const wanted = new Set(groupIds);
+    const memberIds = (this.contacts()?.members ?? [])
+      .filter((member) =>
+        target === 'jumuiya'
+          ? wanted.has(member.jumuiya_id)
+          : wanted.has(this.jumuiyaById().get(member.jumuiya_id)?.kanda_id ?? -1),
+      )
+      .map((member) => member.id);
+
+    this.selectedMembers.update((current) => {
+      const next = new Set(current);
+      memberIds.forEach((id) => (selected ? next.add(id) : next.delete(id)));
+      return next;
+    });
   }
 
   protected allVisibleSelected(target: 'kanda' | 'jumuiya' | 'user'): boolean {
@@ -533,28 +689,260 @@ export class NotificationsPage {
     });
   }
 
-  protected async useTemplate(body: string): Promise<void> {
-    if (
-      this.body().trim() &&
-      !(await this.confirm.ask({
-        message: translate('Badilisha ujumbe ulioandika kwa kiolezo hiki?'),
-        confirmLabel: 'Badilisha',
-      }))
-    ) {
+  /** Picks what the message is about, and fills a template when the text has not been edited. */
+  protected async chooseTopic(value: MessageTopic): Promise<void> {
+    if (this.topic() === value) {
       return;
     }
-    this.body.set(translate(body));
+
+    const next = MESSAGE_TOPICS.find((item) => item.value === value);
+    if (!next) {
+      return;
+    }
+
+    const previous = MESSAGE_TOPICS.find((item) => item.value === this.topic());
+    const current = this.body().trim();
+    const previousDefault = this.defaultComposeBody(this.topic() || null, previous?.body ?? '');
+    const nextDefault = this.defaultComposeBody(value, next.body);
+    const untouched = current === '' || current === previousDefault.trim();
+    let replace = untouched;
+
+    if (nextDefault && !untouched && nextDefault.trim() !== current) {
+      replace = await this.confirm.ask({
+        message: translate('Badilisha ujumbe ulioandika ili uendane na mada hii?'),
+        confirmLabel: 'Badilisha',
+      });
+    }
+
+    this.topic.set(value);
+    this.selectedTemplateId.set(null);
+    this.error.set(null);
+
+    if (replace && nextDefault) {
+      this.applyComposeTemplate(value, nextDefault);
+    } else if (replace && untouched) {
+      this.body.set('');
+    }
+  }
+
+  /** Applies a saved compose template chosen from the select (value is the template id). */
+  protected async onComposeTemplateChange(value: string): Promise<void> {
+    const id = Number(value) || 0;
+    if (!id) {
+      this.selectedTemplateId.set(null);
+      return;
+    }
+    await this.applySavedTemplate(id);
+  }
+
+  /** Applies a saved compose template to the message body, optionally switching to Compose. */
+  protected async applySavedTemplate(id: number, switchToCompose = false): Promise<void> {
+    const template = this.templates().find((item) => item.id === id && item.kind === 'compose');
+    if (!template) {
+      return;
+    }
+
+    if (switchToCompose) {
+      this.tab.set('compose');
+    }
+
+    const current = this.body().trim();
+    const untouched = current === '' || current === this.defaultComposeBody(this.topic() || template.topic).trim();
+    let replace = untouched;
+
+    if (!untouched && template.body.trim() !== current) {
+      replace = await this.confirm.ask({
+        message: translate('Badilisha ujumbe ulioandika kwa kiolezo hiki?'),
+        confirmLabel: 'Badilisha',
+      });
+    }
+
+    if (!replace) {
+      return;
+    }
+
+    this.topic.set(template.topic);
+    this.applyComposeTemplate(template.topic, template.body, template.id);
+  }
+
+  private applyComposeTemplate(topic: MessageTopic, body: string, templateId: number | null = null): void {
+    const saved = this.templates().find(
+      (item) =>
+        item.topic === topic &&
+        item.kind === 'compose' &&
+        (templateId === null ? item.is_default : item.id === templateId),
+    );
+    this.selectedTemplateId.set(saved?.id ?? templateId);
+    this.body.set(body);
+  }
+
+  /** Preferred body: saved default compose template, else the built-in topic text. */
+  private defaultComposeBody(topic: MessageTopic | null, fallback = ''): string {
+    if (!topic) {
+      return fallback ? translate(fallback) : '';
+    }
+    const saved = this.templates().find(
+      (item) => item.topic === topic && item.kind === 'compose' && item.is_default,
+    );
+    if (saved) {
+      return saved.body;
+    }
+    const builtIn = MESSAGE_TOPICS.find((item) => item.value === topic)?.body ?? fallback;
+    return builtIn ? translate(builtIn) : '';
+  }
+
+  /** A title the sender wrote, when it is not just the subject name. */
+  protected customTitle(message: Pick<Message, 'title' | 'topic'>): string | null {
+    const title = message.title?.trim();
+    if (!title || title === messageTopicLabel(message.topic)) {
+      return null;
+    }
+    return title;
   }
 
   protected resetCompose(): void {
+    this.topic.set('');
     this.title.set('');
     this.body.set('');
+    this.selectedTemplateId.set(null);
     this.extraPhones.set('');
     this.selectedKandas.set(new Set());
     this.selectedJumuiyas.set(new Set());
     this.selectedUsers.set(new Set());
     this.selectedPeople.set(new Set());
+    this.selectedMembers.set(new Set());
+    this.memberSearch.set('');
     this.error.set(null);
+  }
+
+  protected async loadTemplates(): Promise<void> {
+    this.templatesLoading.set(true);
+    this.templateError.set(null);
+    try {
+      this.templates.set(await this.messages.templates());
+    } catch (error) {
+      this.templateError.set(httpErrorMessage(error, translate('Imeshindwa kupakia violezo.')));
+    } finally {
+      this.templatesLoading.set(false);
+    }
+  }
+
+  protected resetTemplateForm(): void {
+    this.editingTemplateId.set(null);
+    this.templateForm.set({
+      topic: '',
+      kind: 'compose',
+      name: '',
+      body: '',
+      is_default: true,
+    });
+    this.templateError.set(null);
+  }
+
+  protected editTemplate(template: MessageTemplate): void {
+    this.editingTemplateId.set(template.id);
+    this.templateForm.set({
+      topic: template.topic,
+      kind: template.kind,
+      name: template.name,
+      body: template.body,
+      is_default: template.is_default,
+    });
+    this.templateError.set(null);
+    this.templateNotice.set(null);
+    this.tab.set('templates');
+  }
+
+  protected setTemplateField<K extends keyof MessageTemplatePayload>(
+    field: K,
+    value: MessageTemplatePayload[K],
+  ): void {
+    this.templateForm.update((current) => {
+      const next = { ...current, [field]: value };
+      if (field === 'kind' && value === 'thank_you' && next.topic && !THANK_YOU_TOPICS.includes(next.topic)) {
+        next.topic = '';
+      }
+      return next;
+    });
+  }
+
+  protected insertTemplatePlaceholder(token: string, textarea: HTMLTextAreaElement): void {
+    const start = textarea.selectionStart ?? this.templateForm().body.length;
+    const end = textarea.selectionEnd ?? start;
+    const body = this.templateForm().body;
+    this.setTemplateField('body', body.slice(0, start) + token + body.slice(end));
+    queueMicrotask(() => {
+      textarea.focus();
+      textarea.setSelectionRange(start + token.length, start + token.length);
+    });
+  }
+
+  protected async saveTemplate(): Promise<void> {
+    const form = this.templateForm();
+    if (!form.topic || !form.name.trim() || !form.body.trim() || this.templateSaving()) {
+      this.templateError.set(
+        !form.topic
+          ? translate('Chagua mada ya kiolezo.')
+          : !form.name.trim()
+            ? translate('Andika jina la kiolezo.')
+            : translate('Andika maandishi ya kiolezo.'),
+      );
+      return;
+    }
+
+    const payload: MessageTemplatePayload = {
+      topic: form.topic,
+      kind: form.kind,
+      name: form.name.trim(),
+      body: form.body.trim(),
+      is_default: form.is_default,
+    };
+
+    this.templateSaving.set(true);
+    this.templateError.set(null);
+    this.templateNotice.set(null);
+    try {
+      const id = this.editingTemplateId();
+      if (id) {
+        await this.messages.updateTemplate(id, payload);
+        this.templateNotice.set(translate('Kiolezo kimehifadhiwa.'));
+      } else {
+        await this.messages.createTemplate(payload);
+        this.templateNotice.set(translate('Kiolezo kimeundwa.'));
+      }
+      await this.loadTemplates();
+      this.resetTemplateForm();
+    } catch (error) {
+      this.templateError.set(httpErrorMessage(error, translate('Imeshindwa kuhifadhi kiolezo.')));
+    } finally {
+      this.templateSaving.set(false);
+    }
+  }
+
+  protected async deleteTemplate(template: MessageTemplate): Promise<void> {
+    if (template.is_system) {
+      return;
+    }
+    const ok = await this.confirm.ask({
+      message: translate('Futa kiolezo “{name}”?', { name: template.name }),
+      confirmLabel: 'Futa',
+      tone: 'danger',
+    });
+    if (!ok) {
+      return;
+    }
+
+    this.templateError.set(null);
+    try {
+      await this.messages.deleteTemplate(template.id);
+      if (this.editingTemplateId() === template.id) {
+        this.resetTemplateForm();
+      }
+      await this.loadTemplates();
+      this.templateNotice.set(translate('Kiolezo kimefutwa.'));
+    } catch (error) {
+      this.templateError.set(httpErrorMessage(error, translate('Imeshindwa kufuta kiolezo.')));
+    }
   }
 
   protected async send(): Promise<void> {
@@ -689,6 +1077,7 @@ export class NotificationsPage {
 
   protected clearFilters(): void {
     this.channelFilter.set('');
+    this.topicFilter.set('');
     this.statusFilter.set('');
     this.senderFilter.set('');
     this.dateFrom.set('');
@@ -698,6 +1087,10 @@ export class NotificationsPage {
 
   protected setChannelFilter(value: string): void {
     this.channelFilter.set(value === 'sms' || value === 'app' || value === 'both' ? value : '');
+  }
+
+  protected setTopicFilter(value: string): void {
+    this.topicFilter.set(isMessageTopic(value) ? value : '');
   }
 
   protected setStatusFilter(value: string): void {
@@ -759,7 +1152,8 @@ export class NotificationsPage {
     this.viewing.set(null);
     this.resetCompose();
     this.channel.set(message.channel);
-    this.title.set(message.title ?? '');
+    this.topic.set(isMessageTopic(message.topic) ? message.topic : '');
+    this.title.set(this.customTitle(message) ?? '');
     this.body.set(message.body);
     this.tab.set('compose');
   }
@@ -792,16 +1186,30 @@ export class NotificationsPage {
   }
 
   private payload(): MessagePayload {
-    const base = { channel: this.channel(), audience: this.audience(), title: this.title().trim(), body: this.body() };
+    const base = {
+      channel: this.channel(),
+      audience: this.audience(),
+      topic: this.topic() as MessageTopic,
+      title: this.title().trim(),
+      body: this.body(),
+    };
     const keys = [...this.selectedPeople()];
     const idsOf = (type: string) =>
       keys.filter((key) => key.startsWith(`${type}:`)).map((key) => Number(key.split(':')[1]));
 
     switch (this.audience()) {
       case 'kanda':
-        return { ...base, kanda_ids: [...this.selectedKandas()] };
+        return {
+          ...base,
+          kanda_ids: [...this.selectedKandas()],
+          member_ids: this.chosenMembers().map((member) => member.id),
+        };
       case 'jumuiya':
-        return { ...base, jumuiya_ids: [...this.selectedJumuiyas()] };
+        return {
+          ...base,
+          jumuiya_ids: [...this.selectedJumuiyas()],
+          member_ids: this.chosenMembers().map((member) => member.id),
+        };
       case 'users':
         return { ...base, user_ids: [...this.selectedUsers()] };
       case 'custom':

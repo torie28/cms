@@ -33,7 +33,9 @@ class Offering extends Model
     public const JUMUIYA_CATEGORIES = ['majitoleo'];
 
     /** The giver gets an automatic thank-you SMS when one of these is recorded with their phone number. */
-    public const THANK_YOU_CATEGORIES = ['zaka', 'fungu_la_kumi', 'shukrani'];
+    public const THANK_YOU_CATEGORIES = [
+        'sadaka', 'zaka', 'fungu_la_kumi', 'majitoleo', 'shukrani', 'ujenzi',
+    ];
 
     /** @var array<string, string> */
     public const PAYMENT_METHODS = [

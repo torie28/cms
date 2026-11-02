@@ -8,6 +8,7 @@ use App\Http\Controllers\JumuiyaController;
 use App\Http\Controllers\JumuiyaMemberController;
 use App\Http\Controllers\KandaController;
 use App\Http\Controllers\MessageController;
+use App\Http\Controllers\MessageTemplateController;
 use App\Http\Controllers\ModuleController;
 use App\Http\Controllers\NoahController;
 use App\Http\Controllers\OfferingController;
@@ -74,6 +75,10 @@ Route::middleware('auth:sanctum')->group(function () {
     Route::get('/sms/balance', [MessageController::class, 'balance']);
     Route::put('/sms/alert', [MessageController::class, 'updateAlert']);
     Route::get('/messages/contacts', [MessageController::class, 'contacts']);
+    Route::get('/message-templates', [MessageTemplateController::class, 'index']);
+    Route::post('/message-templates', [MessageTemplateController::class, 'store']);
+    Route::put('/message-templates/{message_template}', [MessageTemplateController::class, 'update'])->whereNumber('message_template');
+    Route::delete('/message-templates/{message_template}', [MessageTemplateController::class, 'destroy'])->whereNumber('message_template');
     Route::get('/messages', [MessageController::class, 'index']);
     Route::post('/messages', [MessageController::class, 'store'])->middleware('throttle:messages');
     Route::get('/messages/{message}', [MessageController::class, 'show'])->whereNumber('message');

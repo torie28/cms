@@ -36,13 +36,17 @@ class Audience
             case 'kanda':
                 $ids = $selection['kanda_ids'] ?? [];
                 $members = self::members(fn ($query) => $query->whereHas('jumuiya', fn ($q) => $q->whereIn('kanda_id', $ids)));
+                $members = self::onlyChosen($members, $selection['member_ids'] ?? []);
                 $label = self::names('Kanda', Kanda::query()->whereIn('id', $ids)->orderBy('name')->pluck('name'));
+                $label = self::withPeople($label, $selection['member_ids'] ?? [], $members->count());
                 break;
 
             case 'jumuiya':
                 $ids = $selection['jumuiya_ids'] ?? [];
                 $members = self::members(fn ($query) => $query->whereIn('jumuiya_id', $ids));
+                $members = self::onlyChosen($members, $selection['member_ids'] ?? []);
                 $label = self::names('Jumuiya', Jumuiya::query()->whereIn('id', $ids)->orderBy('name')->pluck('name'));
+                $label = self::withPeople($label, $selection['member_ids'] ?? [], $members->count());
                 break;
 
             case 'users':
@@ -113,6 +117,31 @@ class Audience
             ->with('jumuiya:id,name')
             ->orderBy('name')
             ->get(['id', 'jumuiya_id', 'name', 'phone']);
+    }
+
+    /**
+     * When particular people are chosen inside a kanda or jumuiya, keep only those
+     * who actually belong to the groups already selected. An empty list means everyone.
+     *
+     * @param  list<int|string>  $ids
+     */
+    private static function onlyChosen(Collection $members, array $ids): Collection
+    {
+        $ids = array_values(array_unique(array_map(intval(...), array_filter($ids, fn ($id) => $id !== null && $id !== ''))));
+
+        if ($ids === []) {
+            return $members;
+        }
+
+        return $members->whereIn('id', $ids)->values();
+    }
+
+    /** @param  list<int|string>  $requested */
+    private static function withPeople(string $label, array $requested, int $count): string
+    {
+        $requested = array_filter($requested, fn ($id) => $id !== null && $id !== '');
+
+        return $requested === [] ? $label : $label.' · watu '.$count;
     }
 
     private static function names(string $prefix, Collection $names): string

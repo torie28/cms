@@ -17,8 +17,11 @@ return Application::configure(basePath: dirname(__DIR__))
     ->withMiddleware(function (Middleware $middleware): void {
         // API-only app: there is no login page to redirect guests to.
         $middleware->redirectGuestsTo(fn () => null);
+        // Vercel / other TLS-terminating proxies: trust X-Forwarded-* so HTTPS and client IP are correct.
+        $middleware->trustProxies(at: '*');
         $middleware->api(append: [SetLocale::class, SecurityHeaders::class]);
     })
+
     ->withExceptions(function (Exceptions $exceptions): void {
         $exceptions->shouldRenderJsonWhen(
             fn (Request $request) => $request->is('api/*') || $request->expectsJson(),

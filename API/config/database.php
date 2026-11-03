@@ -97,6 +97,10 @@ return [
             'prefix_indexes' => true,
             'search_path' => 'public',
             'sslmode' => env('DB_SSLMODE', 'prefer'),
+            // Required for Supabase transaction pooler (port 6543) on serverless hosts like Vercel.
+            'options' => extension_loaded('pdo_pgsql') && filter_var(env('DB_EMULATE_PREPARES', false), FILTER_VALIDATE_BOOL)
+                ? [\PDO::ATTR_EMULATE_PREPARES => true]
+                : [],
         ],
 
         'sqlsrv' => [

@@ -5,37 +5,43 @@ import {
   writeResponseToNodeResponse,
 } from '@angular/ssr/node';
 import express from 'express';
+import { randomBytes } from 'node:crypto';
 import { join } from 'node:path';
 
 const browserDistFolder = join(import.meta.dirname, '../browser');
 
+/** Placeholder stamped onto `ngCspNonce` / inline scripts at build time; replaced per request. */
+const CSP_NONCE_PLACEHOLDER = 'NG_CSP_NONCE';
+
 const app = express();
 const angularApp = new AngularNodeAppEngine();
 
-/** Origins the SPA may call. Local Laravel plus any HTTPS API (production). */
+/** Origins the SPA may call. Local Laravel plus the production API on Vercel. */
 const apiConnect =
-  process.env['API_ORIGIN'] ?? 'http://127.0.0.1:8000 http://localhost:8000';
+  process.env['API_ORIGIN'] ??
+  'http://127.0.0.1:8000 http://localhost:8000 https://chrms-api.vercel.app';
+
+function buildCsp(nonce: string): string {
+  return [
+    "default-src 'self'",
+    // Angular SSR hydration / event-replay injects inline scripts; they carry this nonce.
+    `script-src 'self' 'nonce-${nonce}'`,
+    "style-src 'self' 'unsafe-inline'",
+    "img-src 'self' data: blob:",
+    "font-src 'self' data:",
+    `connect-src 'self' ${apiConnect} https:`,
+    "frame-ancestors 'none'",
+    "base-uri 'self'",
+    "form-action 'self'",
+    "object-src 'none'",
+  ].join('; ');
+}
 
 app.use((_req, res, next) => {
   res.setHeader('X-Content-Type-Options', 'nosniff');
   res.setHeader('X-Frame-Options', 'DENY');
   res.setHeader('Referrer-Policy', 'no-referrer');
   res.setHeader('Permissions-Policy', 'camera=(), microphone=(), geolocation=()');
-  res.setHeader(
-    'Content-Security-Policy',
-    [
-      "default-src 'self'",
-      "script-src 'self'",
-      "style-src 'self' 'unsafe-inline'",
-      "img-src 'self' data: blob:",
-      "font-src 'self' data:",
-      `connect-src 'self' ${apiConnect} https:`,
-      "frame-ancestors 'none'",
-      "base-uri 'self'",
-      "form-action 'self'",
-      "object-src 'none'",
-    ].join('; '),
-  );
   next();
 });
 
@@ -52,13 +58,28 @@ app.use(
 
 /**
  * Handle all other requests by rendering the Angular application.
+ * Per-request CSP nonce so SSR inline scripts (hydration / event replay) are allowed.
  */
 app.use((req, res, next) => {
+  const nonce = randomBytes(16).toString('base64url');
+  res.setHeader('Content-Security-Policy', buildCsp(nonce));
+
   angularApp
     .handle(req)
-    .then((response) =>
-      response ? writeResponseToNodeResponse(response, res) : next(),
-    )
+    .then(async (response) => {
+      if (!response) {
+        next();
+        return;
+      }
+
+      const contentType = response.headers.get('content-type') ?? '';
+      if (!contentType.includes('text/html')) {
+        return writeResponseToNodeResponse(response, res);
+      }
+
+      const body = (await response.text()).replaceAll(CSP_NONCE_PLACEHOLDER, nonce);
+      await writeResponseToNodeResponse(new Response(body, response), res);
+    })
     .catch(next);
 });
 

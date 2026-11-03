@@ -9,15 +9,12 @@
   <meta name="viewport" content="width=device-width, initial-scale=1">
   <meta name="theme-color" content="#f6f2ea" media="(prefers-color-scheme: light)">
   <meta name="theme-color" content="#16181f" media="(prefers-color-scheme: dark)">
-  <!-- Covers ng serve; the Express host in server.ts sets the same policy as a header. -->
-  <meta
-    http-equiv="Content-Security-Policy"
-    content="default-src 'self'; script-src 'self'; style-src 'self' 'unsafe-inline'; img-src 'self' data: blob:; font-src 'self' data:; connect-src 'self' http://127.0.0.1:8000 http://localhost:8000 https:; frame-ancestors 'none'; base-uri 'self'; form-action 'self'; object-src 'none'"
-  >
+  <!-- CSP is set as an HTTP header in server.ts (with a per-request nonce for SSR inline scripts). -->
   <link rel="icon" type="image/x-icon" href="favicon.ico">
   <script src="boot.js"></script>
 </head>
 <body>
-  <app-root></app-root>
+  <!-- Per-request nonce placeholder below is filled in by server.ts. -->
+  <app-root ngCspNonce="NG_CSP_NONCE"></app-root>
 </body>
 </html>

@@ -55,6 +55,12 @@ export type ParsedRow<F extends string> = Record<F, string> & { line: number };
 /** Downloaded templates put a title banner above the headings, so the heading row is searched for. */
 const HEADER_SCAN_ROWS = 15;
 
+/** Bundled CommonJS deps surface only a `default` export, so unwrap it when named exports are missing. */
+async function interop<T>(module: Promise<T>): Promise<T> {
+  const loaded = await module;
+  return (loaded as T & { default?: T }).default ?? loaded;
+}
+
 const cellLabel = (cell: unknown) => String(cell).trim().toLowerCase();
 
 function headerRowIndex(grid: unknown[][], labels: Set<string>): number {
@@ -81,7 +87,7 @@ export async function readSheet<F extends string>(
   aliases: Record<F, string[]>,
   preferredHeaders: string[],
 ): Promise<{ rows: ParsedRow<F>[]; found: Set<F> }> {
-  const XLSX = await import('xlsx');
+  const XLSX = await interop(import('xlsx'));
   // dateNF makes cells with Excel's default date format come out as ISO text instead of m/d/yy.
   const workbook = XLSX.read(await file.arrayBuffer(), { type: 'array', dateNF: 'yyyy-mm-dd' });
   const preferred = new Set(preferredHeaders.map((label) => label.toLowerCase()));
@@ -169,7 +175,7 @@ function sheetName(name: string, used: Set<string>): string {
 }
 
 export async function saveWorkbook(sheets: SheetData[], filename: string, options: WorkbookOptions): Promise<void> {
-  const ExcelJS = await import('exceljs');
+  const ExcelJS = await interop(import('exceljs'));
   const workbook = new ExcelJS.Workbook();
   workbook.creator = CHAPEL;
   workbook.created = new Date();
@@ -399,7 +405,7 @@ export async function saveReport(format: ExportFormat, sheets: SheetData[], opti
 }
 
 export async function saveCsv(sheet: SheetData, filename: string): Promise<void> {
-  const XLSX = await import('xlsx');
+  const XLSX = await interop(import('xlsx'));
   const csv = XLSX.utils.sheet_to_csv(XLSX.utils.aoa_to_sheet([sheet.head, ...sheet.rows]));
   saveBlob(new Blob(['\ufeff', csv], { type: 'text/csv;charset=utf-8' }), filename);
 }

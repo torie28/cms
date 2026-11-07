@@ -18,7 +18,9 @@ return Application::configure(basePath: dirname(__DIR__))
         // API-only app: there is no login page to redirect guests to.
         $middleware->redirectGuestsTo(fn () => null);
         // Vercel / other TLS-terminating proxies: trust X-Forwarded-* so HTTPS and client IP are correct.
-        $middleware->trustProxies(at: '*');
+        // Defaults to '*' (every platform hop); set TRUSTED_PROXIES to the real proxy IP(s) to lock it down.
+        $proxies = env('TRUSTED_PROXIES', '*');
+        $middleware->trustProxies(at: $proxies === '*' ? '*' : array_map('trim', explode(',', $proxies)));
         $middleware->api(append: [SetLocale::class, SecurityHeaders::class]);
     })
 

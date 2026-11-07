@@ -369,6 +369,7 @@ class ApiSettings
 
     private static function mask(string $value): string
     {
-        return strlen($value) <= 4 ? '••••' : '••••'.substr($value, -4);
+        // Show only that a secret is set; never reveal any of its characters.
+        return '••••••••';
     }
 }

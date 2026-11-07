@@ -101,6 +101,10 @@ export const JUMUIYA: Record<string, string> = {
     'Line {line}: gender "{gender}" not recognised, left blank.',
   '{name}: kanda "{kanda}" haipo, jumuiya imerukwa.': '{name}: zone "{kanda}" does not exist, community skipped.',
   '{name}: kanda haijatajwa, jumuiya imerukwa.': '{name}: no zone given, community skipped.',
+  'Kanda hizi hazipo na zitaundwa: {names}.': 'These zones do not exist yet and will be created: {names}.',
+  'Kanda zinazotajwa na kutokuwepo zitaundwa pia.':
+    'Named zones that do not exist are created too.',
+  'Kanda mpya: {names}.': 'New zones: {names}.',
   'imeshindwa kuhifadhiwa.': 'could not be saved.',
   'Baadhi hazikuingizwa. {failures}': 'Some items were not imported. {failures}',
   'Uingizaji umekamilika: jumuiya mpya {created}, wanajumuiya {added}.':

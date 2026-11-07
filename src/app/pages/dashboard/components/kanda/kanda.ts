@@ -441,7 +441,11 @@ export class KandaPage {
           return;
         }
         this.memberImportPlan.set(
-          buildImportPlan(memberRows, { jumuiyas: this.jumuiyas(), kandas: this.kandas() }),
+          buildImportPlan(memberRows, {
+            jumuiyas: this.jumuiyas(),
+            kandas: this.kandas(),
+            createKandas: this.canCreate(),
+          }),
         );
         return;
       }
@@ -505,7 +509,7 @@ export class KandaPage {
 
     this.importing.set(true);
     this.importError.set(null);
-    const result = await runImportPlan(plan, this.parish);
+    const result = await runImportPlan(plan, this.parish, this.importFileName() ?? undefined);
     const { created, added, failures } = result;
     this.importing.set(false);
 

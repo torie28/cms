@@ -97,6 +97,8 @@ export interface ImportPlan {
   groups: ImportGroup[];
   issues: string[];
   memberCount: number;
+  /** Kanda names the sheet references that do not exist yet; they are created on import. */
+  newKandas: string[];
 }
 
 const sameName = (a: string, b: string) => a.trim().toLowerCase() === b.trim().toLowerCase();
@@ -104,16 +106,24 @@ const sameName = (a: string, b: string) => a.trim().toLowerCase() === b.trim().t
 /**
  * Groups spreadsheet rows by jumuiya. Rows for an existing jumuiya add members to it; other names become new
  * jumuiyas in the kanda named on their rows. With `target`, every row is a member of that jumuiya; with
- * `kanda`, every row belongs to that kanda whatever its Kanda column says.
+ * `kanda`, every row belongs to that kanda whatever its Kanda column says. With `createKandas`, a Kanda column
+ * naming an unknown kanda keeps its rows: the kanda is created during `runImportPlan`.
  */
 export function buildImportPlan(
   rows: ImportedRow[],
-  context: { jumuiyas: Jumuiya[]; kandas: Kanda[]; target?: Jumuiya | null; kanda?: Kanda | null },
+  context: {
+    jumuiyas: Jumuiya[];
+    kandas: Kanda[];
+    target?: Jumuiya | null;
+    kanda?: Kanda | null;
+    createKandas?: boolean;
+  },
 ): ImportPlan {
-  const { jumuiyas, kandas, target = null, kanda: forKanda = null } = context;
+  const { jumuiyas, kandas, target = null, kanda: forKanda = null, createKandas = false } = context;
   const issues: string[] = [];
   const groups = new Map<string, ImportGroup>();
   const warnedKanda = new Set<string>();
+  const pendingKandas = new Map<string, string>();
 
   for (const sheetRow of rows) {
     const row = forKanda ? { ...sheetRow, kanda: forKanda.name } : sheetRow;
@@ -192,16 +202,23 @@ export function buildImportPlan(
       const kanda = group.kandaName ? kandas.find((item) => sameName(item.name, group.kandaName)) : undefined;
 
       if (!kanda) {
-        issues.push(
-          group.kandaName
-            ? translate('{name}: kanda "{kanda}" haipo, jumuiya imerukwa.', { name: group.name, kanda: group.kandaName })
-            : translate('{name}: kanda haijatajwa, jumuiya imerukwa.', { name: group.name }),
-        );
-        continue;
+        const named = group.kandaName.trim();
+        if (!named) {
+          issues.push(translate('{name}: kanda haijatajwa, jumuiya imerukwa.', { name: group.name }));
+          continue;
+        }
+        if (!createKandas) {
+          issues.push(
+            translate('{name}: kanda "{kanda}" haipo, jumuiya imerukwa.', { name: group.name, kanda: named }),
+          );
+          continue;
+        }
+        group.kandaName = named;
+        pendingKandas.set(named.toLowerCase(), named);
+      } else {
+        group.kandaId = kanda.id;
+        group.kandaName = kanda.name;
       }
-
-      group.kandaId = kanda.id;
-      group.kandaName = kanda.name;
 
       const chair = group.chairperson.trim().toLowerCase();
       if (chair) {
@@ -230,6 +247,7 @@ export function buildImportPlan(
     groups: valid,
     issues,
     memberCount: valid.reduce((total, group) => total + group.members.length, 0),
+    newKandas: [...pendingKandas.values()],
   };
 }
 
@@ -240,6 +258,8 @@ export interface ImportResult {
   failures: string[];
   /** Jumuiyas that were created or received members. */
   saved: ImportGroup[];
+  /** Kanda names that were created to hold the imported jumuiyas. */
+  createdKandas: string[];
 }
 
 const NOTICE_NAME_LIMIT = 5;
@@ -257,37 +277,96 @@ function nameList(names: string[]): string {
 }
 
 /** Success message naming the kanda(s) and jumuiya(s) an import went into. */
-export function importNotice({ created, added, saved }: ImportResult): string {
-  if (saved.length === 1) {
-    const [group] = saved;
-    return group.existing
-      ? translate('Wanajumuiya {added} wameingizwa kwenye jumuiya {jumuiya} ({kanda}).', {
+export function importNotice({ created, added, saved, createdKandas }: ImportResult): string {
+  const message =
+    saved.length === 1
+      ? saved[0].existing
+        ? translate('Wanajumuiya {added} wameingizwa kwenye jumuiya {jumuiya} ({kanda}).', {
+            added,
+            jumuiya: saved[0].name,
+            kanda: saved[0].kandaName || '—',
+          })
+        : translate('Jumuiya {jumuiya} imeongezwa kwenye {kanda} ikiwa na wanajumuiya {added}.', {
+            jumuiya: saved[0].name,
+            kanda: saved[0].kandaName || '—',
+            added,
+          })
+      : translate('Uingizaji kwenye {kanda} umekamilika: jumuiya mpya {created}, wanajumuiya {added}. Jumuiya: {names}.', {
+          kanda: nameList(saved.map((group) => group.kandaName)) || '—',
+          created,
           added,
-          jumuiya: group.name,
-          kanda: group.kandaName || '—',
-        })
-      : translate('Jumuiya {jumuiya} imeongezwa kwenye {kanda} ikiwa na wanajumuiya {added}.', {
-          jumuiya: group.name,
-          kanda: group.kandaName || '—',
-          added,
+          names: nameList(saved.map((group) => group.name)),
         });
-  }
 
-  return translate('Uingizaji kwenye {kanda} umekamilika: jumuiya mpya {created}, wanajumuiya {added}. Jumuiya: {names}.', {
-    kanda: nameList(saved.map((group) => group.kandaName)) || '—',
-    created,
-    added,
-    names: nameList(saved.map((group) => group.name)),
-  });
+  return createdKandas.length > 0
+    ? `${message} ${translate('Kanda mpya: {names}.', { names: nameList(createdKandas) })}`
+    : message;
 }
 
-export async function runImportPlan(plan: ImportPlan, parish: ParishService): Promise<ImportResult> {
+export async function runImportPlan(
+  plan: ImportPlan,
+  parish: ParishService,
+  source?: string,
+): Promise<ImportResult> {
   const failures: string[] = [];
   const saved: ImportGroup[] = [];
+  const createdKandas: string[] = [];
   let created = 0;
   let added = 0;
 
+  // Groups whose Kanda column named an unknown kanda (kandaId 0) need that kanda created first.
+  const pending = new Map<string, ImportGroup[]>();
   for (const group of plan.groups) {
+    if (!group.existing && group.kandaId === 0 && group.kandaName) {
+      const key = group.kandaName.trim().toLowerCase();
+      pending.set(key, [...(pending.get(key) ?? []), group]);
+    }
+  }
+
+  if (pending.size > 0) {
+    try {
+      const result = await parish.importKandas(
+        [...pending.values()].map(([group]) => ({
+          name: group.kandaName.trim(),
+          leader: '',
+          notes: '',
+        })),
+        source ?? '',
+      );
+      const byName = new Map(result.kandas.map((kanda) => [kanda.name.trim().toLowerCase(), kanda]));
+      const skipped = new Set(result.skipped.map((name) => name.trim().toLowerCase()));
+
+      for (const [key, groups] of pending) {
+        const kanda = byName.get(key);
+        if (!kanda) {
+          for (const group of groups) {
+            failures.push(`${group.name}: kanda "${groups[0].kandaName}" haikuundwa.`);
+          }
+          continue;
+        }
+        if (!skipped.has(key)) {
+          createdKandas.push(kanda.name);
+        }
+        for (const group of groups) {
+          group.kandaId = kanda.id;
+          group.kandaName = kanda.name;
+        }
+      }
+    } catch (error) {
+      const message = httpErrorMessage(error, 'kanda hazikuundwa.');
+      for (const groups of pending.values()) {
+        for (const group of groups) {
+          failures.push(`${group.name}: ${message}`);
+        }
+      }
+    }
+  }
+
+  for (const group of plan.groups) {
+    if (!group.existing && group.kandaId === 0) {
+      continue;
+    }
+
     try {
       if (group.existing) {
         if (group.members.length > 0) {
@@ -312,7 +391,7 @@ export async function runImportPlan(plan: ImportPlan, parish: ParishService): Pr
     }
   }
 
-  return { created, added, failures, saved };
+  return { created, added, failures, saved, createdKandas };
 }
 
 export async function readSpreadsheet(file: File): Promise<ImportedRow[]> {

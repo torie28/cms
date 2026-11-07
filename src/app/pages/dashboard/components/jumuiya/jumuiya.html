@@ -9,8 +9,8 @@
         <button
           type="button"
           class="rounded border border-line px-4 py-2 text-sm hover:bg-sunken disabled:opacity-50"
-          [disabled]="kandas().length === 0"
-          [title]="(kandas().length === 0 ? 'Ongeza kanda kwanza' : 'Ingiza jumuiya na wanajumuiya kutoka Excel') | t"
+          [disabled]="kandas().length === 0 && !canCreateKanda()"
+          [title]="(kandas().length === 0 && !canCreateKanda() ? 'Ongeza kanda kwanza' : 'Ingiza jumuiya na wanajumuiya kutoka Excel') | t"
           (click)="openImport()"
         >
           {{ 'Ingiza kutoka Excel' | t }}
@@ -1001,6 +1001,9 @@
           {{ 'Kila mstari ni mwanajumuiya mmoja. Safu:' | t }}
           <span class="font-medium">Jumuiya, Kanda, Mwenyekiti, Mwanajumuiya, Simu, Jinsia</span>.
           {{ 'Jumuiya zilizopo zitaongezewa wanajumuiya; mpya zitaundwa ndani ya kanda iliyotajwa.' | t }}
+          @if (canCreateKanda()) {
+            {{ 'Kanda zinazotajwa na kutokuwepo zitaundwa pia.' | t }}
+          }
         }
         {{ 'Inakubali .xlsx, .xls, .ods na .csv.' | t }}
       </p>
@@ -1046,6 +1049,12 @@
                 | t: { members: plan.memberCount, groups: plan.groups.length }
             }}
           </p>
+
+          @if (plan.newKandas.length > 0) {
+            <p class="text-sm text-muted">
+              {{ 'Kanda hizi hazipo na zitaundwa: {names}.' | t: { names: plan.newKandas.join(', ') } }}
+            </p>
+          }
 
           @if (plan.issues.length > 0) {
             <div class="rounded border border-negative/40 bg-negative/10 px-3 py-2 text-sm text-negative">

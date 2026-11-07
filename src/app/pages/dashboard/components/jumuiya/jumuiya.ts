@@ -57,6 +57,7 @@ export class JumuiyaPage {
   private readonly deletions = inject(DeletionRequestsService);
   private readonly auth = inject(AuthService);
   protected readonly canCreate = computed(() => this.auth.can('jumuiya', 'create'));
+  protected readonly canCreateKanda = computed(() => this.auth.can('kanda', 'create'));
   protected readonly canUpdate = computed(() => this.auth.can('jumuiya', 'update'));
   protected readonly canDelete = computed(() => this.auth.can('jumuiya', 'delete'));
   protected readonly needsDeleteApproval = computed(() => needsDeleteApproval(this.auth));
@@ -608,7 +609,12 @@ export class JumuiyaPage {
         return;
       }
       this.importPlan.set(
-        buildImportPlan(rows, { jumuiyas: this.jumuiyas(), kandas: this.kandas(), target: this.importTarget() }),
+        buildImportPlan(rows, {
+          jumuiyas: this.jumuiyas(),
+          kandas: this.kandas(),
+          target: this.importTarget(),
+          createKandas: this.canCreateKanda(),
+        }),
       );
     } catch (error) {
       this.importError.set(
@@ -628,7 +634,7 @@ export class JumuiyaPage {
 
     this.importing.set(true);
     this.importError.set(null);
-    const result = await runImportPlan(plan, this.parish);
+    const result = await runImportPlan(plan, this.parish, this.importFileName() ?? undefined);
     const { created, added, failures } = result;
     this.importing.set(false);
 

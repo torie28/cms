@@ -3,12 +3,15 @@ import { inject } from '@angular/core';
 import { Router } from '@angular/router';
 import { catchError, throwError } from 'rxjs';
 import { AuthService } from './auth';
+import { API_BASE } from './api';
 import { currentLang } from './i18n';
 
 const TOKEN_KEY = 'cms.token';
 
 export const authInterceptor: HttpInterceptorFn = (req, next) => {
-  const token = readToken();
+  // Only our own API gets the token; never attach it to a third-party URL.
+  const isApi = req.url.startsWith(API_BASE);
+  const token = isApi ? readToken() : null;
   const headers: Record<string, string> = {
     Accept: 'application/json',
     // Lets Laravel answer framework messages (e.g. validation) in the UI language.

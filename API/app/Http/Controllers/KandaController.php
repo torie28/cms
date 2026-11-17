@@ -70,7 +70,6 @@ class KandaController extends Controller
 
         $data = $request->validate([
             'name' => ['required', 'string', 'max:255', Rule::unique('kandas', 'name')->withoutTrashed()],
-            'leader' => ['nullable', 'string', 'max:255'],
             'notes' => ['nullable', 'string'],
         ]);
 
@@ -93,14 +92,12 @@ class KandaController extends Controller
 
         $data = $request->validate([
             'name' => ['required', 'string', 'max:255', Rule::unique('kandas', 'name')->ignore($kanda->id)->withoutTrashed()],
-            'leader' => ['nullable', 'string', 'max:255'],
             'notes' => ['nullable', 'string'],
         ]);
 
         $kanda->update($data);
         $changes = ActivityLogger::changes($kanda, [
             'name' => 'Jina',
-            'leader' => 'Kiongozi',
             'notes' => 'Maelezo',
         ]);
         $kanda = $this->present($kanda);
@@ -129,7 +126,6 @@ class KandaController extends Controller
 
         $data = $request->validate([
             'name' => ['required', 'string', 'max:255', Rule::unique('kandas', 'name')->withoutTrashed()],
-            'leader' => ['nullable', 'string', 'max:255'],
             'notes' => ['nullable', 'string'],
             'jumuiya_ids' => ['required', 'array', 'min:1'],
             'jumuiya_ids.*' => [
@@ -150,7 +146,6 @@ class KandaController extends Controller
             $child = Kanda::query()->create([
                 'name' => trim($data['name']),
                 'parent_id' => $kanda->id,
-                'leader' => $data['leader'] ?? null,
                 'notes' => $data['notes'] ?? null,
             ]);
 
@@ -226,7 +221,6 @@ class KandaController extends Controller
         $data = $request->validate([
             'kandas' => ['required', 'array', 'min:1', 'max:500'],
             'kandas.*.name' => ['required', 'string', 'max:255', 'distinct:ignore_case'],
-            'kandas.*.leader' => ['nullable', 'string', 'max:255'],
             'kandas.*.notes' => ['nullable', 'string'],
             'file' => ['nullable', 'string', 'max:255'],
         ]);

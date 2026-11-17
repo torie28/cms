@@ -11,7 +11,7 @@ use Illuminate\Database\Eloquent\Relations\HasMany;
 use Illuminate\Database\Eloquent\Relations\HasManyThrough;
 use Illuminate\Database\Eloquent\SoftDeletes;
 
-#[Fillable(['name', 'parent_id', 'leader', 'notes'])]
+#[Fillable(['name', 'parent_id', 'notes'])]
 class Kanda extends Model
 {
     /** @use HasFactory<KandaFactory> */

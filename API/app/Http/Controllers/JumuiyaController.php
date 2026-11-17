@@ -4,6 +4,7 @@ namespace App\Http\Controllers;
 
 use App\Models\DeletionRequest;
 use App\Models\Jumuiya;
+use App\Models\JumuiyaMember;
 use App\Support\ActivityLogger;
 use App\Support\RecordDeletion;
 use App\Support\Recycle;
@@ -36,12 +37,15 @@ class JumuiyaController extends Controller
         $data = $request->validate([
             'name' => ['required', 'string', 'max:255', $this->uniqueName()],
             'kanda_id' => ['required', 'integer', $this->activeKanda()],
-            'chairperson' => ['nullable', 'string', 'max:255', $this->uniqueChairperson()],
             'notes' => ['nullable', 'string'],
             'members' => ['sometimes', 'array'],
-            'members.*.name' => ['required', 'string', 'max:255'],
+            'members.*.first_name' => ['required', 'string', 'max:255'],
+            'members.*.middle_name' => ['nullable', 'string', 'max:255'],
+            'members.*.last_name' => ['required', 'string', 'max:255'],
             'members.*.phone' => ['nullable', 'string', 'max:40'],
             'members.*.gender' => ['nullable', 'string', 'in:male,female'],
+            'members.*.community_role' => ['nullable', 'string', Rule::in(JumuiyaMember::ROLES)],
+            'members.*.zone_role' => ['nullable', 'string', Rule::in(JumuiyaMember::ROLES)],
         ]);
 
         $members = $data['members'] ?? [];
@@ -93,7 +97,6 @@ class JumuiyaController extends Controller
         $data = $request->validate([
             'name' => ['required', 'string', 'max:255', $this->uniqueName($jumuiya)],
             'kanda_id' => ['required', 'integer', $this->activeKanda()],
-            'chairperson' => ['nullable', 'string', 'max:255', $this->uniqueChairperson($jumuiya)],
             'notes' => ['nullable', 'string'],
         ]);
 
@@ -101,7 +104,6 @@ class JumuiyaController extends Controller
         $changes = ActivityLogger::changes($jumuiya, [
             'name' => 'Jina',
             'kanda_id' => 'Kanda (namba)',
-            'chairperson' => 'Mwenyekiti',
             'notes' => 'Maelezo',
         ]);
         $jumuiya->load('kanda:id,name');
@@ -142,7 +144,6 @@ class JumuiyaController extends Controller
             ],
             'kanda_id' => ['required', 'integer', $this->activeKanda()],
             'parent_kanda_id' => ['required', 'integer', $this->activeKanda()],
-            'chairperson' => ['nullable', 'string', 'max:255', $this->uniqueChairperson()],
             'notes' => ['nullable', 'string'],
             'member_ids' => ['present', 'array'],
             'member_ids.*' => [
@@ -164,7 +165,6 @@ class JumuiyaController extends Controller
                 'name' => trim($data['name']),
                 'kanda_id' => $data['kanda_id'],
                 'parent_id' => $jumuiya->id,
-                'chairperson' => $data['chairperson'] ?? null,
                 'notes' => $data['notes'] ?? null,
             ]);
 
@@ -269,27 +269,6 @@ class JumuiyaController extends Controller
 
             if ($existing) {
                 $fail("Jumuiya \"{$existing->name}\" tayari ipo kwenye kanda ".($existing->kanda?->name ?? '—').'. Tumia jina tofauti.');
-            }
-        };
-    }
-
-    /** One person may chair only one jumuiya (names compared ignoring case and spacing). */
-    private function uniqueChairperson(?Jumuiya $ignore = null): \Closure
-    {
-        return function (string $attribute, mixed $value, \Closure $fail) use ($ignore) {
-            $chair = trim((string) $value);
-            if ($chair === '') {
-                return;
-            }
-
-            $existing = Jumuiya::query()
-                ->with('kanda:id,name')
-                ->whereRaw('lower(trim(chairperson)) = ?', [mb_strtolower($chair)])
-                ->when($ignore, fn ($query) => $query->whereKeyNot($ignore->id))
-                ->first();
-
-            if ($existing) {
-                $fail("{$existing->chairperson} tayari ni mwenyekiti wa jumuiya {$existing->name} (".($existing->kanda?->name ?? '—').'). Mwenyekiti mmoja hawezi kuongoza jumuiya mbili.');
             }
         };
     }

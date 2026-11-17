@@ -14,7 +14,6 @@ class KandaFactory extends Factory
     {
         return [
             'name' => fake()->unique()->city(),
-            'leader' => fake()->name(),
             'notes' => fake()->optional()->sentence(),
         ];
     }

@@ -34,8 +34,9 @@ class MessageController extends Controller
             'jumuiyas' => Jumuiya::query()->with('kanda:id,name')->orderBy('name')->get(['id', 'name', 'kanda_id']),
             'members' => JumuiyaMember::query()
                 ->whereHas('jumuiya')
-                ->orderBy('name')
-                ->get(['id', 'jumuiya_id', 'name', 'phone']),
+                ->orderBy('last_name')
+                ->orderBy('first_name')
+                ->get(['id', 'jumuiya_id', 'first_name', 'middle_name', 'last_name', 'phone']),
             'users' => User::query()->orderBy('name')->get(['id', 'name', 'phone', 'role']),
             'gateway' => [
                 'driver' => SmsGateway::driver(),

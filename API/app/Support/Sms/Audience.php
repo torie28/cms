@@ -115,8 +115,9 @@ class Audience
             ->whereHas('jumuiya')
             ->when($scope, $scope)
             ->with('jumuiya:id,name')
-            ->orderBy('name')
-            ->get(['id', 'jumuiya_id', 'name', 'phone']);
+            ->orderBy('last_name')
+            ->orderBy('first_name')
+            ->get(['id', 'jumuiya_id', 'first_name', 'middle_name', 'last_name', 'phone']);
     }
 
     /**

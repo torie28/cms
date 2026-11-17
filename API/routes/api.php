@@ -15,9 +15,23 @@ use App\Http\Controllers\OfferingController;
 use App\Http\Controllers\PasswordResetController;
 use App\Http\Controllers\RoleController;
 use App\Http\Controllers\UserController;
+use Illuminate\Http\Request;
+use Illuminate\Support\Facades\Artisan;
 use Illuminate\Support\Facades\Route;
 
 Route::post('/login', [AuthController::class, 'login'])->middleware('throttle:login');
+
+// Daily maintenance, triggered by Vercel Cron (serverless has no always-on scheduler).
+// Vercel sends "Authorization: Bearer <CRON_SECRET>"; reject anything without the secret.
+Route::get('/cron/run', function (Request $request) {
+    $secret = (string) env('CRON_SECRET', '');
+    abort_if($secret === '' || ! hash_equals($secret, (string) $request->bearerToken()), 403);
+
+    Artisan::call('recycle:purge-expired');
+    Artisan::call('sanctum:prune-expired', ['--hours' => 24]);
+
+    return response()->json(['ok' => true]);
+})->middleware('throttle:6,1');
 Route::post('/forgot-password', [PasswordResetController::class, 'forgot'])->middleware('throttle:password-reset');
 Route::post('/reset-password', [PasswordResetController::class, 'reset'])->middleware('throttle:password-reset');
 Route::middleware('auth:sanctum')->group(function () {

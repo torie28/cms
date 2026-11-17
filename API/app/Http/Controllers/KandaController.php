@@ -214,54 +214,6 @@ class KandaController extends Controller
         return response()->json(['message' => 'Kanda removed.', 'moved' => $result['moved']]);
     }
 
-    public function import(Request $request): JsonResponse
-    {
-        $this->ensureCan($request, 'kanda', 'create');
-
-        $data = $request->validate([
-            'kandas' => ['required', 'array', 'min:1', 'max:500'],
-            'kandas.*.name' => ['required', 'string', 'max:255', 'distinct:ignore_case'],
-            'kandas.*.notes' => ['nullable', 'string'],
-            'file' => ['nullable', 'string', 'max:255'],
-        ]);
-
-        $existing = Kanda::query()
-            ->pluck('name')
-            ->map(fn (string $name) => mb_strtolower(trim($name)))
-            ->flip();
-
-        [$skipped, $fresh] = collect($data['kandas'])
-            ->map(fn (array $row) => [...$row, 'name' => trim($row['name'])])
-            ->partition(fn (array $row) => $existing->has(mb_strtolower($row['name'])));
-
-        DB::transaction(function () use ($fresh) {
-            foreach ($fresh as $row) {
-                Kanda::query()->create($row);
-            }
-        });
-
-        if ($fresh->isNotEmpty()) {
-            $subject = $fresh->count().' kandas';
-            if (! empty($data['file'])) {
-                $subject .= ' from '.$data['file'];
-            }
-
-            app(ActivityLogger::class)->record(
-                $request->user(),
-                'imported',
-                $subject,
-                'kanda',
-                $request,
-            );
-        }
-
-        return response()->json([
-            'created' => $fresh->count(),
-            'skipped' => $skipped->pluck('name')->values(),
-            'kandas' => $this->listing(),
-        ], 201);
-    }
-
     /** @return Collection<int, Kanda> */
     private function listing(): Collection
     {

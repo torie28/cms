@@ -141,7 +141,7 @@ export class Overview {
         ? this.kandas().filter(
             (kanda) =>
               (kandaId === 0 || kanda.id === kandaId) &&
-              matchesSearch(query, [kanda.name, kanda.leader, kanda.notes]),
+              matchesSearch(query, [kanda.name, kanda.notes]),
           )
         : [];
     const jumuiyas =
@@ -149,7 +149,7 @@ export class Overview {
         ? (this.jumuiyas() ?? []).filter(
             (group) =>
               (kandaId === 0 || group.kanda_id === kandaId) &&
-              matchesSearch(query, [group.name, group.kanda?.name, group.chairperson, group.notes]),
+              matchesSearch(query, [group.name, group.kanda?.name, group.notes]),
           )
         : [];
 
@@ -204,7 +204,7 @@ export class Overview {
           jumuiyas?.reduce((total, group) => total + (group.members_count ?? 0), 0).toLocaleString(locale) ??
           '—',
         caption: translate('katika jumuiya zote'),
-        link: '/jumuiya',
+        link: '/kanda-jumuiya',
       });
     }
 
@@ -226,7 +226,7 @@ export class Overview {
         label: translate('Jumuiya'),
         value: jumuiyas?.length.toString() ?? '—',
         caption: translate('jumuiya zilizosajiliwa'),
-        link: '/jumuiya',
+        link: '/kanda-jumuiya',
       });
     }
 
@@ -235,7 +235,7 @@ export class Overview {
         label: translate('Kanda'),
         value: jumuiyas === null ? '—' : this.kandas().length.toString(),
         caption: translate('kanda za parokia'),
-        link: '/kanda',
+        link: '/kanda-jumuiya',
       });
     }
 

@@ -73,10 +73,9 @@
               <ul class="mt-2 divide-y divide-line">
                 @for (kanda of results.kandas; track kanda.id) {
                   <li>
-                    <a class="block py-2 hover:text-brass-strong" routerLink="/kanda" [queryParams]="{ q: kanda.name }">
+                    <a class="block py-2 hover:text-brass-strong" routerLink="/kanda-jumuiya" [queryParams]="{ q: kanda.name }">
                       <span class="text-sm font-medium">{{ kanda.name }}</span>
                       <span class="block text-xs text-muted">
-                        {{ kanda.leader || ('Hakuna kiongozi' | t) }} ·
                         {{ 'jumuiya {count}' | t: { count: kanda.jumuiyas_count } }}
                       </span>
                     </a>
@@ -84,7 +83,7 @@
                 }
               </ul>
               @if (results.kandaTotal > results.kandas.length) {
-                <a class="mt-1 inline-block text-xs text-brass-strong hover:underline" routerLink="/kanda" [queryParams]="{ q: search() }">
+                <a class="mt-1 inline-block text-xs text-brass-strong hover:underline" routerLink="/kanda-jumuiya" [queryParams]="{ q: search() }">
                   {{ 'Ona zote {count}' | t: { count: results.kandaTotal } }}
                 </a>
               }
@@ -97,7 +96,7 @@
               <ul class="mt-2 divide-y divide-line">
                 @for (group of results.jumuiyas; track group.id) {
                   <li>
-                    <a class="block py-2 hover:text-brass-strong" routerLink="/jumuiya" [queryParams]="{ q: group.name }">
+                    <a class="block py-2 hover:text-brass-strong" routerLink="/kanda-jumuiya" [queryParams]="{ q: group.name }">
                       <span class="text-sm font-medium">{{ group.name }}</span>
                       <span class="block text-xs text-muted">
                         {{ group.kanda?.name || ('Hakuna kanda' | t) }} ·
@@ -108,7 +107,7 @@
                 }
               </ul>
               @if (results.jumuiyaTotal > results.jumuiyas.length) {
-                <a class="mt-1 inline-block text-xs text-brass-strong hover:underline" routerLink="/jumuiya" [queryParams]="{ q: search() }">
+                <a class="mt-1 inline-block text-xs text-brass-strong hover:underline" routerLink="/kanda-jumuiya" [queryParams]="{ q: search() }">
                   {{ 'Ona zote {count}' | t: { count: results.jumuiyaTotal } }}
                 </a>
               }
@@ -375,7 +374,7 @@
       <section class="rounded border border-line bg-surface p-5">
         <div class="flex items-baseline justify-between gap-3">
           <h2 class="font-serif text-lg">{{ 'Jumuiya kubwa zaidi' | t }}</h2>
-          <a class="text-xs text-brass-strong hover:underline" routerLink="/jumuiya">{{ 'Ona zote' | t }}</a>
+          <a class="text-xs text-brass-strong hover:underline" routerLink="/kanda-jumuiya">{{ 'Ona zote' | t }}</a>
         </div>
         @if (loading()) {
           <div class="mt-4 space-y-3">
@@ -386,7 +385,7 @@
         } @else if (topJumuiyas().length === 0) {
           <a
             class="mt-4 block rounded border border-dashed border-line px-3 py-5 text-center text-sm text-muted hover:border-brass hover:text-brass-strong"
-            routerLink="/jumuiya"
+            routerLink="/kanda-jumuiya"
           >
             {{ 'Bado hakuna jumuiya. Ongeza jumuiya →' | t }}
           </a>
@@ -396,7 +395,7 @@
               <li class="row-slide" [style.animation-delay.ms]="i * 40">
                 <a
                   class="flex items-baseline justify-between gap-3 py-2 hover:text-brass-strong"
-                  routerLink="/jumuiya"
+                  routerLink="/kanda-jumuiya"
                   [queryParams]="{ q: group.name }"
                 >
                   <span class="min-w-0">
@@ -418,7 +417,7 @@
       <section class="rounded border border-line bg-surface p-5">
         <div class="flex items-baseline justify-between gap-3">
           <h2 class="font-serif text-lg">{{ 'Kanda' | t }}</h2>
-          <a class="text-xs text-brass-strong hover:underline" routerLink="/kanda">{{ 'Ona zote' | t }}</a>
+          <a class="text-xs text-brass-strong hover:underline" routerLink="/kanda-jumuiya">{{ 'Ona zote' | t }}</a>
         </div>
         @if (loading()) {
           <div class="mt-4 space-y-3">
@@ -429,7 +428,7 @@
         } @else if (topKandas().length === 0) {
           <a
             class="mt-4 block rounded border border-dashed border-line px-3 py-5 text-center text-sm text-muted hover:border-brass hover:text-brass-strong"
-            routerLink="/kanda"
+            routerLink="/kanda-jumuiya"
           >
             {{ 'Bado hakuna kanda. Ongeza kanda →' | t }}
           </a>
@@ -439,12 +438,11 @@
               <li class="row-slide" [style.animation-delay.ms]="i * 40">
                 <a
                   class="flex items-baseline justify-between gap-3 py-2 hover:text-brass-strong"
-                  routerLink="/kanda"
+                  routerLink="/kanda-jumuiya"
                   [queryParams]="{ q: kanda.name }"
                 >
                   <span class="min-w-0">
                     <span class="block truncate text-sm font-medium">{{ kanda.name }}</span>
-                    <span class="block truncate text-xs text-muted">{{ kanda.leader || ('Hakuna kiongozi' | t) }}</span>
                   </span>
                   <span class="text-xs whitespace-nowrap text-muted">
                     {{ 'jumuiya {count}' | t: { count: kanda.jumuiyas_count } }}

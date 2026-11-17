@@ -30,6 +30,21 @@ class JumuiyaMemberController extends Controller
         return response()->json($this->ordered($jumuiya)->get());
     }
 
+    /** Every person in the parish with their community and zone, for the dashboard search and lists. */
+    public function directory(Request $request): JsonResponse
+    {
+        $this->ensureAnyModule($request, 'jumuiya', 'kanda');
+
+        return response()->json(
+            JumuiyaMember::query()
+                ->whereHas('jumuiya')
+                ->with(['jumuiya:id,name,kanda_id', 'jumuiya.kanda:id,name'])
+                ->orderBy('last_name')
+                ->orderBy('first_name')
+                ->get()
+        );
+    }
+
     public function store(Request $request, Jumuiya $jumuiya): JsonResponse
     {
         $this->ensureCan($request, 'jumuiya', 'create');

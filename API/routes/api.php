@@ -68,6 +68,8 @@ Route::middleware('auth:sanctum')->group(function () {
     Route::post('/deletion-requests/{deletionRequest}/approve', [DeletionRequestController::class, 'approve'])->whereNumber('deletionRequest');
     Route::post('/deletion-requests/{deletionRequest}/reject', [DeletionRequestController::class, 'reject'])->whereNumber('deletionRequest');
 
+    Route::get('/people', [JumuiyaMemberController::class, 'directory']);
+
     Route::get('/jumuiyas', [JumuiyaController::class, 'index']);
     Route::post('/jumuiyas', [JumuiyaController::class, 'store']);
     Route::get('/jumuiyas/{jumuiya}', [JumuiyaController::class, 'show']);

@@ -1,0 +1,284 @@
+<div class="mx-auto w-full max-w-6xl px-4 py-6 sm:px-6">
+  <header class="mb-6">
+    <h1 class="font-serif text-2xl text-ink">{{ 'Kanda na Jumuiya' | t }}</h1>
+    <p class="mt-1 text-sm text-muted">{{ 'Tafuta, ongeza na simamia kanda, jumuiya na watu wao.' | t }}</p>
+  </header>
+
+  @if (notice(); as n) {
+    <div
+      class="mb-4 flex items-start justify-between gap-3 rounded border px-3 py-2 text-sm"
+      [ngClass]="n.kind === 'ok' ? 'border-positive/40 bg-positive/10 text-positive' : 'border-negative/40 bg-negative/10 text-negative'"
+      role="status"
+    >
+      <span>{{ n.text }}</span>
+      <button type="button" class="text-faint hover:text-ink" (click)="notice.set(null)">✕</button>
+    </div>
+  }
+
+  @if (loading()) {
+    <p class="py-16 text-center text-sm text-muted">{{ 'Inapakia…' | t }}</p>
+  } @else {
+    <!-- Search + pickers -->
+    <div class="grid gap-3 sm:grid-cols-[1fr_auto_auto] sm:items-start">
+      <!-- Universal search -->
+      <div class="relative">
+        <input
+          type="text"
+          [ngModel]="search()"
+          (ngModelChange)="search.set($event)"
+          [placeholder]="'Tafuta kanda, jumuiya au mtu…' | t"
+          class="w-full rounded border border-line bg-surface px-3 py-2.5 text-sm text-ink placeholder:text-faint focus:border-brass focus:ring-1 focus:ring-brass focus:outline-none"
+        />
+        @if (search().trim().length >= 2 && suggestions().length) {
+          <div class="absolute z-20 mt-1 w-full overflow-hidden rounded border border-line bg-surface shadow-lg">
+            @for (s of suggestions(); track s.kind + s.id) {
+              <button
+                type="button"
+                class="flex w-full items-center justify-between gap-3 px-3 py-2 text-left text-sm hover:bg-canvas"
+                (click)="applySuggestion(s)"
+              >
+                <span class="text-ink">{{ s.label }}</span>
+                <span class="text-xs text-muted">{{ s.sub }}</span>
+              </button>
+            }
+          </div>
+        }
+      </div>
+
+      <!-- Zone dropdown -->
+      <div class="relative">
+        <button
+          type="button"
+          class="flex w-full min-w-44 items-center justify-between gap-2 rounded border border-line bg-surface px-3 py-2.5 text-sm text-ink"
+          (click)="zoneMenuOpen.set(!zoneMenuOpen())"
+        >
+          <span [class.text-faint]="!selectedZone()">{{ selectedZone()?.name ?? ('Chagua kanda' | t) }}</span>
+          <span class="text-faint">▾</span>
+        </button>
+        @if (zoneMenuOpen()) {
+          <div class="absolute z-20 mt-1 max-h-72 w-full overflow-auto rounded border border-line bg-surface shadow-lg">
+            @for (z of sortedZones(); track z.id) {
+              <button type="button" class="block w-full px-3 py-2 text-left text-sm text-ink hover:bg-canvas" (click)="pickZone(z.id)">
+                {{ z.name }}
+              </button>
+            } @empty {
+              <p class="px-3 py-2 text-xs text-muted">{{ 'Bado hakuna kanda.' | t }}</p>
+            }
+            <button type="button" class="block w-full border-t border-line px-3 py-2 text-left text-sm font-medium text-brass-strong hover:bg-canvas" (click)="openAddZone()">
+              + {{ 'Ongeza kanda' | t }}
+            </button>
+          </div>
+        }
+      </div>
+
+      <!-- Community dropdown -->
+      <div class="relative">
+        <button
+          type="button"
+          class="flex w-full min-w-44 items-center justify-between gap-2 rounded border border-line bg-surface px-3 py-2.5 text-sm text-ink disabled:opacity-50"
+          [disabled]="!selectedZone()"
+          (click)="communityMenuOpen.set(!communityMenuOpen())"
+        >
+          <span [class.text-faint]="!selectedCommunity()">{{ selectedCommunity()?.name ?? ('Chagua jumuiya' | t) }}</span>
+          <span class="text-faint">▾</span>
+        </button>
+        @if (communityMenuOpen() && selectedZone()) {
+          <div class="absolute z-20 mt-1 max-h-72 w-full overflow-auto rounded border border-line bg-surface shadow-lg">
+            @for (c of zoneCommunities(); track c.id) {
+              <button type="button" class="block w-full px-3 py-2 text-left text-sm text-ink hover:bg-canvas" (click)="pickCommunity(c.id)">
+                {{ c.name }}
+              </button>
+            } @empty {
+              <p class="px-3 py-2 text-xs text-muted">{{ 'Kanda hii bado haina jumuiya.' | t }}</p>
+            }
+            <button type="button" class="block w-full border-t border-line px-3 py-2 text-left text-sm font-medium text-brass-strong hover:bg-canvas" (click)="openAddCommunity()">
+              + {{ 'Ongeza jumuiya' | t }}
+            </button>
+          </div>
+        }
+      </div>
+    </div>
+
+    <!-- Inline add zone / community -->
+    @if (addingZone() || addingCommunity()) {
+      <div class="mt-3 flex items-center gap-2 rounded border border-brass/40 bg-brass/5 px-3 py-2">
+        <input
+          type="text"
+          [ngModel]="newName()"
+          (ngModelChange)="newName.set($event)"
+          (keydown.enter)="addingZone() ? saveZone() : saveCommunity()"
+          [placeholder]="(addingZone() ? 'Jina la kanda mpya' : 'Jina la jumuiya mpya') | t"
+          class="flex-1 rounded border border-line bg-surface px-3 py-2 text-sm text-ink focus:border-brass focus:outline-none"
+          autofocus
+        />
+        <button type="button" class="rounded bg-brass-strong px-3 py-2 text-sm font-medium text-canvas disabled:opacity-60" [disabled]="saving()" (click)="addingZone() ? saveZone() : saveCommunity()">
+          {{ 'Hifadhi' | t }}
+        </button>
+        <button type="button" class="rounded px-3 py-2 text-sm text-muted hover:text-ink" (click)="addingZone.set(false); addingCommunity.set(false)">
+          {{ 'Ghairi' | t }}
+        </button>
+      </div>
+    }
+
+    <!-- Statistics -->
+    @if (zoneStats(); as zs) {
+      <section class="mt-6 rounded-lg border border-line bg-surface p-4">
+        <h2 class="mb-3 font-serif text-lg text-ink">{{ selectedZone()?.name }}</h2>
+        <div class="grid grid-cols-2 gap-3 sm:grid-cols-4">
+          <div class="rounded border border-line bg-canvas px-3 py-2">
+            <p class="text-xs text-muted">{{ 'Jumuiya' | t }}</p>
+            <p class="text-xl font-semibold text-ink">{{ zs.communities }}</p>
+          </div>
+          <div class="rounded border border-line bg-canvas px-3 py-2">
+            <p class="text-xs text-muted">{{ 'Watu' | t }}</p>
+            <p class="text-xl font-semibold text-ink">{{ zs.people }}</p>
+          </div>
+          <div class="rounded border border-line bg-canvas px-3 py-2">
+            <p class="text-xs text-muted">{{ 'Wanaume' | t }}</p>
+            <p class="text-xl font-semibold text-ink">{{ zs.male }}</p>
+          </div>
+          <div class="rounded border border-line bg-canvas px-3 py-2">
+            <p class="text-xs text-muted">{{ 'Wanawake' | t }}</p>
+            <p class="text-xl font-semibold text-ink">{{ zs.female }}</p>
+          </div>
+        </div>
+        @if (zs.leaders.length) {
+          <div class="mt-3 flex flex-wrap gap-2">
+            @for (l of zs.leaders; track l.role) {
+              <span class="rounded-full border border-line bg-canvas px-2.5 py-1 text-xs text-muted">
+                {{ roleLabel(l.role) }}: <span class="text-ink">{{ l.name }}</span>
+              </span>
+            }
+          </div>
+        }
+      </section>
+    }
+
+    <!-- People list for the chosen community -->
+    @if (selectedCommunity(); as community) {
+      <section class="mt-6">
+        <div class="mb-3 flex items-center justify-between">
+          <div>
+            <h2 class="font-serif text-lg text-ink">{{ community.name }}</h2>
+            @if (communityStats(); as cs) {
+              <p class="text-xs text-muted">
+                {{ 'Watu' | t }} {{ cs.people }} · {{ 'Wanaume' | t }} {{ cs.male }} · {{ 'Wanawake' | t }} {{ cs.female }}
+              </p>
+            }
+          </div>
+          <button type="button" class="rounded bg-brass-strong px-3 py-2 text-sm font-medium text-canvas" (click)="startAdd()">
+            + {{ 'Ongeza mtu' | t }}
+          </button>
+        </div>
+
+        <div class="overflow-x-auto rounded-lg border border-line">
+          <table class="w-full min-w-[720px] text-sm">
+            <thead>
+              <tr class="border-b border-line bg-canvas text-left text-xs uppercase tracking-wide text-muted">
+                <th class="w-10 px-3 py-2">#</th>
+                <th class="px-3 py-2">{{ 'Jina' | t }}</th>
+                <th class="px-3 py-2">{{ 'Jinsia' | t }}</th>
+                <th class="px-3 py-2">{{ 'Wadhifa – Kanda' | t }}</th>
+                <th class="px-3 py-2">{{ 'Wadhifa – Jumuiya' | t }}</th>
+                <th class="px-3 py-2">{{ 'Simu' | t }}</th>
+                <th class="w-20 px-3 py-2"></th>
+              </tr>
+            </thead>
+            <tbody>
+              @for (person of communityPeople(); track person.id; let i = $index) {
+                @if (editingId() === person.id) {
+                  <tr class="border-b border-line bg-brass/5">
+                    <td class="px-3 py-1.5 text-muted">{{ i + 1 }}</td>
+                    <ng-container [ngTemplateOutlet]="entry"></ng-container>
+                    <td class="px-3 py-1.5">
+                      <div class="flex gap-1">
+                        <button type="button" class="rounded bg-brass-strong px-2 py-1 text-xs text-canvas" [disabled]="saving()" (click)="saveDraft(false)">{{ 'Hifadhi' | t }}</button>
+                        <button type="button" class="rounded px-2 py-1 text-xs text-muted hover:text-ink" (click)="cancelAdd()">{{ 'Ghairi' | t }}</button>
+                      </div>
+                    </td>
+                  </tr>
+                } @else {
+                  <tr class="border-b border-line hover:bg-canvas" [ngClass]="highlightedId() === person.id ? 'bg-brass/10' : ''">
+                    <td class="px-3 py-2 text-muted">{{ i + 1 }}</td>
+                    <td class="px-3 py-2 text-ink">{{ person.name }}</td>
+                    <td class="px-3 py-2 text-muted">{{ person.gender === 'male' ? ('Mwanaume' | t) : person.gender === 'female' ? ('Mwanamke' | t) : '—' }}</td>
+                    <td class="px-3 py-2 text-muted">{{ roleLabel(person.zone_role) }}</td>
+                    <td class="px-3 py-2 text-muted">{{ roleLabel(person.community_role) }}</td>
+                    <td class="px-3 py-2 text-muted">{{ person.phone ?? '—' }}</td>
+                    <td class="px-3 py-2">
+                      <div class="flex gap-2 text-xs">
+                        <button type="button" class="text-brass-strong hover:underline" (click)="editPerson(person)">{{ 'Hariri' | t }}</button>
+                        <button type="button" class="text-negative hover:underline" (click)="removePerson(person)">{{ 'Futa' | t }}</button>
+                      </div>
+                    </td>
+                  </tr>
+                }
+              } @empty {
+                @if (!adding()) {
+                  <tr><td colspan="7" class="px-3 py-6 text-center text-sm text-muted">{{ 'Bado hakuna watu kwenye jumuiya hii.' | t }}</td></tr>
+                }
+              }
+
+              @if (adding()) {
+                <tr class="border-b border-line bg-brass/5">
+                  <td class="px-3 py-1.5 text-muted">{{ communityPeople().length + 1 }}</td>
+                  <ng-container [ngTemplateOutlet]="entry"></ng-container>
+                  <td class="px-3 py-1.5">
+                    <div class="flex gap-1">
+                      <button type="button" class="rounded bg-brass-strong px-2 py-1 text-xs text-canvas" [disabled]="saving()" (click)="saveDraft(true)">{{ 'Hifadhi' | t }}</button>
+                      <button type="button" class="rounded px-2 py-1 text-xs text-muted hover:text-ink" (click)="cancelAdd()">{{ 'Funga' | t }}</button>
+                    </div>
+                  </td>
+                </tr>
+              }
+            </tbody>
+          </table>
+        </div>
+      </section>
+    } @else if (selectedZone()) {
+      <p class="mt-6 text-center text-sm text-muted">{{ 'Chagua jumuiya kuona watu wake.' | t }}</p>
+    }
+  }
+</div>
+
+<!-- The inline entry cells, shared by the add row and the edit row. -->
+<ng-template #entry>
+  <td class="px-2 py-1.5">
+    <div class="flex gap-1">
+      <input id="entry-first" #first [ngModel]="draft().first_name" (ngModelChange)="patchDraft({ first_name: $event })" (keydown.enter)="onEnter($event, mid)" [placeholder]="'Jina' | t" class="w-20 rounded border border-line bg-surface px-2 py-1 text-sm focus:border-brass focus:outline-none" />
+      <input #mid [ngModel]="draft().middle_name" (ngModelChange)="patchDraft({ middle_name: $event })" (keydown.enter)="onEnter($event, last)" [placeholder]="'La kati' | t" class="w-20 rounded border border-line bg-surface px-2 py-1 text-sm focus:border-brass focus:outline-none" />
+      <input #last [ngModel]="draft().last_name" (ngModelChange)="patchDraft({ last_name: $event })" (keydown.enter)="onEnter($event, gsel)" [placeholder]="'La ukoo' | t" class="w-20 rounded border border-line bg-surface px-2 py-1 text-sm focus:border-brass focus:outline-none" />
+    </div>
+  </td>
+  <td class="px-2 py-1.5">
+    <select #gsel [ngModel]="draft().gender" (ngModelChange)="patchDraft({ gender: $event })" (keydown.enter)="onEnter($event, zsel)" class="rounded border border-line bg-surface px-2 py-1 text-sm focus:border-brass focus:outline-none">
+      <option value="">—</option>
+      <option value="male">{{ 'Mwanaume' | t }}</option>
+      <option value="female">{{ 'Mwanamke' | t }}</option>
+    </select>
+  </td>
+  <td class="px-2 py-1.5">
+    <select #zsel [ngModel]="draft().zone_role" (ngModelChange)="patchDraft({ zone_role: $event })" (keydown.enter)="onEnter($event, csel)" class="rounded border border-line bg-surface px-2 py-1 text-sm focus:border-brass focus:outline-none">
+      @for (r of roleChoices(); track r.value) {
+        <option [value]="r.value">{{ r.label }}</option>
+      }
+    </select>
+  </td>
+  <td class="px-2 py-1.5">
+    <select #csel [ngModel]="draft().community_role" (ngModelChange)="patchDraft({ community_role: $event })" (keydown.enter)="onEnter($event, pin)" class="rounded border border-line bg-surface px-2 py-1 text-sm focus:border-brass focus:outline-none">
+      @for (r of roleChoices(); track r.value) {
+        <option [value]="r.value">{{ r.label }}</option>
+      }
+    </select>
+  </td>
+  <td class="px-2 py-1.5">
+    <div class="flex gap-1">
+      <select [ngModel]="draft().dial" (ngModelChange)="patchDraft({ dial: $event })" class="rounded border border-line bg-surface px-1 py-1 text-sm focus:border-brass focus:outline-none">
+        @for (code of dialCodes; track code) {
+          <option [value]="code">{{ code }}</option>
+        }
+      </select>
+      <input #pin [ngModel]="draft().phone" (ngModelChange)="patchDraft({ phone: $event })" (keydown.enter)="onEnter($event, null)" inputmode="tel" [placeholder]="'712345678' | t" class="w-28 rounded border border-line bg-surface px-2 py-1 text-sm focus:border-brass focus:outline-none" />
+    </div>
+  </td>
+</ng-template>

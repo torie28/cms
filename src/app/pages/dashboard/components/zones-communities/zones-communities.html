@@ -123,7 +123,12 @@
     <!-- Statistics -->
     @if (zoneStats(); as zs) {
       <section class="mt-6 rounded-lg border border-line bg-surface p-4">
-        <h2 class="mb-3 font-serif text-lg text-ink">{{ selectedZone()?.name }}</h2>
+        <div class="mb-3 flex items-center justify-between gap-2">
+          <h2 class="font-serif text-lg text-ink">{{ selectedZone()?.name }}</h2>
+          <button type="button" class="rounded border border-line px-3 py-1.5 text-xs text-ink hover:bg-canvas" (click)="exportZonePdf()">
+            {{ 'Pakua PDF ya kanda' | t }}
+          </button>
+        </div>
         <div class="grid grid-cols-2 gap-3 sm:grid-cols-4">
           <div class="rounded border border-line bg-canvas px-3 py-2">
             <p class="text-xs text-muted">{{ 'Jumuiya' | t }}</p>
@@ -166,9 +171,14 @@
               </p>
             }
           </div>
-          <button type="button" class="rounded bg-brass-strong px-3 py-2 text-sm font-medium text-canvas" (click)="startAdd()">
-            + {{ 'Ongeza mtu' | t }}
-          </button>
+          <div class="flex gap-2">
+            <button type="button" class="rounded border border-line px-3 py-2 text-sm text-ink hover:bg-canvas" (click)="exportCommunityPdf()">
+              {{ 'Pakua PDF' | t }}
+            </button>
+            <button type="button" class="rounded bg-brass-strong px-3 py-2 text-sm font-medium text-canvas" (click)="startAdd()">
+              + {{ 'Ongeza mtu' | t }}
+            </button>
+          </div>
         </div>
 
         <div class="overflow-x-auto rounded-lg border border-line">

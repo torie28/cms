@@ -14,6 +14,7 @@ import {
   ROLE_OPTIONS,
 } from '../../../../core/parish';
 import { fuzzyScore } from '../../../../shared/fuzzy';
+import { PdfSection, savePdf, slug } from '../../../../core/spreadsheet';
 
 /** Phone country codes offered in the picker; Tanzania is the default. */
 const DIAL_CODES = ['+255', '+254', '+256', '+257', '+250', '+260', '+265', '+1', '+44', '+971', '+91'];
@@ -213,6 +214,76 @@ export class ZonesCommunitiesPage {
     if (!role) return 'Ordinary';
     const option = ROLE_OPTIONS.find((item) => item.value === role);
     return option ? (currentLang() === 'en' ? option.en : option.sw) : role;
+  }
+
+  protected genderLabel(gender: string | null): string {
+    return gender === 'male' ? translate('Mwanaume') : gender === 'female' ? translate('Mwanamke') : '';
+  }
+
+  private sortedPeople(communityId: number): DirectoryPerson[] {
+    return this.people()
+      .filter((person) => person.jumuiya_id === communityId)
+      .sort((a, b) => (a.last_name ?? '').localeCompare(b.last_name ?? '') || a.first_name.localeCompare(b.first_name));
+  }
+
+  /** PDF of the picked community: its numbered people with roles and phones. */
+  protected async exportCommunityPdf(): Promise<void> {
+    const community = this.selectedCommunity();
+    if (!community) return;
+    const people = this.communityPeople();
+    const section: PdfSection = {
+      head: ['#', translate('Jina'), translate('Jinsia'), translate('Wadhifa – Kanda'), translate('Wadhifa – Jumuiya'), translate('Simu')],
+      rows: people.map((person, index) => [
+        String(index + 1),
+        person.name,
+        this.genderLabel(person.gender),
+        this.roleLabel(person.zone_role),
+        this.roleLabel(person.community_role),
+        person.phone ?? '',
+      ]),
+    };
+    await savePdf(
+      community.name,
+      [this.selectedZone()?.name, translate('Orodha ya wanajumuiya')].filter(Boolean).join(' · '),
+      [section],
+      `${slug(community.name, 'jumuiya')}.pdf`,
+      false,
+    );
+  }
+
+  /** PDF of the whole zone: a summary, then each community's people. */
+  protected async exportZonePdf(): Promise<void> {
+    const zone = this.selectedZone();
+    const stats = this.zoneStats();
+    if (!zone || !stats) return;
+
+    const sections: PdfSection[] = [
+      {
+        heading: translate('Muhtasari'),
+        head: [translate('Kipengele'), translate('Idadi')],
+        rows: [
+          [translate('Jumuiya'), String(stats.communities)],
+          [translate('Watu'), String(stats.people)],
+          [translate('Wanaume'), String(stats.male)],
+          [translate('Wanawake'), String(stats.female)],
+        ],
+        firstColumnWidth: 160,
+      },
+      ...this.zoneCommunities().map((community) => ({
+        heading: community.name,
+        head: ['#', translate('Jina'), translate('Jinsia'), translate('Wadhifa – Jumuiya'), translate('Simu')],
+        rows: this.sortedPeople(community.id).map((person, index) => [
+          String(index + 1),
+          person.name,
+          this.genderLabel(person.gender),
+          this.roleLabel(person.community_role),
+          person.phone ?? '',
+        ]),
+        firstColumnWidth: 28,
+      })),
+    ];
+
+    await savePdf(zone.name, translate('Taarifa ya kanda'), sections, `${slug(zone.name, 'kanda')}.pdf`, false);
   }
 
   protected flash(kind: 'ok' | 'err', text: string): void {

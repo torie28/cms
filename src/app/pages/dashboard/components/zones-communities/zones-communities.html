@@ -18,20 +18,25 @@
   @if (loading()) {
     <p class="py-16 text-center text-sm text-muted">{{ 'Inapakia…' | t }}</p>
   } @else {
-    <!-- Search + pickers -->
+    <!-- a click-away layer so an open dropdown closes -->
+    @if (zoneMenuOpen() || communityMenuOpen()) {
+      <div class="fixed inset-0 z-10" (click)="zoneMenuOpen.set(false); communityMenuOpen.set(false)"></div>
+    }
+
+    <!-- Search (people) + pickers -->
     <div class="grid gap-3 sm:grid-cols-[1fr_auto_auto] sm:items-start">
-      <!-- Universal search -->
+      <!-- People search -->
       <div class="relative">
         <input
           type="text"
           [ngModel]="search()"
           (ngModelChange)="search.set($event)"
-          [placeholder]="'Tafuta kanda, jumuiya au mtu…' | t"
+          [placeholder]="'Tafuta mtu kwa jina…' | t"
           class="w-full rounded border border-line bg-surface px-3 py-2.5 text-sm text-ink placeholder:text-faint focus:border-brass focus:ring-1 focus:ring-brass focus:outline-none"
         />
-        @if (search().trim().length >= 2 && suggestions().length) {
+        @if (search().trim().length >= 2) {
           <div class="absolute z-20 mt-1 w-full overflow-hidden rounded border border-line bg-surface shadow-lg">
-            @for (s of suggestions(); track s.kind + s.id) {
+            @for (s of suggestions(); track s.id) {
               <button
                 type="button"
                 class="flex w-full items-center justify-between gap-3 px-3 py-2 text-left text-sm hover:bg-canvas"
@@ -40,30 +45,46 @@
                 <span class="text-ink">{{ s.label }}</span>
                 <span class="text-xs text-muted">{{ s.sub }}</span>
               </button>
+            } @empty {
+              <p class="px-3 py-2 text-xs text-muted">{{ 'Hakuna mtu aliyepatikana.' | t }}</p>
             }
           </div>
         }
       </div>
 
       <!-- Zone dropdown -->
-      <div class="relative">
+      <div class="relative z-20">
         <button
           type="button"
-          class="flex w-full min-w-44 items-center justify-between gap-2 rounded border border-line bg-surface px-3 py-2.5 text-sm text-ink"
-          (click)="zoneMenuOpen.set(!zoneMenuOpen())"
+          class="flex w-full min-w-48 items-center justify-between gap-2 rounded border border-line bg-surface px-3 py-2.5 text-sm text-ink"
+          (click)="zoneMenuOpen.set(!zoneMenuOpen()); communityMenuOpen.set(false)"
         >
-          <span [class.text-faint]="!selectedZone()">{{ selectedZone()?.name ?? ('Chagua kanda' | t) }}</span>
+          <span>{{ selectedZone()?.name ?? ('Kanda zote' | t) }}</span>
           <span class="text-faint">▾</span>
         </button>
         @if (zoneMenuOpen()) {
-          <div class="absolute z-20 mt-1 max-h-72 w-full overflow-auto rounded border border-line bg-surface shadow-lg">
-            @for (z of sortedZones(); track z.id) {
-              <button type="button" class="block w-full px-3 py-2 text-left text-sm text-ink hover:bg-canvas" (click)="pickZone(z.id)">
-                {{ z.name }}
+          <div class="absolute mt-1 w-full overflow-hidden rounded border border-line bg-surface shadow-lg">
+            <div class="border-b border-line p-2">
+              <input
+                type="text"
+                [ngModel]="zoneQuery()"
+                (ngModelChange)="zoneQuery.set($event)"
+                [placeholder]="'Tafuta kanda…' | t"
+                class="w-full rounded border border-line bg-canvas px-2 py-1.5 text-sm text-ink placeholder:text-faint focus:border-brass focus:outline-none"
+              />
+            </div>
+            <div class="max-h-64 overflow-auto">
+              <button type="button" class="block w-full px-3 py-2 text-left text-sm font-medium text-ink hover:bg-canvas" (click)="pickAllZones()">
+                {{ 'Kanda zote' | t }}
               </button>
-            } @empty {
-              <p class="px-3 py-2 text-xs text-muted">{{ 'Bado hakuna kanda.' | t }}</p>
-            }
+              @for (z of filteredZones(); track z.id) {
+                <button type="button" class="block w-full px-3 py-2 text-left text-sm text-ink hover:bg-canvas" (click)="pickZone(z.id)">
+                  {{ z.name }}
+                </button>
+              } @empty {
+                <p class="px-3 py-2 text-xs text-muted">{{ 'Hakuna kanda.' | t }}</p>
+              }
+            </div>
             <button type="button" class="block w-full border-t border-line px-3 py-2 text-left text-sm font-medium text-brass-strong hover:bg-canvas" (click)="openAddZone()">
               + {{ 'Ongeza kanda' | t }}
             </button>
@@ -72,25 +93,39 @@
       </div>
 
       <!-- Community dropdown -->
-      <div class="relative">
+      <div class="relative z-20">
         <button
           type="button"
-          class="flex w-full min-w-44 items-center justify-between gap-2 rounded border border-line bg-surface px-3 py-2.5 text-sm text-ink disabled:opacity-50"
+          class="flex w-full min-w-48 items-center justify-between gap-2 rounded border border-line bg-surface px-3 py-2.5 text-sm text-ink disabled:opacity-50"
           [disabled]="!selectedZone()"
-          (click)="communityMenuOpen.set(!communityMenuOpen())"
+          (click)="communityMenuOpen.set(!communityMenuOpen()); zoneMenuOpen.set(false)"
         >
-          <span [class.text-faint]="!selectedCommunity()">{{ selectedCommunity()?.name ?? ('Chagua jumuiya' | t) }}</span>
+          <span>{{ selectedCommunity()?.name ?? ('Jumuiya zote' | t) }}</span>
           <span class="text-faint">▾</span>
         </button>
         @if (communityMenuOpen() && selectedZone()) {
-          <div class="absolute z-20 mt-1 max-h-72 w-full overflow-auto rounded border border-line bg-surface shadow-lg">
-            @for (c of zoneCommunities(); track c.id) {
-              <button type="button" class="block w-full px-3 py-2 text-left text-sm text-ink hover:bg-canvas" (click)="pickCommunity(c.id)">
-                {{ c.name }}
+          <div class="absolute mt-1 w-full overflow-hidden rounded border border-line bg-surface shadow-lg">
+            <div class="border-b border-line p-2">
+              <input
+                type="text"
+                [ngModel]="communityQuery()"
+                (ngModelChange)="communityQuery.set($event)"
+                [placeholder]="'Tafuta jumuiya…' | t"
+                class="w-full rounded border border-line bg-canvas px-2 py-1.5 text-sm text-ink placeholder:text-faint focus:border-brass focus:outline-none"
+              />
+            </div>
+            <div class="max-h-64 overflow-auto">
+              <button type="button" class="block w-full px-3 py-2 text-left text-sm font-medium text-ink hover:bg-canvas" (click)="pickAllCommunities()">
+                {{ 'Jumuiya zote' | t }}
               </button>
-            } @empty {
-              <p class="px-3 py-2 text-xs text-muted">{{ 'Kanda hii bado haina jumuiya.' | t }}</p>
-            }
+              @for (c of filteredCommunities(); track c.id) {
+                <button type="button" class="block w-full px-3 py-2 text-left text-sm text-ink hover:bg-canvas" (click)="pickCommunity(c.id)">
+                  {{ c.name }}
+                </button>
+              } @empty {
+                <p class="px-3 py-2 text-xs text-muted">{{ 'Kanda hii bado haina jumuiya.' | t }}</p>
+              }
+            </div>
             <button type="button" class="block w-full border-t border-line px-3 py-2 text-left text-sm font-medium text-brass-strong hover:bg-canvas" (click)="openAddCommunity()">
               + {{ 'Ongeza jumuiya' | t }}
             </button>
@@ -120,8 +155,35 @@
       </div>
     }
 
-    <!-- Statistics -->
-    @if (zoneStats(); as zs) {
+    <!-- Statistics: whole parish, or one zone -->
+    @if (scope() === 'all') {
+      <section class="mt-6 rounded-lg border border-line bg-surface p-4">
+        <h2 class="mb-3 font-serif text-lg text-ink">{{ 'Parokia nzima' | t }}</h2>
+        <div class="grid grid-cols-2 gap-3 sm:grid-cols-5">
+          <div class="rounded border border-line bg-canvas px-3 py-2">
+            <p class="text-xs text-muted">{{ 'Kanda' | t }}</p>
+            <p class="text-xl font-semibold text-ink">{{ parishStats().zones }}</p>
+          </div>
+          <div class="rounded border border-line bg-canvas px-3 py-2">
+            <p class="text-xs text-muted">{{ 'Jumuiya' | t }}</p>
+            <p class="text-xl font-semibold text-ink">{{ parishStats().communities }}</p>
+          </div>
+          <div class="rounded border border-line bg-canvas px-3 py-2">
+            <p class="text-xs text-muted">{{ 'Watu' | t }}</p>
+            <p class="text-xl font-semibold text-ink">{{ parishStats().people }}</p>
+          </div>
+          <div class="rounded border border-line bg-canvas px-3 py-2">
+            <p class="text-xs text-muted">{{ 'Wanaume' | t }}</p>
+            <p class="text-xl font-semibold text-ink">{{ parishStats().male }}</p>
+          </div>
+          <div class="rounded border border-line bg-canvas px-3 py-2">
+            <p class="text-xs text-muted">{{ 'Wanawake' | t }}</p>
+            <p class="text-xl font-semibold text-ink">{{ parishStats().female }}</p>
+          </div>
+        </div>
+        <p class="mt-3 text-xs text-muted">{{ 'Chagua kanda au jumuiya kuona taarifa zaidi.' | t }}</p>
+      </section>
+    } @else if (zoneStats(); as zs) {
       <section class="mt-6 rounded-lg border border-line bg-surface p-4">
         <div class="mb-3 flex items-center justify-between gap-2">
           <h2 class="font-serif text-lg text-ink">{{ selectedZone()?.name }}</h2>
@@ -160,9 +222,9 @@
     }
 
     <!-- People list for the chosen community -->
-    @if (selectedCommunity(); as community) {
+    @if (scope() === 'community' && selectedCommunity(); as community) {
       <section class="mt-6">
-        <div class="mb-3 flex items-center justify-between">
+        <div class="mb-3 flex items-center justify-between gap-2">
           <div>
             <h2 class="font-serif text-lg text-ink">{{ community.name }}</h2>
             @if (communityStats(); as cs) {
@@ -182,7 +244,7 @@
         </div>
 
         <div class="overflow-x-auto rounded-lg border border-line">
-          <table class="w-full min-w-[720px] text-sm">
+          <table class="w-full text-sm">
             <thead>
               <tr class="border-b border-line bg-canvas text-left text-xs uppercase tracking-wide text-muted">
                 <th class="w-10 px-3 py-2">#</th>
@@ -212,8 +274,8 @@
                     <td class="px-3 py-2 text-muted">{{ i + 1 }}</td>
                     <td class="px-3 py-2 text-ink">{{ person.name }}</td>
                     <td class="px-3 py-2 text-muted">{{ person.gender === 'male' ? ('Mwanaume' | t) : person.gender === 'female' ? ('Mwanamke' | t) : '—' }}</td>
-                    <td class="px-3 py-2 text-muted">{{ roleLabel(person.zone_role) }}</td>
-                    <td class="px-3 py-2 text-muted">{{ roleLabel(person.community_role) }}</td>
+                    <td class="px-3 py-2" [ngClass]="person.zone_role ? 'font-medium text-ink' : 'text-faint'">{{ roleLabel(person.zone_role) }}</td>
+                    <td class="px-3 py-2" [ngClass]="person.community_role ? 'font-medium text-ink' : 'text-faint'">{{ roleLabel(person.community_role) }}</td>
                     <td class="px-3 py-2 text-muted">{{ person.phone ?? '—' }}</td>
                     <td class="px-3 py-2">
                       <div class="flex gap-2 text-xs">
@@ -245,7 +307,7 @@
           </table>
         </div>
       </section>
-    } @else if (selectedZone()) {
+    } @else if (scope() === 'zone') {
       <p class="mt-6 text-center text-sm text-muted">{{ 'Chagua jumuiya kuona watu wake.' | t }}</p>
     }
   }

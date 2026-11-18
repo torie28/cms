@@ -19,6 +19,9 @@ import { PdfSection, savePdf, slug } from '../../../../core/spreadsheet';
 /** Phone country codes offered in the picker; Tanzania is the default. */
 const DIAL_CODES = ['+255', '+254', '+256', '+257', '+250', '+260', '+265', '+1', '+44', '+971', '+91'];
 
+/** 'all' means the whole parish / the whole zone — statistics only, no name list. */
+type Selection = number | 'all';
+
 interface Draft {
   first_name: string;
   middle_name: string;
@@ -30,10 +33,14 @@ interface Draft {
   phone: string;
 }
 
-type Suggestion =
-  | { kind: 'zone'; id: number; label: string; sub: string; score: number }
-  | { kind: 'community'; id: number; zoneId: number; label: string; sub: string; score: number }
-  | { kind: 'person'; id: number; zoneId: number; communityId: number; label: string; sub: string; score: number };
+interface PersonHit {
+  id: number;
+  zoneId: number;
+  communityId: number;
+  label: string;
+  sub: string;
+  score: number;
+}
 
 @Component({
   selector: 'app-zones-communities',
@@ -50,16 +57,19 @@ export class ZonesCommunitiesPage {
   protected readonly communities = signal<Jumuiya[]>([]);
   protected readonly people = signal<DirectoryPerson[]>([]);
 
-  protected readonly selectedZoneId = signal<number | null>(null);
-  protected readonly selectedCommunityId = signal<number | null>(null);
+  // 'all' = show aggregate statistics with no name list. The default view is the whole parish.
+  protected readonly selectedZoneId = signal<Selection>('all');
+  protected readonly selectedCommunityId = signal<Selection>('all');
   protected readonly search = signal('');
   protected readonly highlightedId = signal<number | null>(null);
   protected readonly notice = signal<{ kind: 'ok' | 'err'; text: string } | null>(null);
   protected readonly saving = signal(false);
 
-  // Dropdown + inline-add state.
+  // Dropdown state, each with its own filter box.
   protected readonly zoneMenuOpen = signal(false);
   protected readonly communityMenuOpen = signal(false);
+  protected readonly zoneQuery = signal('');
+  protected readonly communityQuery = signal('');
   protected readonly addingZone = signal(false);
   protected readonly addingCommunity = signal(false);
   protected readonly newName = signal('');
@@ -79,41 +89,65 @@ export class ZonesCommunitiesPage {
     ];
   });
 
+  /** What the page is focused on: the whole parish, one zone, or one community. */
+  protected readonly scope = computed<'all' | 'zone' | 'community'>(() => {
+    if (this.selectedZoneId() === 'all') return 'all';
+    if (this.selectedCommunityId() === 'all') return 'zone';
+    return 'community';
+  });
+
   protected readonly sortedZones = computed(() =>
     [...this.zones()].sort((a, b) => a.name.localeCompare(b.name)),
   );
 
   protected readonly zoneCommunities = computed(() => {
     const zoneId = this.selectedZoneId();
+    if (zoneId === 'all') return [];
     return this.communities()
       .filter((community) => community.kanda_id === zoneId)
       .sort((a, b) => a.name.localeCompare(b.name));
   });
 
-  protected readonly selectedZone = computed(
-    () => this.zones().find((zone) => zone.id === this.selectedZoneId()) ?? null,
+  /** Dropdown lists narrowed by their own search box (same neutral fuzzy match). */
+  protected readonly filteredZones = computed(() => this.narrow(this.sortedZones(), this.zoneQuery()));
+  protected readonly filteredCommunities = computed(() =>
+    this.narrow(this.zoneCommunities(), this.communityQuery()),
   );
 
-  protected readonly selectedCommunity = computed(
-    () => this.communities().find((community) => community.id === this.selectedCommunityId()) ?? null,
-  );
-
-  protected readonly communityPeople = computed(() => {
-    const communityId = this.selectedCommunityId();
-    if (communityId === null) return [];
-    return this.people()
-      .filter((person) => person.jumuiya_id === communityId)
-      .sort((a, b) => (a.last_name ?? '').localeCompare(b.last_name ?? '') || a.first_name.localeCompare(b.first_name));
+  protected readonly selectedZone = computed(() => {
+    const id = this.selectedZoneId();
+    return id === 'all' ? null : (this.zones().find((zone) => zone.id === id) ?? null);
   });
 
-  /** Headline numbers for the picked zone, and the picked community when there is one. */
+  protected readonly selectedCommunity = computed(() => {
+    const id = this.selectedCommunityId();
+    return id === 'all' ? null : (this.communities().find((community) => community.id === id) ?? null);
+  });
+
+  protected readonly communityPeople = computed(() => {
+    const id = this.selectedCommunityId();
+    if (id === 'all') return [];
+    return this.sortedPeople(id);
+  });
+
+  /** Whole-parish totals, shown when no specific zone is picked. */
+  protected readonly parishStats = computed(() => {
+    const people = this.people();
+    return {
+      zones: this.zones().length,
+      communities: this.communities().length,
+      people: people.length,
+      male: people.filter((person) => person.gender === 'male').length,
+      female: people.filter((person) => person.gender === 'female').length,
+    };
+  });
+
   protected readonly zoneStats = computed(() => {
     const zone = this.selectedZone();
     if (!zone) return null;
     const inZone = this.people().filter((person) => person.jumuiya.kanda_id === zone.id);
-    const communities = this.zoneCommunities();
     return {
-      communities: communities.length,
+      communities: this.zoneCommunities().length,
       people: inZone.length,
       male: inZone.filter((person) => person.gender === 'male').length,
       female: inZone.filter((person) => person.gender === 'female').length,
@@ -133,48 +167,23 @@ export class ZonesCommunitiesPage {
     };
   });
 
-  /** Top suggestions across zones, communities and people — tight, so it never floods. */
-  protected readonly suggestions = computed<Suggestion[]>(() => {
+  /** The search bar finds people only; zones and communities are searched inside their dropdowns. */
+  protected readonly suggestions = computed<PersonHit[]>(() => {
     const query = this.search().trim();
     if (query.length < 2) return [];
-
-    const results: Suggestion[] = [];
-
-    for (const zone of this.zones()) {
-      const score = fuzzyScore(query, zone.name);
-      if (score > 0) results.push({ kind: 'zone', id: zone.id, label: zone.name, sub: translate('Kanda'), score });
-    }
-
-    for (const community of this.communities()) {
-      const score = fuzzyScore(query, community.name);
-      if (score > 0) {
-        results.push({
-          kind: 'community',
-          id: community.id,
-          zoneId: community.kanda_id,
-          label: community.name,
-          sub: community.kanda?.name ?? translate('Jumuiya'),
-          score,
-        });
-      }
-    }
-
-    for (const person of this.people()) {
-      const score = fuzzyScore(query, person.name);
-      if (score > 0) {
-        results.push({
-          kind: 'person',
-          id: person.id,
-          zoneId: person.jumuiya.kanda_id,
-          communityId: person.jumuiya_id,
-          label: person.name,
-          sub: `${person.jumuiya.name} · ${person.jumuiya.kanda?.name ?? ''}`.trim(),
-          score,
-        });
-      }
-    }
-
-    return results.sort((a, b) => b.score - a.score).slice(0, 8);
+    return this.people()
+      .map((person) => ({ person, score: fuzzyScore(query, person.name) }))
+      .filter((hit) => hit.score > 0)
+      .sort((a, b) => b.score - a.score)
+      .slice(0, 8)
+      .map(({ person, score }) => ({
+        id: person.id,
+        zoneId: person.jumuiya.kanda_id,
+        communityId: person.jumuiya_id,
+        label: person.name,
+        sub: `${person.jumuiya.name} · ${person.jumuiya.kanda?.name ?? ''}`.trim(),
+        score,
+      }));
   });
 
   constructor() {
@@ -201,6 +210,16 @@ export class ZonesCommunitiesPage {
     } finally {
       this.loading.set(false);
     }
+  }
+
+  private narrow<T extends { name: string }>(list: T[], query: string): T[] {
+    const q = query.trim();
+    if (!q) return list;
+    return list
+      .map((item) => ({ item, score: fuzzyScore(q, item.name) }))
+      .filter((hit) => hit.score > 0)
+      .sort((a, b) => b.score - a.score)
+      .map((hit) => hit.item);
   }
 
   private leadersOf(people: DirectoryPerson[], column: 'zone_role' | 'community_role'): { role: Role; name: string }[] {
@@ -292,11 +311,30 @@ export class ZonesCommunitiesPage {
 
   // --- selection -----------------------------------------------------------
 
-  protected pickZone(id: number): void {
-    this.selectedZoneId.set(id);
-    this.selectedCommunityId.set(null);
+  protected pickAllZones(): void {
+    this.selectedZoneId.set('all');
+    this.selectedCommunityId.set('all');
     this.highlightedId.set(null);
     this.zoneMenuOpen.set(false);
+    this.zoneQuery.set('');
+    this.cancelAdd();
+  }
+
+  protected pickZone(id: number): void {
+    this.selectedZoneId.set(id);
+    this.selectedCommunityId.set('all');
+    this.highlightedId.set(null);
+    this.zoneMenuOpen.set(false);
+    this.zoneQuery.set('');
+    this.communityQuery.set('');
+    this.cancelAdd();
+  }
+
+  protected pickAllCommunities(): void {
+    this.selectedCommunityId.set('all');
+    this.highlightedId.set(null);
+    this.communityMenuOpen.set(false);
+    this.communityQuery.set('');
     this.cancelAdd();
   }
 
@@ -304,21 +342,14 @@ export class ZonesCommunitiesPage {
     this.selectedCommunityId.set(id);
     this.highlightedId.set(null);
     this.communityMenuOpen.set(false);
+    this.communityQuery.set('');
     this.cancelAdd();
   }
 
-  protected applySuggestion(suggestion: Suggestion): void {
-    if (suggestion.kind === 'zone') {
-      this.pickZone(suggestion.id);
-    } else if (suggestion.kind === 'community') {
-      this.selectedZoneId.set(suggestion.zoneId);
-      this.selectedCommunityId.set(suggestion.id);
-      this.highlightedId.set(null);
-    } else {
-      this.selectedZoneId.set(suggestion.zoneId);
-      this.selectedCommunityId.set(suggestion.communityId);
-      this.highlightedId.set(suggestion.id);
-    }
+  protected applySuggestion(hit: PersonHit): void {
+    this.selectedZoneId.set(hit.zoneId);
+    this.selectedCommunityId.set(hit.communityId);
+    this.highlightedId.set(hit.id);
     this.search.set('');
   }
 
@@ -332,7 +363,7 @@ export class ZonesCommunitiesPage {
   }
 
   protected openAddCommunity(): void {
-    if (this.selectedZoneId() === null) return;
+    if (this.selectedZoneId() === 'all') return;
     this.addingCommunity.set(true);
     this.addingZone.set(false);
     this.newName.set('');
@@ -359,7 +390,7 @@ export class ZonesCommunitiesPage {
   protected async saveCommunity(): Promise<void> {
     const name = this.newName().trim();
     const zoneId = this.selectedZoneId();
-    if (!name || zoneId === null || this.saving()) return;
+    if (!name || zoneId === 'all' || this.saving()) return;
     this.saving.set(true);
     try {
       const community = await this.parish.createJumuiya({ name, kanda_id: zoneId });
@@ -437,7 +468,7 @@ export class ZonesCommunitiesPage {
   /** Saves the inline row. When adding, it reopens a fresh row so entry flows down the list. */
   protected async saveDraft(keepAdding = true): Promise<void> {
     const communityId = this.selectedCommunityId();
-    if (communityId === null || this.saving()) return;
+    if (communityId === 'all' || this.saving()) return;
     const payload = this.draftPayload();
     if (!payload.first_name || !payload.last_name) {
       this.flash('err', translate('Jina la kwanza na la ukoo yanahitajika.'));

@@ -85,9 +85,11 @@
                 <p class="px-3 py-2 text-xs text-muted">{{ 'Hakuna kanda.' | t }}</p>
               }
             </div>
-            <button type="button" class="block w-full border-t border-line px-3 py-2 text-left text-sm font-medium text-brass-strong hover:bg-canvas" (click)="openAddZone()">
-              + {{ 'Ongeza kanda' | t }}
-            </button>
+            @if (canAddZone()) {
+              <button type="button" class="block w-full border-t border-line px-3 py-2 text-left text-sm font-medium text-brass-strong hover:bg-canvas" (click)="openAddZone()">
+                + {{ 'Ongeza kanda' | t }}
+              </button>
+            }
           </div>
         }
       </div>
@@ -126,9 +128,11 @@
                 <p class="px-3 py-2 text-xs text-muted">{{ 'Kanda hii bado haina jumuiya.' | t }}</p>
               }
             </div>
-            <button type="button" class="block w-full border-t border-line px-3 py-2 text-left text-sm font-medium text-brass-strong hover:bg-canvas" (click)="openAddCommunity()">
-              + {{ 'Ongeza jumuiya' | t }}
-            </button>
+            @if (canAddCommunity()) {
+              <button type="button" class="block w-full border-t border-line px-3 py-2 text-left text-sm font-medium text-brass-strong hover:bg-canvas" (click)="openAddCommunity()">
+                + {{ 'Ongeza jumuiya' | t }}
+              </button>
+            }
           </div>
         }
       </div>
@@ -152,6 +156,77 @@
         <button type="button" class="rounded px-3 py-2 text-sm text-muted hover:text-ink" (click)="addingZone.set(false); addingCommunity.set(false)">
           {{ 'Ghairi' | t }}
         </button>
+      </div>
+    }
+
+    <!-- Rename / move / delete panel for the selected zone or community -->
+    @if (manage(); as mode) {
+      <div class="mt-3 rounded border px-3 py-3" [ngClass]="mode === 'delete-zone' ? 'border-negative/40 bg-negative/5' : 'border-brass/40 bg-brass/5'">
+        @switch (mode) {
+          @case ('rename-zone') {
+            <p class="mb-2 text-xs text-muted">{{ 'Badilisha jina la kanda' | t }}</p>
+            <div class="flex flex-wrap items-center gap-2">
+              <input type="text" [ngModel]="manageName()" (ngModelChange)="manageName.set($event)" (keydown.enter)="renameZone()" (keydown.escape)="closeManage()"
+                class="min-w-48 flex-1 rounded border border-line bg-surface px-3 py-2 text-sm text-ink focus:border-brass focus:outline-none" autofocus />
+              <button type="button" class="rounded bg-brass-strong px-3 py-2 text-sm font-medium text-canvas disabled:opacity-60" [disabled]="saving() || !manageName().trim()" (click)="renameZone()">{{ 'Hifadhi' | t }}</button>
+              <button type="button" class="rounded px-3 py-2 text-sm text-muted hover:text-ink" (click)="closeManage()">{{ 'Ghairi' | t }}</button>
+            </div>
+          }
+          @case ('rename-community') {
+            <p class="mb-2 text-xs text-muted">{{ 'Badilisha jina la jumuiya' | t }}</p>
+            <div class="flex flex-wrap items-center gap-2">
+              <input type="text" [ngModel]="manageName()" (ngModelChange)="manageName.set($event)" (keydown.enter)="renameCommunity()" (keydown.escape)="closeManage()"
+                class="min-w-48 flex-1 rounded border border-line bg-surface px-3 py-2 text-sm text-ink focus:border-brass focus:outline-none" autofocus />
+              <button type="button" class="rounded bg-brass-strong px-3 py-2 text-sm font-medium text-canvas disabled:opacity-60" [disabled]="saving() || !manageName().trim()" (click)="renameCommunity()">{{ 'Hifadhi' | t }}</button>
+              <button type="button" class="rounded px-3 py-2 text-sm text-muted hover:text-ink" (click)="closeManage()">{{ 'Ghairi' | t }}</button>
+            </div>
+          }
+          @case ('move-community') {
+            <p class="mb-2 text-xs text-muted">{{ 'Hamishia "{name}" pamoja na watu wake kwenda kanda:' | t: { name: selectedCommunity()?.name ?? '' } }}</p>
+            <div class="flex flex-wrap items-center gap-2">
+              <select [ngModel]="manageTargetZoneId()" (ngModelChange)="manageTargetZoneId.set($event)"
+                class="min-w-48 flex-1 rounded border border-line bg-surface px-3 py-2 text-sm text-ink focus:border-brass focus:outline-none">
+                <option [ngValue]="null" disabled>{{ 'Chagua kanda' | t }}</option>
+                @for (z of otherZones(); track z.id) {
+                  <option [ngValue]="z.id">{{ z.name }}</option>
+                }
+              </select>
+              <button type="button" class="rounded bg-brass-strong px-3 py-2 text-sm font-medium text-canvas disabled:opacity-60" [disabled]="saving() || manageTargetZoneId() === null" (click)="moveCommunity()">{{ 'Hamisha' | t }}</button>
+              <button type="button" class="rounded px-3 py-2 text-sm text-muted hover:text-ink" (click)="closeManage()">{{ 'Ghairi' | t }}</button>
+            </div>
+            @if (!otherZones().length) {
+              <p class="mt-2 text-xs text-muted">{{ 'Hakuna kanda nyingine. Ongeza kanda kwanza.' | t }}</p>
+            }
+          }
+          @case ('delete-zone') {
+            @if (zoneCommunities().length) {
+              <p class="mb-2 text-sm text-ink">
+                {{ 'Kanda hii ina jumuiya {count}. Chagua kanda ya kuzihamishia ili zisipotee:' | t: { count: zoneCommunities().length } }}
+              </p>
+            } @else {
+              <p class="mb-2 text-sm text-ink">{{ 'Kanda hii haina jumuiya.' | t }}</p>
+            }
+            <div class="flex flex-wrap items-center gap-2">
+              @if (zoneCommunities().length) {
+                <select [ngModel]="manageTargetZoneId()" (ngModelChange)="manageTargetZoneId.set($event)"
+                  class="min-w-48 flex-1 rounded border border-line bg-surface px-3 py-2 text-sm text-ink focus:border-brass focus:outline-none">
+                  <option [ngValue]="null" disabled>{{ 'Chagua kanda' | t }}</option>
+                  @for (z of otherZones(); track z.id) {
+                    <option [ngValue]="z.id">{{ z.name }}</option>
+                  }
+                </select>
+              }
+              <button type="button" class="rounded bg-negative px-3 py-2 text-sm font-medium text-canvas disabled:opacity-60"
+                [disabled]="saving() || (zoneCommunities().length > 0 && manageTargetZoneId() === null)" (click)="deleteZone()">
+                {{ (deleteNeedsApproval() ? 'Tuma ombi la kufuta' : 'Futa kanda') | t }}
+              </button>
+              <button type="button" class="rounded px-3 py-2 text-sm text-muted hover:text-ink" (click)="closeManage()">{{ 'Ghairi' | t }}</button>
+            </div>
+            @if (zoneCommunities().length && !otherZones().length) {
+              <p class="mt-2 text-xs text-muted">{{ 'Hakuna kanda nyingine. Ongeza kanda kwanza.' | t }}</p>
+            }
+          }
+        }
       </div>
     }
 
@@ -187,9 +262,21 @@
       <section class="mt-6 rounded-lg border border-line bg-surface p-4">
         <div class="mb-3 flex items-center justify-between gap-2">
           <h2 class="font-serif text-lg text-ink">{{ selectedZone()?.name }}</h2>
-          <button type="button" class="rounded border border-line px-3 py-1.5 text-xs text-ink hover:bg-canvas" (click)="exportZonePdf()">
-            {{ 'Pakua PDF ya kanda' | t }}
-          </button>
+          <div class="flex flex-wrap justify-end gap-2">
+            @if (canEditZone()) {
+              <button type="button" class="rounded border border-line px-3 py-1.5 text-xs text-ink hover:bg-canvas" (click)="openManage('rename-zone')">
+                {{ 'Badilisha jina' | t }}
+              </button>
+            }
+            @if (canDeleteZone()) {
+              <button type="button" class="rounded border border-negative/40 px-3 py-1.5 text-xs text-negative hover:bg-negative/10" (click)="openManage('delete-zone')">
+                {{ 'Futa kanda' | t }}
+              </button>
+            }
+            <button type="button" class="rounded border border-line px-3 py-1.5 text-xs text-ink hover:bg-canvas" (click)="exportZonePdf()">
+              {{ 'Pakua PDF ya kanda' | t }}
+            </button>
+          </div>
         </div>
         <div class="grid grid-cols-2 gap-3 sm:grid-cols-4">
           <div class="rounded border border-line bg-canvas px-3 py-2">
@@ -233,13 +320,28 @@
               </p>
             }
           </div>
-          <div class="flex gap-2">
+          <div class="flex flex-wrap justify-end gap-2">
+            @if (canEditCommunity()) {
+              <button type="button" class="rounded border border-line px-3 py-2 text-sm text-ink hover:bg-canvas" (click)="openManage('rename-community')">
+                {{ 'Badilisha jina' | t }}
+              </button>
+              <button type="button" class="rounded border border-line px-3 py-2 text-sm text-ink hover:bg-canvas" (click)="openManage('move-community')">
+                {{ 'Hamisha kanda' | t }}
+              </button>
+            }
+            @if (canDeleteCommunity()) {
+              <button type="button" class="rounded border border-negative/40 px-3 py-2 text-sm text-negative hover:bg-negative/10" [disabled]="saving()" (click)="deleteCommunity()">
+                {{ 'Futa jumuiya' | t }}
+              </button>
+            }
             <button type="button" class="rounded border border-line px-3 py-2 text-sm text-ink hover:bg-canvas" (click)="exportCommunityPdf()">
               {{ 'Pakua PDF' | t }}
             </button>
-            <button type="button" class="rounded bg-brass-strong px-3 py-2 text-sm font-medium text-canvas" (click)="startAdd()">
-              + {{ 'Ongeza mtu' | t }}
-            </button>
+            @if (canAddPerson()) {
+              <button type="button" class="rounded bg-brass-strong px-3 py-2 text-sm font-medium text-canvas" (click)="startAdd()">
+                + {{ 'Ongeza mtu' | t }}
+              </button>
+            }
           </div>
         </div>
 
@@ -279,8 +381,12 @@
                     <td class="px-3 py-2 text-muted">{{ person.phone ?? '—' }}</td>
                     <td class="px-3 py-2">
                       <div class="flex gap-2 text-xs">
-                        <button type="button" class="text-brass-strong hover:underline" (click)="editPerson(person)">{{ 'Hariri' | t }}</button>
-                        <button type="button" class="text-negative hover:underline" (click)="removePerson(person)">{{ 'Futa' | t }}</button>
+                        @if (canEditPerson()) {
+                          <button type="button" class="text-brass-strong hover:underline" (click)="editPerson(person)">{{ 'Hariri' | t }}</button>
+                        }
+                        @if (canDeletePerson()) {
+                          <button type="button" class="text-negative hover:underline" (click)="removePerson(person)">{{ 'Futa' | t }}</button>
+                        }
                       </div>
                     </td>
                   </tr>

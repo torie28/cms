@@ -63,4 +63,42 @@ export const ZONES_COMMUNITIES: Record<string, string> = {
   Kipengele: 'Item',
   Idadi: 'Count',
   'Taarifa ya kanda': 'Zone report',
+
+  // Rename / move / delete zones and communities
+  'Badilisha jina': 'Rename',
+  'Hamisha kanda': 'Move zone',
+  Hamisha: 'Move',
+  'Futa kanda': 'Delete zone',
+  'Futa jumuiya': 'Delete community',
+  'Tuma ombi': 'Send request',
+  'Tuma ombi la kufuta': 'Request deletion',
+  'Badilisha jina la kanda': 'Rename the zone',
+  'Badilisha jina la jumuiya': 'Rename the community',
+  'Hamishia "{name}" pamoja na watu wake kwenda kanda:': 'Move "{name}" and all its people to the zone:',
+  'Hakuna kanda nyingine. Ongeza kanda kwanza.': 'There is no other zone. Add a zone first.',
+  'Kanda hii ina jumuiya {count}. Chagua kanda ya kuzihamishia ili zisipotee:':
+    'This zone has {count} communities. Choose a zone to move them to so none are lost:',
+  'Kanda hii haina jumuiya.': 'This zone has no communities.',
+  'Kanda imebadilishwa jina kuwa "{name}".': 'Zone renamed to "{name}".',
+  'Imeshindwa kubadilisha jina la kanda.': 'Could not rename the zone.',
+  'Jumuiya imebadilishwa jina kuwa "{name}".': 'Community renamed to "{name}".',
+  'Imeshindwa kubadilisha jina la jumuiya.': 'Could not rename the community.',
+  '"{community}" imehamishiwa kanda "{zone}".': '"{community}" moved to the zone "{zone}".',
+  'Imeshindwa kuhamisha jumuiya.': 'Could not move the community.',
+  'Chagua kanda ya kuhamishia jumuiya {count} kabla ya kufuta.':
+    'Choose a zone to move the {count} communities to before deleting.',
+  'Tuma ombi la kufuta kanda "{name}"?': 'Send a request to delete the zone "{name}"?',
+  'Futa kanda "{name}" na kuhamishia jumuiya zake {count} kwenda "{target}"?':
+    'Delete the zone "{name}" and move its {count} communities to "{target}"?',
+  'Futa kanda "{name}"?': 'Delete the zone "{name}"?',
+  'Imeshindwa kutuma ombi la kufuta.': 'Could not send the deletion request.',
+  'Kanda "{name}" imefutwa. Inaweza kurejeshwa ndani ya siku 30.':
+    'Zone "{name}" deleted. It can be restored within 30 days.',
+  'Imeshindwa kufuta kanda.': 'Could not delete the zone.',
+  'Tuma ombi la kufuta jumuiya "{name}"?': 'Send a request to delete the community "{name}"?',
+  'Futa jumuiya "{name}" pamoja na watu wake {count}?': 'Delete the community "{name}" and its {count} people?',
+  'Jumuiya "{name}" imefutwa. Inaweza kurejeshwa ndani ya siku 30.':
+    'Community "{name}" deleted. It can be restored within 30 days.',
+  'Imeshindwa kufuta jumuiya.': 'Could not delete the community.',
+  'Tuma ombi la kumfuta {name}?': 'Send a request to delete {name}?',
 };

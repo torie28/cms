@@ -135,6 +135,11 @@ export class ParishService {
     return firstValueFrom(this.http.put<Jumuiya>(`${API_BASE}/jumuiyas/${id}`, payload));
   }
 
+  /** Moves a community, with all its people, into another zone. */
+  moveJumuiya(id: number, kandaId: number): Promise<Jumuiya> {
+    return firstValueFrom(this.http.post<Jumuiya>(`${API_BASE}/jumuiyas/${id}/move`, { kanda_id: kandaId }));
+  }
+
   deleteJumuiya(id: number): Promise<void> {
     return firstValueFrom(this.http.delete<void>(`${API_BASE}/jumuiyas/${id}`));
   }

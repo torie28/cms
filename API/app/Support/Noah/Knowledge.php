@@ -41,8 +41,8 @@ class Knowledge
         'dashboard' => '/dashboard',
         'users' => '/users',
         'sadaka' => '/sadaka',
-        'jumuiya' => '/jumuiya',
-        'kanda' => '/kanda',
+        'jumuiya' => '/kanda-jumuiya',
+        'kanda' => '/kanda-jumuiya',
         'matukio' => '/matukio',
         'notifications' => '/notifications',
         'settings' => '/settings/system',
@@ -78,12 +78,12 @@ class Knowledge
             'en' => 'records of every offering and contribution the parish receives.',
         ],
         'jumuiya' => [
-            'sw' => 'jumuiya ndogo ndogo za Kikristo, wenyeviti wao na wanajumuiya.',
-            'en' => 'small Christian communities, their chairpersons and members.',
+            'sw' => 'jumuiya ndogo ndogo za Kikristo, watu wake na viongozi wao.',
+            'en' => 'small Christian communities, their people and their leaders.',
         ],
         'kanda' => [
-            'sw' => 'kanda za parokia, viongozi wao na jumuiya zilizo ndani ya kila kanda.',
-            'en' => 'parish zones, their leaders and the communities inside each zone.',
+            'sw' => 'kanda za parokia, viongozi wao, jumuiya zilizo ndani ya kila kanda na takwimu zao.',
+            'en' => 'parish zones, their leaders, the communities inside each zone and their statistics.',
         ],
         'matukio' => [
             'sw' => 'matukio na ratiba za parokia (inakuja hivi karibuni).',
@@ -270,22 +270,22 @@ class Knowledge
                 'related' => ['activity_logs.overview'],
             ],
             [
-                'id' => 'general.import_export',
+                'id' => 'general.export',
                 'module' => null,
                 'actions' => [],
-                'keywords' => ['excel', 'csv', 'pdf', 'spreadsheet', 'kiolezo', 'template', 'pakua', 'download', 'export', 'chapisha', 'print', 'ripoti', 'report'],
-                'title' => ['sw' => 'Kuingiza na kupakua (Excel)', 'en' => 'Import and export (Excel)'],
+                'keywords' => ['excel', 'csv', 'pdf', 'spreadsheet', 'pakua', 'download', 'export', 'chapisha', 'print', 'ripoti', 'report', 'ingiza', 'import'],
+                'title' => ['sw' => 'Kupakua ripoti (PDF)', 'en' => 'Downloading reports (PDF)'],
                 'answer' => [
-                    'sw' => "**Kupakua:** orodha za Kanda, Jumuiya na Sadaka zinapakuliwa kama Excel, CSV, PDF au kuchapishwa, kupitia kitufe cha **Pakua**.\n\n"
-                        .'**Kuingiza:** unaweza kuingiza kanda, jumuiya na wanajumuiya, pamoja na Zaka na Fungu la kumi, kutoka faili la .xlsx, .xls, .ods au .csv. '
-                        ."Vichwa vya safu vinaweza kuwa kwa Kiswahili au Kiingereza.\n\n"
-                        .'Ushauri: bofya **Pakua kiolezo** kwanza, jaza kiolezo hicho, kisha ukiingize. Mfumo unakuonyesha mistari yenye makosa kabla ya kuhifadhi.',
-                    'en' => "**Export:** Zone, Community and Offering lists download as Excel, CSV, PDF or print, using the **Download** button.\n\n"
-                        .'**Import:** zones, communities and members, plus Tithe (Zaka) and Fungu la kumi, can be imported from .xlsx, .xls, .ods or .csv files. '
-                        ."Column headers may be in Swahili or English.\n\n"
-                        .'Tip: click **Download template** first, fill it in, then import it. The app shows rows with problems before anything is saved.',
+                    'sw' => "Ripoti zote zinatoka kama **PDF** au kuchapishwa:\n\n"
+                        ."- **Kanda na Jumuiya:** takwimu za kanda au orodha kamili ya jumuiya, kwa kitufe cha **Pakua PDF**.\n"
+                        ."- **Sadaka:** ripoti ya makusanyo, kwa kitufe cha **Pakua**.\n\n"
+                        .'Mfumo hautumii tena faili za Excel wala CSV. Watu na michango wanaingizwa moja kwa moja kwenye mfumo.',
+                    'en' => "All reports come out as **PDF** or print:\n\n"
+                        ."- **Zones & Communities:** zone statistics or a community's full list, with the **Download PDF** button.\n"
+                        ."- **Offerings:** the collections report, with the **Download** button.\n\n"
+                        .'The system no longer uses Excel or CSV files. People and offerings are entered directly in the system.',
                 ],
-                'related' => ['kanda.import', 'jumuiya.import', 'sadaka.import'],
+                'related' => ['jumuiya.members', 'sadaka.create'],
             ],
             [
                 'id' => 'matukio.overview',
@@ -421,26 +421,28 @@ class Knowledge
                 'related' => ['users.create', 'general.access'],
             ],
 
-            // ---------------------------------------------------------------- Kanda
+            // ---------------------------------------------------------------- Kanda na Jumuiya
             [
                 'id' => 'kanda.overview',
                 'module' => 'kanda',
                 'actions' => [],
-                'keywords' => ['kanda', 'zone', 'zones', 'dashibodi ya kanda', 'zone dashboard', 'kiongozi wa kanda', 'zone leader'],
-                'title' => ['sw' => 'Moduli ya Kanda', 'en' => 'The Zones module'],
+                'keywords' => ['kanda', 'zone', 'zones', 'kanda na jumuiya', 'zones and communities', 'takwimu za kanda', 'zone statistics', 'kanda zote', 'all zones'],
+                'title' => ['sw' => 'Kanda na Jumuiya', 'en' => 'Zones & Communities'],
                 'answer' => [
-                    'sw' => "**Kanda** ni maeneo ya parokia; kila kanda ina kiongozi na jumuiya moja au zaidi.\n\n"
-                        ."- Orodha inaonyesha kila kanda, kiongozi, idadi ya jumuiya na wanajumuiya. Unaweza kuchuja na kupanga.\n"
-                        ."- **Tahadhari** zinaonyesha kanda zisizo na kiongozi au zisizo na jumuiya.\n"
-                        ."- Bofya **Tazama** kufungua dashibodi ya kanda: jumuiya zake, wanaume/wanawake, na migawanyo ya jumuiya.\n\n"
-                        .'Michango ya kanda inaonekana tu kama una ruhusa ya moduli ya Sadaka pia.',
-                    'en' => "**Zone** are parish areas; each has a leader and one or more communities.\n\n"
-                        ."- The list shows every zone, its leader, number of communities and members. You can filter and sort.\n"
-                        ."- **Alerts** point out zones without a leader or without communities.\n"
-                        ."- Click **View** to open a zone dashboard: its communities, men/women, and community splits.\n\n"
-                        .'Zone offering totals only appear if you also have access to the Offerings module.',
+                    'sw' => "**Kanda na Jumuiya** ni ukurasa mmoja wa kusimamia kanda, jumuiya zake na watu wake.\n\n"
+                        ."- Chagua kanda kwenye kisanduku cha kwanza na jumuiya kwenye cha pili. Kila kisanduku kina sehemu ya kutafuta.\n"
+                        ."- **Kanda zote** inaonyesha takwimu za parokia nzima: kanda, jumuiya, watu, wanaume na wanawake.\n"
+                        ."- Ukichagua kanda (na **Jumuiya zote**) unaona takwimu na viongozi wa kanda hiyo.\n"
+                        ."- Ukichagua jumuiya unaona orodha ya watu wake, yenye namba.\n"
+                        .'- **Pakua PDF** inakupa takwimu au orodha kamili.',
+                    'en' => "**Zones & Communities** is one page for managing zones, their communities and their people.\n\n"
+                        ."- Pick a zone in the first box and a community in the second. Each box has its own search.\n"
+                        ."- **All zones** shows whole-parish statistics: zones, communities, people, men and women.\n"
+                        ."- Pick a zone (with **All communities**) to see that zone's statistics and leaders.\n"
+                        ."- Pick a community to see its numbered list of people.\n"
+                        .'- **Download PDF** gives you the statistics or the full list.',
                 ],
-                'related' => ['kanda.create', 'kanda.split', 'kanda.import'],
+                'related' => ['kanda.create', 'jumuiya.members', 'jumuiya.roles'],
             ],
             [
                 'id' => 'kanda.create',
@@ -449,105 +451,34 @@ class Knowledge
                 'keywords' => ['ongeza kanda', 'add zone', 'new zone', 'create zone', 'kanda mpya', 'unda kanda'],
                 'title' => ['sw' => 'Kuongeza kanda', 'en' => 'Adding a zone'],
                 'answer' => [
-                    'sw' => "1. Fungua **Kanda**, bofya **Ongeza kanda**.\n"
-                        ."2. Andika **jina** (lisijirudie), **kiongozi** na maelezo kama unayo.\n"
-                        ."3. Bofya **Hifadhi**.\n\n"
-                        .'Una kanda nyingi? Tumia **Ingiza Excel** kuziongeza zote kwa mara moja.',
-                    'en' => "1. Open **Zone** and click **Add zone**.\n"
-                        ."2. Enter a **name** (must be unique), the **leader** and an optional description.\n"
-                        ."3. Click **Save**.\n\n"
-                        .'Many zones? Use **Import Excel** to add them all at once.',
+                    'sw' => "1. Fungua **Kanda na Jumuiya** na ufungue kisanduku cha kanda.\n"
+                        ."2. Bofya **+ Ongeza kanda**.\n"
+                        ."3. Andika jina la kanda mpya (lisijirudie) kisha bofya **Hifadhi**.\n\n"
+                        .'Viongozi wa kanda hawaandikwi hapa: wanapewa wadhifa wa kanda kwenye mstari wao kama watu wa jumuiya.',
+                    'en' => "1. Open **Zones & Communities** and open the zone box.\n"
+                        ."2. Click **+ Add zone**.\n"
+                        ."3. Type the new zone's name (must be unique) and click **Save**.\n\n"
+                        .'Zone leaders are not typed here: they are people in a community who are given a zone role on their row.',
                 ],
-                'related' => ['kanda.import', 'jumuiya.create'],
+                'related' => ['jumuiya.create', 'jumuiya.roles'],
             ],
-            [
-                'id' => 'kanda.update',
-                'module' => 'kanda',
-                'actions' => ['update'],
-                'keywords' => ['hariri kanda', 'edit zone', 'badilisha kiongozi', 'change leader', 'badilisha jina la kanda', 'rename zone'],
-                'title' => ['sw' => 'Kuhariri kanda', 'en' => 'Editing a zone'],
-                'answer' => [
-                    'sw' => "1. Fungua **Kanda**, bofya **Hariri** kwenye kanda husika.\n2. Badilisha jina, kiongozi au maelezo.\n3. Bofya **Hifadhi**. Mabadiliko yanaandikwa kwenye kumbukumbu za shughuli.",
-                    'en' => "1. Open **Zone** and click **Edit** on the zone.\n2. Change the name, leader or description.\n3. Click **Save**. The change is recorded in the activity log.",
-                ],
-            ],
-            [
-                'id' => 'kanda.delete',
-                'module' => 'kanda',
-                'actions' => ['delete'],
-                'keywords' => ['futa kanda', 'delete zone', 'remove zone', 'ondoa kanda'],
-                'title' => ['sw' => 'Kufuta kanda', 'en' => 'Deleting a zone'],
-                'answer' => [
-                    'sw' => "1. Fungua **Kanda**, bofya **Futa** kwenye kanda.\n"
-                        ."2. Kama kanda ina jumuiya, mfumo utakuomba uchague **kanda ya kuzihamishia** kwanza, ili zisipotee.\n"
-                        ."3. Thibitisha.\n\n"
-                        .'Kanda iliyofutwa inaweza kurejeshwa ndani ya siku 30 kutoka Kumbukumbu za shughuli.',
-                    'en' => "1. Open **Zone** and click **Delete** on the zone.\n"
-                        ."2. If the zone has communities, you must first choose **a zone to move them to**, so none are lost.\n"
-                        ."3. Confirm.\n\n"
-                        .'A deleted zone can be restored within 30 days from Activity logs.',
-                ],
-                'related' => ['general.recycle'],
-            ],
-            [
-                'id' => 'kanda.import',
-                'module' => 'kanda',
-                'actions' => ['create'],
-                'keywords' => ['ingiza kanda', 'import zones', 'kanda excel', 'zones excel', 'ingiza jumuiya kwenye kanda'],
-                'title' => ['sw' => 'Kuingiza kanda kutoka Excel', 'en' => 'Importing zones from Excel'],
-                'answer' => [
-                    'sw' => "1. Fungua **Kanda**, bofya **Ingiza Excel**.\n"
-                        ."2. Bofya **Pakua kiolezo** na ujaze mstari mmoja kwa kila kanda (jina, kiongozi, maelezo).\n"
-                        ."3. **Chagua faili** (.xlsx, .xls, .ods au .csv). Mfumo unaonyesha zitakazoingizwa; kanda zilizopo tayari zinarukwa.\n"
-                        ."4. Thibitisha kuingiza.\n\n"
-                        .'Ndani ya dashibodi ya kanda pia unaweza kuingiza jumuiya na wanajumuiya wa kanda hiyo kwa Excel.',
-                    'en' => "1. Open **Zone** and click **Import Excel**.\n"
-                        ."2. Click **Download template** and fill one row per zone (name, leader, description).\n"
-                        ."3. **Choose file** (.xlsx, .xls, .ods or .csv). The app previews what will be imported; existing zones are skipped.\n"
-                        ."4. Confirm the import.\n\n"
-                        .'Inside a zone dashboard you can also import that zone\'s communities and members from Excel.',
-                ],
-            ],
-            [
-                'id' => 'kanda.split',
-                'module' => 'kanda',
-                'actions' => ['create', 'update'],
-                'keywords' => ['gawanya kanda', 'split zone', 'kanda kubwa', 'zone too big', 'kugawa kanda'],
-                'title' => ['sw' => 'Kugawanya kanda', 'en' => 'Splitting a zone'],
-                'answer' => [
-                    'sw' => "Kanda ikiwa kubwa sana unaweza kuigawanya:\n\n"
-                        ."1. Fungua **Kanda**, bofya **Gawanya** kwenye kanda.\n"
-                        ."2. Andika jina la **kanda mpya** na kiongozi wake.\n"
-                        ."3. Chagua **jumuiya** zitakazohamia kanda mpya.\n"
-                        ."4. Thibitisha. Kanda mpya inakumbuka ilikotoka (\"kutoka …\").\n\n"
-                        .'Inahitaji ruhusa za **Ongeza** na **Hariri** kwenye Kanda.',
-                    'en' => "If a zone grows too large you can split it:\n\n"
-                        ."1. Open **Zone** and click **Split** on the zone.\n"
-                        ."2. Enter the **new zone** name and its leader.\n"
-                        ."3. Pick the **communities** that move to the new zone.\n"
-                        ."4. Confirm. The new zone remembers where it came from (\"from …\").\n\n"
-                        .'This needs both **Add** and **Edit** on Zones.',
-                ],
-            ],
-
-            // ---------------------------------------------------------------- Jumuiya
             [
                 'id' => 'jumuiya.overview',
                 'module' => 'jumuiya',
                 'actions' => [],
-                'keywords' => ['jumuiya', 'community', 'communities', 'jumuiya ndogo', 'scc'],
-                'title' => ['sw' => 'Moduli ya Jumuiya', 'en' => 'The Communities module'],
+                'keywords' => ['jumuiya', 'community', 'communities', 'jumuiya ndogo', 'scc', 'jumuiya zote', 'all communities'],
+                'title' => ['sw' => 'Jumuiya', 'en' => 'Communities'],
                 'answer' => [
-                    'sw' => "**Jumuiya** ni jumuiya ndogo ndogo za Kikristo; kila moja iko ndani ya kanda na ina mwenyekiti na wanajumuiya (jina, simu, jinsia).\n\n"
-                        ."- Tafuta, chuja kwa kanda au kama ina mwenyekiti, na panga kwa jina au idadi ya wanajumuiya.\n"
-                        ."- Bofya jumuiya kuona wanajumuiya wake.\n"
-                        .'- **Pakua** inakupa orodha ya jumuiya au wanajumuiya kama Excel, CSV, PDF au kuchapisha.',
-                    'en' => "**Community** are small Christian communities; each sits in a zone and has a chairperson and members (name, phone, gender).\n\n"
-                        ."- Search, filter by zone or whether it has a chairperson, and sort by name or member count.\n"
-                        ."- Click a community to see its members.\n"
-                        .'- **Download** gives you the community or member list as Excel, CSV, PDF or print.',
+                    'sw' => "**Jumuiya** ni jumuiya ndogo ndogo za Kikristo; kila moja iko ndani ya kanda. Zinasimamiwa kwenye ukurasa wa **Kanda na Jumuiya**.\n\n"
+                        ."- Chagua kanda, kisha jumuiya, kuona watu wake.\n"
+                        ."- Kila mtu ana majina, jinsia, simu, wadhifa wa kanda na wadhifa wa jumuiya.\n"
+                        .'- **Pakua PDF** inakupa orodha ya jumuiya hiyo.',
+                    'en' => "**Communities** are small Christian communities; each sits in a zone. They are managed on the **Zones & Communities** page.\n\n"
+                        ."- Pick a zone, then a community, to see its people.\n"
+                        ."- Each person has names, gender, phone, a zone role and a community role.\n"
+                        .'- **Download PDF** gives you that community\'s list.',
                 ],
-                'related' => ['jumuiya.create', 'jumuiya.members', 'jumuiya.split'],
+                'related' => ['jumuiya.create', 'jumuiya.members', 'jumuiya.search'],
             ],
             [
                 'id' => 'jumuiya.create',
@@ -556,110 +487,74 @@ class Knowledge
                 'keywords' => ['ongeza jumuiya', 'add community', 'new community', 'create community', 'jumuiya mpya', 'unda jumuiya', 'sajili jumuiya'],
                 'title' => ['sw' => 'Kuongeza jumuiya', 'en' => 'Adding a community'],
                 'answer' => [
-                    'sw' => "1. Fungua **Jumuiya**, bofya **Ongeza jumuiya**.\n"
-                        ."2. Andika **jina** (lisijirudie), chagua **kanda** na **mwenyekiti**.\n"
-                        ."3. Ukitaka, weka idadi ya wanajumuiya kisha ujaze taarifa zao zote kwa pamoja.\n"
-                        ."4. Bofya **Hifadhi**.\n\n"
-                        .'Lazima kanda iwepo kwanza. Mtu mmoja hawezi kuwa mwenyekiti wa jumuiya mbili.',
-                    'en' => "1. Open **Community** and click **Add community**.\n"
-                        ."2. Enter a **name** (must be unique), choose the **zone** and **chairperson**.\n"
-                        ."3. Optionally set how many members to add, then fill in all their details at once.\n"
-                        ."4. Click **Save**.\n\n"
-                        .'The zone must exist first. One person cannot chair two communities.',
+                    'sw' => "1. Fungua **Kanda na Jumuiya** na uchague **kanda** jumuiya itakapokaa.\n"
+                        ."2. Fungua kisanduku cha jumuiya, bofya **+ Ongeza jumuiya**.\n"
+                        ."3. Andika jina (lisijirudie) kisha bofya **Hifadhi**.\n\n"
+                        .'Lazima kanda iwepo kwanza.',
+                    'en' => "1. Open **Zones & Communities** and pick the **zone** the community belongs to.\n"
+                        ."2. Open the community box and click **+ Add community**.\n"
+                        ."3. Type the name (must be unique) and click **Save**.\n\n"
+                        .'The zone must exist first.',
                 ],
                 'related' => ['jumuiya.members', 'kanda.create'],
-            ],
-            [
-                'id' => 'jumuiya.update',
-                'module' => 'jumuiya',
-                'actions' => ['update'],
-                'keywords' => ['hariri jumuiya', 'edit community', 'badilisha mwenyekiti', 'change chairperson', 'rename community'],
-                'title' => ['sw' => 'Kuhariri jumuiya', 'en' => 'Editing a community'],
-                'answer' => [
-                    'sw' => "1. Fungua **Jumuiya**, chagua jumuiya, bofya **Hariri**.\n2. Badilisha jina, kanda, mwenyekiti au maelezo.\n3. Bofya **Hifadhi**.",
-                    'en' => "1. Open **Community**, pick the community and click **Edit**.\n2. Change the name, zone, chairperson or description.\n3. Click **Save**.",
-                ],
-                'related' => ['jumuiya.move'],
-            ],
-            [
-                'id' => 'jumuiya.delete',
-                'module' => 'jumuiya',
-                'actions' => ['delete'],
-                'keywords' => ['futa jumuiya', 'delete community', 'remove community', 'ondoa jumuiya'],
-                'title' => ['sw' => 'Kufuta jumuiya', 'en' => 'Deleting a community'],
-                'answer' => [
-                    'sw' => "1. Fungua **Jumuiya**, chagua jumuiya, bofya **Futa** na uthibitishe.\n\nJumuiya iliyofutwa inaweza kurejeshwa ndani ya siku 30 kutoka Kumbukumbu za shughuli.",
-                    'en' => "1. Open **Community**, pick the community, click **Delete** and confirm.\n\nA deleted community can be restored within 30 days from Activity logs.",
-                ],
-                'related' => ['general.recycle'],
             ],
             [
                 'id' => 'jumuiya.members',
                 'module' => 'jumuiya',
                 'actions' => ['create'],
-                'keywords' => ['ongeza wanajumuiya', 'add member', 'new member', 'wanajumuiya', 'member', 'muumini', 'waumini'],
-                'title' => ['sw' => 'Kusimamia wanajumuiya', 'en' => 'Managing members'],
+                'keywords' => ['ongeza wanajumuiya', 'ongeza mtu', 'add person', 'add member', 'new member', 'wanajumuiya', 'member', 'muumini', 'waumini', 'hariri mtu', 'edit person', 'futa mtu', 'delete person'],
+                'title' => ['sw' => 'Kuongeza na kusimamia watu', 'en' => 'Adding and managing people'],
                 'answer' => [
-                    'sw' => "1. Fungua **Jumuiya** na uchague jumuiya.\n"
-                        ."2. Bofya **Ongeza wanajumuiya**, jaza jina, simu na jinsia, kisha **Hifadhi**.\n"
-                        ."3. Kuhariri au kufuta mwanajumuiya, tumia vitufe vilivyo kwenye mstari wake.\n\n"
-                        .'Namba ya simu ni muhimu: ndiyo inayotumika kumtumia SMS. Kuhariri kunahitaji ruhusa ya **Hariri**, na kufuta ruhusa ya **Futa**.',
-                    'en' => "1. Open **Community** and pick the community.\n"
-                        ."2. Click **Add members**, fill in name, phone and gender, then **Save**.\n"
-                        ."3. To edit or delete a member, use the buttons on their row.\n\n"
-                        .'The phone number matters: it is what SMS messages are sent to. Editing needs **Edit** permission, deleting needs **Delete**.',
+                    'sw' => "1. Fungua **Kanda na Jumuiya**, chagua kanda kisha jumuiya.\n"
+                        ."2. Bofya **+ Ongeza mtu**. Mstari mpya unafunguka chini ya orodha.\n"
+                        ."3. Jaza **jina la kwanza** na **la ukoo** (lazima), la kati (hiari), jinsia, wadhifa wa kanda, wadhifa wa jumuiya na simu.\n"
+                        ."4. Bonyeza **Enter** kwenda kisanduku kinachofuata; Enter ya mwisho inahifadhi na kufungua mstari mwingine.\n"
+                        ."5. Kuhariri au kufuta mtu, tumia vitufe vilivyo kwenye mstari wake.\n\n"
+                        .'Simu inaanza na +255 yenyewe; andika namba iliyobaki tu (namba za nchi nyingine zinakubalika). Simu ndiyo inayotumika kumtumia SMS.',
+                    'en' => "1. Open **Zones & Communities**, pick a zone and then a community.\n"
+                        ."2. Click **+ Add person**. A new row opens at the bottom of the list.\n"
+                        ."3. Fill in **first name** and **surname** (required), middle name (optional), gender, zone role, community role and phone.\n"
+                        ."4. Press **Enter** to move to the next box; the last Enter saves and opens a fresh row.\n"
+                        ."5. To edit or delete a person, use the buttons on their row.\n\n"
+                        .'The phone starts with +255 for you; type the rest of the number (other countries\' numbers are accepted). The phone is what SMS messages are sent to.',
                 ],
-                'related' => ['jumuiya.import', 'notifications.send'],
+                'related' => ['jumuiya.roles', 'jumuiya.search', 'notifications.send'],
             ],
             [
-                'id' => 'jumuiya.import',
-                'module' => 'jumuiya',
-                'actions' => ['create'],
-                'keywords' => ['ingiza wanajumuiya', 'import members', 'ingiza jumuiya', 'import communities', 'jumuiya excel', 'members excel'],
-                'title' => ['sw' => 'Kuingiza wanajumuiya kutoka Excel', 'en' => 'Importing members from Excel'],
-                'answer' => [
-                    'sw' => "1. Fungua **Jumuiya** na uchague jumuiya.\n"
-                        ."2. Bofya **Ingiza Excel**, kisha **Pakua kiolezo**.\n"
-                        ."3. Jaza mstari mmoja kwa kila mwanajumuiya (jina, simu, jinsia).\n"
-                        ."4. **Chagua faili**, kagua mistari, kisha thibitisha.\n\n"
-                        .'Kuingiza jumuiya nyingi pamoja na wanajumuiya wake, tumia **Ingiza Excel** ndani ya dashibodi ya kanda husika.',
-                    'en' => "1. Open **Community** and pick the community.\n"
-                        ."2. Click **Import Excel**, then **Download template**.\n"
-                        ."3. Fill one row per member (name, phone, gender).\n"
-                        ."4. **Choose file**, review the rows, then confirm.\n\n"
-                        .'To import many communities along with their members, use **Import Excel** inside the zone\'s dashboard.',
-                ],
-            ],
-            [
-                'id' => 'jumuiya.split',
-                'module' => 'jumuiya',
-                'actions' => ['create', 'update'],
-                'keywords' => ['gawanya jumuiya', 'split community', 'jumuiya kubwa', 'community too big', 'kugawa jumuiya'],
-                'title' => ['sw' => 'Kugawanya jumuiya', 'en' => 'Splitting a community'],
-                'answer' => [
-                    'sw' => "Jumuiya ikiwa kubwa unaweza kuigawanya:\n\n"
-                        ."1. Fungua **Jumuiya**, chagua jumuiya, bofya **Gawanya**.\n"
-                        ."2. Andika jina la **jumuiya mpya**, chagua kanda yake na mwenyekiti.\n"
-                        ."3. Chagua **wanajumuiya** watakaohamia jumuiya mpya.\n"
-                        ."4. Thibitisha. Jumuiya mpya inaonyesha ilikotoka, na mgawanyo unaonekana kwenye dashibodi ya kanda.\n\n"
-                        .'Inahitaji ruhusa za **Ongeza** na **Hariri** kwenye Jumuiya.',
-                    'en' => "If a community grows large you can split it:\n\n"
-                        ."1. Open **Community**, pick the community and click **Split**.\n"
-                        ."2. Enter the **new community** name, choose its zone and chairperson.\n"
-                        ."3. Pick the **members** who move to the new community.\n"
-                        ."4. Confirm. The new community shows where it came from, and the split appears on the zone dashboard.\n\n"
-                        .'This needs both **Add** and **Edit** on Communities.',
-                ],
-            ],
-            [
-                'id' => 'jumuiya.move',
+                'id' => 'jumuiya.roles',
                 'module' => 'jumuiya',
                 'actions' => ['update'],
-                'keywords' => ['hamisha jumuiya', 'move community', 'hamisha kanda', 'change zone', 'badilisha kanda ya jumuiya', 'move to another zone'],
-                'title' => ['sw' => 'Kuhamisha jumuiya kwenda kanda nyingine', 'en' => 'Moving a community to another zone'],
+                'keywords' => ['viongozi', 'leaders', 'leadership', 'mwenyekiti', 'chairperson', 'katibu', 'secretary', 'mweka hazina', 'treasurer', 'kiongozi wa kanda', 'zone leader', 'kiongozi wa jumuiya', 'community leader', 'katibu wa jumuiya', 'mwenyekiti wa jumuiya', 'mweka hazina wa jumuiya', 'katibu wa kanda', 'mwenyekiti wa kanda', 'community secretary', 'community chairperson', 'zone chairperson', 'zone secretary'],
+                'title' => ['sw' => 'Viongozi wa kanda na jumuiya', 'en' => 'Zone and community leaders'],
                 'answer' => [
-                    'sw' => "1. Fungua **Jumuiya**, chagua jumuiya.\n2. Bofya **Hamisha kanda** na uchague kanda mpya.\n3. Thibitisha. Wanajumuiya wote wanahamia pamoja na jumuiya.",
-                    'en' => "1. Open **Community** and pick the community.\n2. Click **Move zone** and choose the new zone.\n3. Confirm. All members move along with the community.",
+                    'sw' => "Viongozi ni watu wa kawaida wa jumuiya waliopewa wadhifa. Kila mtu ana nyadhifa mbili zinazojitegemea: **wadhifa wa kanda** na **wadhifa wa jumuiya**.\n\n"
+                        ."Nyadhifa ni: **Mwenyekiti**, **M/Mwenyekiti**, **Katibu**, **M/Katibu** na **Mweka Hazina**. Asiye na wadhifa ni **Mwanajumuiya wa kawaida**.\n\n"
+                        ."- Kila wadhifa una mtu mmoja tu kwa kila jumuiya, na mmoja tu kwa kila kanda.\n"
+                        ."- Mtu mmoja anaweza kuwa kiongozi wa jumuiya na wa kanda kwa pamoja.\n\n"
+                        .'Kumpa mtu wadhifa: hariri mstari wake na uchague wadhifa kwenye safu husika.',
+                    'en' => "Leaders are ordinary community members who hold a role. Each person has two independent roles: a **zone role** and a **community role**.\n\n"
+                        ."The roles are **Chairperson**, **V/Chairperson**, **Secretary**, **V/Secretary** and **Treasurer**. Anyone without one is an **Ordinary member**.\n\n"
+                        ."- Each role has only one holder per community, and one per zone.\n"
+                        ."- The same person can lead their community and their zone at the same time.\n\n"
+                        .'To give someone a role: edit their row and pick the role in the matching column.',
+                ],
+                'related' => ['jumuiya.members'],
+            ],
+            [
+                'id' => 'jumuiya.search',
+                'module' => 'jumuiya',
+                'actions' => [],
+                'keywords' => ['tafuta mtu', 'find person', 'search person', 'tafuta mwanajumuiya', 'find member', 'search member', 'yuko jumuiya gani', 'which community'],
+                'title' => ['sw' => 'Kumtafuta mtu', 'en' => 'Finding a person'],
+                'answer' => [
+                    'sw' => "1. Fungua **Kanda na Jumuiya**.\n"
+                        ."2. Andika jina kwenye kisanduku cha **Tafuta mtu kwa jina…** juu.\n"
+                        ."3. Chagua jina kwenye orodha: mfumo unafungua kanda na jumuiya yake na kumwangazia.\n\n"
+                        .'Utafutaji unavumilia makosa madogo ya tahajia na unafanya kazi kwa jina la lugha yoyote. Kanda na jumuiya zinatafutwa ndani ya visanduku vyake.',
+                    'en' => "1. Open **Zones & Communities**.\n"
+                        ."2. Type a name in the **Search a person by name…** box at the top.\n"
+                        ."3. Pick the name from the list: the app opens their zone and community and highlights them.\n\n"
+                        .'The search forgives small spelling mistakes and works for names in any language. Zones and communities are searched inside their own boxes.',
                 ],
             ],
 
@@ -675,14 +570,14 @@ class Knowledge
                         ."- Chagua **kipindi** juu kuona jumla ya makusanyo, mgawanyo kwa aina na kwa njia ya malipo.\n"
                         ."- Chuja kwa aina, jumuiya au njia ya malipo; panga kwa tarehe au kiasi.\n"
                         ."- **Majitoleo kwa jumuiya** inaonyesha kila jumuiya ilichowasilisha.\n"
-                        .'- **Pakua** inakupa ripoti ya Excel, CSV, PDF au kuchapisha.',
+                        .'- **Pakua** inakupa ripoti ya PDF au kuchapisha.',
                     'en' => "**Offerings** is the parish collections register.\n\n"
                         ."- Pick a **period** at the top to see total collections, split by category and payment method.\n"
                         ."- Filter by category, community or payment method; sort by date or amount.\n"
                         ."- **Community gifts** shows what each community submitted.\n"
-                        .'- **Download** gives an Excel, CSV, PDF or printable report.',
+                        .'- **Download** gives a PDF or printable report.',
                 ],
-                'related' => ['sadaka.create', 'sadaka.categories', 'sadaka.import'],
+                'related' => ['sadaka.create', 'sadaka.categories', 'general.export'],
             ],
             [
                 'id' => 'sadaka.create',
@@ -702,7 +597,7 @@ class Knowledge
                         ."4. Optionally add a receipt/transaction number and notes.\n"
                         .'5. Click **Save**, or **Save and add another** when you have several.',
                 ],
-                'related' => ['sadaka.categories', 'sadaka.thankyou', 'sadaka.import'],
+                'related' => ['sadaka.categories', 'sadaka.thankyou'],
             ],
             [
                 'id' => 'sadaka.categories',
@@ -736,13 +631,13 @@ class Knowledge
                         ."2. Weka alama kwenye **Tuma SMS ya shukrani kwa mtoaji**.\n"
                         ."3. Hifadhi. Mtoaji anapokea ujumbe wenye kiasi na tarehe (kutoka kiolezo cha shukrani).\n\n"
                         ."Hariri maandishi kwenye **Arifa na SMS → Violezo** (aina: SMS ya shukrani). Tumia **{jina}**, **{kiasi}** na **{tarehe}**.\n\n"
-                        .'Ukiingiza kwa Excel, unaweza kuwatumia watoaji wote wenye namba za simu kwa mara moja. SMS hizi hutozwa gharama, na kila mchango hutumiwa SMS mara moja tu.',
+                        .'SMS hizi hutozwa gharama, na kila mchango hutumiwa SMS mara moja tu.',
                     'en' => "When recording **Mass collection**, **Zaka**, **tithe**, **community gifts**, **thanksgiving** or **building fund**:\n\n"
                         ."1. Enter the **giver's phone**.\n"
                         ."2. Tick **Send the giver a thank-you SMS**.\n"
                         ."3. Save. The giver receives a message with the amount and date (from the thank-you template).\n\n"
                         ."Edit the wording under **Notifications & SMS → Templates** (type: Thank-you SMS). Use **{jina}**, **{kiasi}** and **{tarehe}**.\n\n"
-                        .'When importing from Excel you can thank every giver with a phone number at once. These SMS cost money, and each offering is thanked only once.',
+                        .'These SMS cost money, and each offering is thanked only once.',
                 ],
             ],
             [
@@ -767,25 +662,6 @@ class Knowledge
                     'en' => "1. Open **Offerings**, click **Delete** on the offering and confirm.\n\nIt can be restored within 30 days from Activity logs.",
                 ],
                 'related' => ['general.recycle'],
-            ],
-            [
-                'id' => 'sadaka.import',
-                'module' => 'sadaka',
-                'actions' => ['create'],
-                'keywords' => ['ingiza zaka', 'import tithe', 'zaka excel', 'fungu la kumi excel', 'ingiza michango', 'import offerings', 'orodha ya zaka'],
-                'title' => ['sw' => 'Kuingiza Zaka / Fungu la kumi kutoka Excel', 'en' => 'Importing tithes from Excel'],
-                'answer' => [
-                    'sw' => "1. Fungua **Sadaka**, chagua aina **Zaka** au **Fungu la kumi**, kisha bofya **Ingiza kutoka Excel**.\n"
-                        ."2. **Pakua kiolezo**. Kila mstari ni mtoaji mmoja: jina na kiasi ni lazima; simu, tarehe na risiti ni hiari.\n"
-                        ."3. **Chagua faili**. Mfumo unaonyesha mistari iliyo tayari na itakayorukwa.\n"
-                        ."4. Ukipenda, weka alama ya kutuma SMS ya shukrani, kisha **Ingiza**.\n\n"
-                        .'Tarehe ikikosekana, ya leo inatumika.',
-                    'en' => "1. Open **Offerings**, choose **Zaka** or **Fungu la kumi**, then click **Import from Excel**.\n"
-                        ."2. **Download template**. Each row is one giver: name and amount are required; phone, date and receipt are optional.\n"
-                        ."3. **Choose file**. The app shows rows that are ready and rows that will be skipped.\n"
-                        ."4. Optionally tick to send thank-you SMS, then **Import**.\n\n"
-                        .'Rows without a date use today\'s date.',
-                ],
             ],
 
             // ---------------------------------------------------------------- Notifications
@@ -984,11 +860,11 @@ class Knowledge
                 'keywords' => ['kumbukumbu za shughuli', 'activity logs', 'activity log', 'audit', 'nani alifanya', 'who did', 'who changed', 'nani alibadilisha', 'nani alifuta', 'who deleted', 'historia ya mfumo'],
                 'title' => ['sw' => 'Kumbukumbu za shughuli', 'en' => 'Activity logs'],
                 'answer' => [
-                    'sw' => "**Kumbukumbu za shughuli** zinaonyesha kila kuingia, kutoka, kuongeza, kuhariri, kufuta, kuingiza na kupakua kulikofanyika, na nani alifanya na lini.\n\n"
+                    'sw' => "**Kumbukumbu za shughuli** zinaonyesha kila kuingia, kutoka, kuongeza, kuhariri, kufuta na kupakua kulikofanyika, na nani alifanya na lini.\n\n"
                         ."- Chuja kwa mtumiaji, kitendo, aina ya kipengele au tarehe.\n"
                         ."- Bofya **Angalia** kuona mabadiliko (kabla na baada).\n"
                         .'- Kichupo cha **Vilivyofutwa** kinaonyesha vitu vinavyoweza kurejeshwa.',
-                    'en' => "**Activity logs** show every sign-in, sign-out, add, edit, delete, import and export, plus who did it and when.\n\n"
+                    'en' => "**Activity logs** show every sign-in, sign-out, add, edit, delete and export, plus who did it and when.\n\n"
                         ."- Filter by user, action, item type or date.\n"
                         ."- Click **View** to see what changed (before and after).\n"
                         .'- The **Deleted** tab lists items that can still be restored.',

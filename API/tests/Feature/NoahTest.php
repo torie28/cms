@@ -117,7 +117,7 @@ class NoahTest extends TestCase
     {
         $user = $this->makeUser('secretary', ['jumuiya' => ['create']]);
 
-        $reply = $this->ask($user, 'nifanyeje kuongeza hapa?', 'sw', ['path' => '/jumuiya']);
+        $reply = $this->ask($user, 'nifanyeje kuongeza hapa?', 'sw', ['path' => '/kanda-jumuiya']);
 
         $this->assertSame('jumuiya', $reply['module']);
         $this->assertSame('ok', $reply['status']);
@@ -143,15 +143,15 @@ class NoahTest extends TestCase
             ['en', 'how to send a message to all members', 'notifications.send'],
             ['sw', 'jinsi ya kutuma sms kwa jumuiya', 'notifications.send'],
             ['sw', 'ongeza mwanajumuiya', 'jumuiya.members'],
-            ['sw', 'gawanya jumuiya', 'jumuiya.split'],
-            ['sw', 'hamisha jumuiya kwenda kanda nyingine', 'jumuiya.move'],
-            ['sw', 'ninawezaje kuingiza zaka kutoka excel', 'sadaka.import'],
+            ['sw', 'nani ni katibu wa jumuiya?', 'jumuiya.roles'],
+            ['en', 'find a person in which community', 'jumuiya.search'],
+            ['sw', 'ninawezaje kuingiza zaka kutoka excel', 'general.export'],
             ['sw', 'sms hazifiki', 'notifications.testmode'],
             ['sw', 'weka nextsms', 'api_settings.sms'],
             ['sw', 'zima moduli ya kanda', 'settings.modules'],
             ['sw', 'nimesahau nenosiri', 'general.password'],
             ['en', 'create a role', 'users.roles'],
-            ['en', 'split a zone', 'kanda.split'],
+            ['en', 'add a new zone', 'kanda.create'],
         ];
 
         foreach ($cases as [$lang, $question, $topic]) {

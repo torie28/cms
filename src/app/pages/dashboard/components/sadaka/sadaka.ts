@@ -24,12 +24,7 @@ import {
 import { httpErrorMessage } from '../../../../core/http-error';
 import { I18nService, translate, TranslatePipe } from '../../../../core/i18n';
 import { displayPhone, normalizePhone } from '../../../../core/messages';
-import {
-  downloadOfferingTemplate,
-  OfferingImportPlan,
-  offeringsSheet,
-  readOfferingSheet,
-} from '../../../../core/offering-transfer';
+import { offeringsSheet } from '../../../../core/offering-transfer';
 import {
   CategoryDefinition,
   Offering,
@@ -46,11 +41,8 @@ import {
   EXPORT_FORMATS,
   ExportFormat,
   FORMAT_NAMES,
-  saveCsv,
   savePdf,
-  saveWorkbook,
   SheetData,
-  SPREADSHEET_ACCEPT,
 } from '../../../../core/spreadsheet';
 import { FilterPanel, withinDateRange } from '../../../../shared/filter-panel';
 import { matchesSearch, SearchBox } from '../../../../shared/search-box';
@@ -147,15 +139,6 @@ export class Sadaka {
   protected readonly formError = signal<string | null>(null);
   protected readonly notice = signal<string | null>(null);
 
-  protected readonly spreadsheetAccept = SPREADSHEET_ACCEPT;
-  protected readonly importCategory = signal<CategoryDefinition | null>(null);
-  protected readonly importPlan = signal<OfferingImportPlan | null>(null);
-  protected readonly importFileName = signal<string | null>(null);
-  protected readonly importError = signal<string | null>(null);
-  protected readonly importing = signal(false);
-  protected readonly importProgress = signal(0);
-  protected readonly importThankYou = signal(false);
-  protected readonly importFailures = signal<string[]>([]);
 
   protected readonly period = signal<Period>('month');
   protected readonly customFrom = signal(this.today.slice(0, 8) + '01');
@@ -639,147 +622,6 @@ export class Sadaka {
     }
   }
 
-  /** Opens the Excel import for a personal category (Zaka, Fungu la kumi); closes the single-entry form if it was open. */
-  protected openImport(category: CategoryDefinition, event?: Event): void {
-    event?.stopPropagation();
-    if (this.saving()) {
-      return;
-    }
-    this.formOpen.set(false);
-    this.editing.set(null);
-    this.importCategory.set(category);
-    this.importPlan.set(null);
-    this.importFileName.set(null);
-    this.importError.set(null);
-    this.importFailures.set([]);
-    this.importProgress.set(0);
-    this.importThankYou.set(false);
-  }
-
-  protected closeImport(): void {
-    if (!this.importing()) {
-      this.importCategory.set(null);
-      this.importPlan.set(null);
-    }
-  }
-
-  protected async downloadImportTemplate(): Promise<void> {
-    const category = this.importCategory();
-    if (category) {
-      await downloadOfferingTemplate(translate(category.label));
-    }
-  }
-
-  protected async chooseImportFile(event: Event): Promise<void> {
-    const input = event.target as HTMLInputElement;
-    const file = input.files?.[0];
-    input.value = '';
-    const category = this.importCategory();
-
-    if (!file || !category) {
-      return;
-    }
-
-    this.importFileName.set(file.name);
-    this.importPlan.set(null);
-    this.importError.set(null);
-    this.importFailures.set([]);
-
-    try {
-      const plan = await readOfferingSheet(file, category.value, this.jumuiyas(), this.today);
-      if (plan.rows.length === 0 && plan.errors.length === 0) {
-        this.importError.set(translate('Faili hilo halina safu zenye taarifa.'));
-        return;
-      }
-      this.importPlan.set(plan);
-    } catch (error) {
-      this.importError.set(
-        error instanceof Error && error.message ? error.message : translate('Imeshindwa kusoma faili hilo.'),
-      );
-    }
-  }
-
-  protected async runImport(): Promise<void> {
-    const plan = this.importPlan();
-    const category = this.importCategory();
-    if (!plan || !category || plan.rows.length === 0 || this.importing()) {
-      return;
-    }
-
-    this.importing.set(true);
-    this.importProgress.set(0);
-    this.importError.set(null);
-    this.importFailures.set([]);
-
-    const failures: string[] = [];
-    const saved: Offering[] = [];
-    let thanked = 0;
-    const queue = [...plan.rows];
-    // A few requests at a time keeps large sheets quick without flooding the API or the SMS gateway.
-    const worker = async () => {
-      for (let row = queue.shift(); row; row = queue.shift()) {
-        try {
-          const offering = await this.offeringsApi.create({ ...row.payload, send_thank_you: this.importThankYou() });
-          saved.push(offering);
-          if (offering.thank_you_message?.status === 'sent') {
-            thanked++;
-          }
-        } catch (error) {
-          failures.push(
-            translate('Mstari {line} ({name}): {reason}', {
-              line: row.line,
-              name: row.payload.contributor,
-              reason: httpErrorMessage(error, 'imeshindwa kuhifadhiwa.'),
-            }),
-          );
-        }
-        this.importProgress.update((done) => done + 1);
-      }
-    };
-    await Promise.all(Array.from({ length: Math.min(4, plan.rows.length) }, worker));
-
-    this.importing.set(false);
-
-    if (saved.length > 0) {
-      const total = saved.reduce((sum, item) => sum + Number(item.amount), 0);
-      void this.activity.record({
-        action: 'imported',
-        subject:
-          `${saved.length} ${category.label} offerings (TSh ${total.toLocaleString('en')})` +
-          (this.importFileName() ? ` from ${this.importFileName()}` : ''),
-        subject_type: 'offering',
-      });
-      await this.refresh();
-      this.notice.set(
-        [
-          translate('{category}: michango {count} ya jumla {amount} imeingizwa kutoka Excel.', {
-            category: translate(category.label),
-            count: saved.length,
-            amount: this.money(total),
-          }),
-          thanked > 0 ? translate('SMS za shukrani {count} zimetumwa.', { count: thanked }) : '',
-        ]
-          .filter(Boolean)
-          .join(' '),
-      );
-    }
-
-    if (failures.length > 0) {
-      failures.sort((a, b) => a.localeCompare(b, undefined, { numeric: true }));
-      this.importPlan.set(null);
-      this.importFailures.set(failures);
-      this.importError.set(
-        translate('Michango {saved} imeingizwa, {failed} imeshindwa. Rekebisha mistari hii kisha uingize faili lenye hiyo tu.', {
-          saved: saved.length,
-          failed: failures.length,
-        }),
-      );
-      return;
-    }
-
-    this.closeImport();
-  }
-
   protected toggleExport(event: Event): void {
     event.stopPropagation();
     this.exportOpen.update((open) => !open);
@@ -835,27 +677,21 @@ export class Sadaka {
       };
       const filename = datedFilename(title);
 
-      if (format === 'xlsx') {
-        await saveWorkbook([summary, ledger], `${filename}.xlsx`, { title, subtitle });
-      } else if (format === 'csv') {
-        await saveCsv({ ...ledger, rows: ledger.rows.slice(0, rows.length) }, `${filename}.csv`);
-      } else {
-        await savePdf(
-          title,
-          subtitle,
-          [
-            { heading: summary.name, head: summary.head, rows: summary.rows, totalRow: true },
-            {
-              heading: ledger.name,
-              head: ledger.head.slice(0, 7),
-              rows: ledger.rows.map((row) => row.slice(0, 7)),
-              totalRow: ledger.totalRow,
-            },
-          ],
-          `${filename}.pdf`,
-          format === 'print',
-        );
-      }
+      await savePdf(
+        title,
+        subtitle,
+        [
+          { heading: summary.name, head: summary.head, rows: summary.rows, totalRow: true },
+          {
+            heading: ledger.name,
+            head: ledger.head.slice(0, 7),
+            rows: ledger.rows.map((row) => row.slice(0, 7)),
+            totalRow: ledger.totalRow,
+          },
+        ],
+        `${filename}.pdf`,
+        format === 'print',
+      );
 
       void this.activity.record({
         action: 'exported',

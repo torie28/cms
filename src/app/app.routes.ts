@@ -62,11 +62,13 @@ export const routes: Routes = [
         ],
       },
       {
-        path: 'kanda',
-        title: 'Kanda · Mfumo wa Usimamizi wa Kanisa',
-        canActivate: [moduleGuard('kanda')],
+        path: 'kanda-jumuiya',
+        title: 'Kanda na Jumuiya · Mfumo wa Usimamizi wa Kanisa',
+        canActivate: [moduleGuard(['kanda', 'jumuiya'])],
         loadComponent: () =>
-          import('./pages/dashboard/components/kanda/kanda').then((m) => m.KandaPage),
+          import('./pages/dashboard/components/zones-communities/zones-communities').then(
+            (m) => m.ZonesCommunitiesPage,
+          ),
       },
       {
         path: 'sadaka',
@@ -81,13 +83,6 @@ export const routes: Routes = [
         canActivate: [moduleGuard('matukio')],
         loadComponent: () =>
           import('./pages/dashboard/components/matukio/matukio').then((m) => m.Matukio),
-      },
-      {
-        path: 'jumuiya',
-        title: 'Jumuiya · Mfumo wa Usimamizi wa Kanisa',
-        canActivate: [moduleGuard('jumuiya')],
-        loadComponent: () =>
-          import('./pages/dashboard/components/jumuiya/jumuiya').then((m) => m.JumuiyaPage),
       },
       {
         path: 'notifications',

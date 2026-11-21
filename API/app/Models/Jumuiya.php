@@ -10,7 +10,7 @@ use Illuminate\Database\Eloquent\SoftDeletes;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\HasMany;
 
-#[Fillable(['name', 'kanda_id', 'parent_id', 'chairperson', 'notes'])]
+#[Fillable(['name', 'kanda_id', 'parent_id', 'notes'])]
 class Jumuiya extends Model
 {
     /** @use HasFactory<JumuiyaFactory> */

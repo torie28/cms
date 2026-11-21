@@ -63,7 +63,6 @@ class DeletionRequestTest extends TestCase
         $jumuiya = Jumuiya::query()->create([
             'name' => 'Jumuiya ya Ombi',
             'kanda_id' => $kanda->id,
-            'chairperson' => 'Neema',
         ]);
         $offering = Offering::query()->create([
             'category' => 'sadaka',

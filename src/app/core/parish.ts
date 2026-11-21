@@ -3,42 +3,27 @@ import { inject, Injectable } from '@angular/core';
 import { firstValueFrom } from 'rxjs';
 import { API_BASE } from './api';
 
+/** The five leadership posts, held at the community and the zone level independently. */
+export type Role = 'chair' | 'vice_chair' | 'secretary' | 'vice_secretary' | 'treasurer';
+
+/** Blank (ordinary member) plus the five posts, with both languages' labels. */
+export const ROLE_OPTIONS: { value: Role; sw: string; en: string }[] = [
+  { value: 'chair', sw: 'Mwenyekiti', en: 'Chairperson' },
+  { value: 'vice_chair', sw: 'M/Mwenyekiti', en: 'V/Chairperson' },
+  { value: 'secretary', sw: 'Katibu', en: 'Secretary' },
+  { value: 'vice_secretary', sw: 'M/Katibu', en: 'V/Secretary' },
+  { value: 'treasurer', sw: 'Mweka Hazina', en: 'Treasurer' },
+];
+
 export interface Kanda {
   id: number;
   name: string;
-  leader: string | null;
   notes: string | null;
   parent_id?: number | null;
   parent?: { id: number; name: string } | null;
   children_count?: number;
   jumuiyas_count: number;
   members_count?: number;
-}
-
-export interface KandaSplitPayload {
-  name: string;
-  leader: string;
-  notes: string;
-  jumuiya_ids: number[];
-}
-
-export interface KandaSplitResult {
-  parent: Kanda;
-  kanda: Kanda;
-  kandas: Kanda[];
-}
-
-export interface Jumuiya {
-  id: number;
-  name: string;
-  kanda_id: number;
-  parent_id?: number | null;
-  chairperson: string | null;
-  notes: string | null;
-  members_count?: number;
-  members?: JumuiyaMember[];
-  kanda?: { id: number; name: string };
-  parent?: { id: number; name: string } | null;
 }
 
 export interface KandaJumuiya extends Jumuiya {
@@ -58,21 +43,52 @@ export interface KandaDetail extends Kanda {
   offerings_year: number | null;
 }
 
-export interface JumuiyaSplitPayload {
+export interface Jumuiya {
+  id: number;
   name: string;
   kanda_id: number;
-  parent_kanda_id: number;
-  chairperson: string;
-  notes: string;
-  member_ids: number[];
+  parent_id?: number | null;
+  notes: string | null;
+  members_count?: number;
+  members?: JumuiyaMember[];
+  kanda?: { id: number; name: string };
+  parent?: { id: number; name: string } | null;
 }
 
 export interface JumuiyaMember {
   id: number;
   jumuiya_id: number;
+  first_name: string;
+  middle_name: string | null;
+  last_name: string | null;
+  /** Full name, built by the API from the three parts. */
   name: string;
   phone: string | null;
   gender: string | null;
+  community_role: Role | null;
+  zone_role: Role | null;
+}
+
+/** A person with their community and zone attached, for the whole-parish directory. */
+export interface DirectoryPerson extends JumuiyaMember {
+  jumuiya: { id: number; name: string; kanda_id: number; kanda?: { id: number; name: string } };
+}
+
+export interface JumuiyaMemberPayload {
+  first_name: string;
+  middle_name?: string | null;
+  last_name: string;
+  phone?: string | null;
+  gender?: string | null;
+  community_role?: Role | null;
+  zone_role?: Role | null;
+}
+
+export interface JumuiyaPayload {
+  name: string;
+  kanda_id: number;
+  notes?: string;
+  members?: JumuiyaMemberPayload[];
 }
 
 @Injectable({ providedIn: 'root' })
@@ -83,53 +99,24 @@ export class ParishService {
     return firstValueFrom(this.http.get<Kanda[]>(`${API_BASE}/kandas`));
   }
 
-  createKanda(payload: { name: string; leader: string; notes: string }): Promise<Kanda> {
+  createKanda(payload: { name: string; notes?: string }): Promise<Kanda> {
     return firstValueFrom(this.http.post<Kanda>(`${API_BASE}/kandas`, payload));
-  }
-
-  importKandas(
-    kandas: { name: string; leader: string; notes: string }[],
-    file: string,
-  ): Promise<{ created: number; skipped: string[]; kandas: Kanda[] }> {
-    return firstValueFrom(
-      this.http.post<{ created: number; skipped: string[]; kandas: Kanda[] }>(
-        `${API_BASE}/kandas/import`,
-        { kandas, file },
-      ),
-    );
   }
 
   getKanda(id: number): Promise<KandaDetail> {
     return firstValueFrom(this.http.get<KandaDetail>(`${API_BASE}/kandas/${id}`));
   }
 
-  updateKanda(id: number, payload: { name: string; leader: string; notes: string }): Promise<Kanda> {
+  updateKanda(id: number, payload: { name: string; notes?: string }): Promise<Kanda> {
     return firstValueFrom(this.http.put<Kanda>(`${API_BASE}/kandas/${id}`, payload));
   }
 
-  /** Creates a new kanda and moves the chosen jumuiyas (with their members) into it. */
-  splitKanda(id: number, payload: KandaSplitPayload): Promise<KandaSplitResult> {
-    return firstValueFrom(this.http.post<KandaSplitResult>(`${API_BASE}/kandas/${id}/split`, payload));
-  }
-
-  /** A kanda that still has jumuiyas needs `moveToKandaId` to take them over. */
   deleteKanda(id: number, moveToKandaId?: number): Promise<{ moved: number }> {
     return firstValueFrom(
       this.http.delete<{ moved: number }>(`${API_BASE}/kandas/${id}`, {
         body: moveToKandaId ? { move_to_kanda_id: moveToKandaId } : {},
       }),
     );
-  }
-
-  splitJumuiya(id: number, payload: JumuiyaSplitPayload): Promise<{ parent: Jumuiya; jumuiya: Jumuiya }> {
-    return firstValueFrom(
-      this.http.post<{ parent: Jumuiya; jumuiya: Jumuiya }>(`${API_BASE}/jumuiyas/${id}/split`, payload),
-    );
-  }
-
-  /** Members belong to the jumuiya, so they move to the new kanda with it. */
-  moveJumuiya(id: number, kandaId: number): Promise<Jumuiya> {
-    return firstValueFrom(this.http.post<Jumuiya>(`${API_BASE}/jumuiyas/${id}/move`, { kanda_id: kandaId }));
   }
 
   listJumuiyas(): Promise<Jumuiya[]> {
@@ -144,12 +131,17 @@ export class ParishService {
     return firstValueFrom(this.http.get<Jumuiya>(`${API_BASE}/jumuiyas/${id}`));
   }
 
-  updateJumuiya(id: number, payload: JumuiyaPayload): Promise<Jumuiya> {
+  updateJumuiya(id: number, payload: { name: string; kanda_id: number; notes?: string }): Promise<Jumuiya> {
     return firstValueFrom(this.http.put<Jumuiya>(`${API_BASE}/jumuiyas/${id}`, payload));
   }
 
   deleteJumuiya(id: number): Promise<void> {
     return firstValueFrom(this.http.delete<void>(`${API_BASE}/jumuiyas/${id}`));
+  }
+
+  /** Every person in the parish with their community and zone, for search and the people list. */
+  listPeople(): Promise<DirectoryPerson[]> {
+    return firstValueFrom(this.http.get<DirectoryPerson[]>(`${API_BASE}/people`));
   }
 
   listJumuiyaMembers(jumuiyaId: number): Promise<JumuiyaMember[]> {
@@ -166,18 +158,6 @@ export class ParishService {
       this.http.post<{ member: JumuiyaMember; jumuiya: Jumuiya }>(
         `${API_BASE}/jumuiyas/${jumuiyaId}/members`,
         payload,
-      ),
-    );
-  }
-
-  addJumuiyaMembers(
-    jumuiyaId: number,
-    members: JumuiyaMemberPayload[],
-  ): Promise<{ members: JumuiyaMember[]; jumuiya: Jumuiya }> {
-    return firstValueFrom(
-      this.http.post<{ members: JumuiyaMember[]; jumuiya: Jumuiya }>(
-        `${API_BASE}/jumuiyas/${jumuiyaId}/members`,
-        { members },
       ),
     );
   }
@@ -200,18 +180,4 @@ export class ParishService {
       this.http.delete<{ jumuiya: Jumuiya }>(`${API_BASE}/jumuiyas/${jumuiyaId}/members/${memberId}`),
     );
   }
-}
-
-export interface JumuiyaPayload {
-  name: string;
-  kanda_id: number;
-  chairperson: string;
-  notes: string;
-  members?: JumuiyaMemberPayload[];
-}
-
-export interface JumuiyaMemberPayload {
-  name: string;
-  phone: string;
-  gender: string;
 }

@@ -16,7 +16,6 @@ class JumuiyaFactory extends Factory
         return [
             'name' => 'Jumuiya '.fake()->unique()->word(),
             'kanda_id' => Kanda::factory(),
-            'chairperson' => fake()->name(),
             'notes' => fake()->optional()->sentence(),
         ];
     }

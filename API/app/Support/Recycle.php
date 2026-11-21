@@ -169,14 +169,12 @@ class Recycle
             $model instanceof Jumuiya => [
                 'Jina' => $model->name,
                 'Kanda' => $model->kanda()->value('name'),
-                'Mwenyekiti' => $model->chairperson,
                 'Maelezo' => $model->notes,
                 'Idadi ya wanajumuiya' => $model->members()->count(),
-                'Wanajumuiya' => $model->members()->orderBy('name')->pluck('name')->join(', '),
+                'Wanajumuiya' => $model->members()->orderBy('last_name')->orderBy('first_name')->get()->map(fn ($m) => $m->name)->join(', '),
             ],
             $model instanceof Kanda => [
                 'Jina' => $model->name,
-                'Kiongozi' => $model->leader,
                 'Maelezo' => $model->notes,
                 'Idadi ya jumuiya' => $model->jumuiyas()->count(),
                 'Jumuiya' => $model->jumuiyas()->orderBy('name')->pluck('name')->join(', '),
@@ -233,14 +231,6 @@ class Recycle
                 ->first();
             if ($clash) {
                 return "Jumuiya nyingine yenye jina \"{$clash->name}\" ipo sasa kwenye kanda ".($clash->kanda?->name ?? '—').'. Ibadilishe jina kwanza.';
-            }
-
-            $chair = trim((string) $model->chairperson);
-            $chaired = $chair === '' ? null : Jumuiya::query()
-                ->whereRaw('lower(trim(chairperson)) = ?', [mb_strtolower($chair)])
-                ->first();
-            if ($chaired) {
-                return "{$chaired->chairperson} sasa ni mwenyekiti wa jumuiya {$chaired->name}. Mwenyekiti mmoja hawezi kuongoza jumuiya mbili.";
             }
         }
 

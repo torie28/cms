@@ -178,9 +178,12 @@ class PersonalizedMessageTest extends TestCase
 
     private function member(Jumuiya $jumuiya, string $name, string $phone): JumuiyaMember
     {
+        $parts = preg_split('/\s+/', trim($name));
+
         return JumuiyaMember::query()->create([
             'jumuiya_id' => $jumuiya->id,
-            'name' => $name,
+            'first_name' => array_shift($parts),
+            'last_name' => $parts ? implode(' ', $parts) : null,
             'phone' => $phone,
         ]);
     }

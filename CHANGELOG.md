@@ -8,6 +8,56 @@ version numbers follow [Semantic Versioning](https://semver.org/spec/v2.0.0.html
 
 ## [Unreleased]
 
+## [0.2.0] - 2026-11-21
+
+Zones and communities become one clean dashboard where secretaries enter people
+directly. All Excel and CSV import and export is gone; reports are PDF only.
+
+### Added
+
+- **One "Zones & Communities" tab** (`/kanda-jumuiya`) replaces the separate
+  Zone and Community pages. Pick a zone, then a community; each dropdown has its
+  own search box and an **All** option. "All zones" shows whole-parish
+  statistics, a zone shows its statistics and leaders, and a community shows its
+  numbered list of people.
+- **Fast inline entry of people.** One row per person: first name and surname
+  (required), middle name (optional), gender, zone role, community role and
+  phone (`+255` filled in by default, other countries allowed). Enter moves to
+  the next box and the last Enter saves and opens a fresh row.
+- **Leadership posts per zone and per community:** Chairperson, V/Chairperson,
+  Secretary, V/Secretary and Treasurer, held by ordinary members. Each post has
+  one holder per community and one per zone, and the same person may lead both.
+- **Person search** across the whole parish that forgives small spelling
+  mistakes and works for names in any language. Picking a result opens that
+  person's zone and community and highlights them.
+- **PDF reports** for zone statistics and full community lists.
+- `GET /api/people` returns every person with their community and zone.
+
+### Changed
+
+- People's names are stored as first, middle and last name instead of one field.
+- Leaders are now members with a role. The old free-text zone "leader" and
+  community "chairperson" fields are removed.
+- Offerings export as PDF or print only.
+- Noah's help text describes the new tab, the leadership roles and PDF-only
+  reports.
+
+### Removed
+
+- All Excel and CSV import and export (zones, communities, members and
+  offerings), the `/api/kandas/import` endpoint, and the `exceljs` and `xlsx`
+  libraries.
+- The old `/kanda` and `/jumuiya` pages.
+
+### Upgrade notes
+
+- The database migration `2026_11_17_100000_restructure_people_and_leadership`
+  **drops** `kandas.leader`, `jumuiyas.chairperson` and `jumuiya_members.name`
+  (existing names are copied into `last_name` first). Any leader or chairperson
+  text stored in production is lost; re-enter those people as members with a role.
+
+_Contributed by Mario (magangs)._
+
 ## [0.1.0] - 2026-11-17
 
 Security hardening ahead of real use, plus scheduled maintenance for the

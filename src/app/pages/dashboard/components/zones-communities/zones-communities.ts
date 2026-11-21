@@ -1,7 +1,13 @@
 import { NgClass, NgTemplateOutlet } from '@angular/common';
 import { Component, computed, inject, signal } from '@angular/core';
 import { FormsModule } from '@angular/forms';
+import { AuthService } from '../../../../core/auth';
 import { ConfirmService } from '../../../../core/confirm';
+import {
+  deletionRequestNotice,
+  DeletionRequestsService,
+  needsDeleteApproval,
+} from '../../../../core/deletion-requests';
 import { httpErrorMessage } from '../../../../core/http-error';
 import { currentLang, translate, TranslatePipe } from '../../../../core/i18n';
 import {
@@ -33,6 +39,9 @@ interface Draft {
   phone: string;
 }
 
+/** Which zone/community management panel is open under the pickers. */
+type ManageMode = 'rename-zone' | 'delete-zone' | 'rename-community' | 'move-community';
+
 interface PersonHit {
   id: number;
   zoneId: number;
@@ -51,6 +60,26 @@ interface PersonHit {
 export class ZonesCommunitiesPage {
   private readonly parish = inject(ParishService);
   private readonly confirm = inject(ConfirmService);
+  private readonly auth = inject(AuthService);
+  private readonly deletions = inject(DeletionRequestsService);
+
+  // What this user may do. The server enforces the same rules; these only hide buttons.
+  protected readonly canAddZone = computed(() => this.auth.can('kanda', 'create'));
+  protected readonly canEditZone = computed(() => this.auth.can('kanda', 'update'));
+  protected readonly canDeleteZone = computed(() => this.auth.can('kanda', 'delete'));
+  protected readonly canAddCommunity = computed(() => this.auth.can('jumuiya', 'create'));
+  protected readonly canEditCommunity = computed(() => this.auth.can('jumuiya', 'update'));
+  protected readonly canDeleteCommunity = computed(() => this.auth.can('jumuiya', 'delete'));
+  protected readonly canAddPerson = computed(() => this.auth.can('jumuiya', 'create'));
+  protected readonly canEditPerson = computed(() => this.auth.can('jumuiya', 'update'));
+  protected readonly canDeletePerson = computed(() => this.auth.can('jumuiya', 'delete'));
+  /** Non-admins send a deletion request for an admin to approve instead of deleting. */
+  protected readonly deleteNeedsApproval = computed(() => needsDeleteApproval(this.auth));
+
+  // Zone/community management panel (rename, move, delete).
+  protected readonly manage = signal<ManageMode | null>(null);
+  protected readonly manageName = signal('');
+  protected readonly manageTargetZoneId = signal<number | null>(null);
 
   protected readonly loading = signal(true);
   protected readonly zones = signal<Kanda[]>([]);
@@ -194,8 +223,18 @@ export class ZonesCommunitiesPage {
     return { first_name: '', middle_name: '', last_name: '', gender: '', zone_role: '', community_role: '', dial: '+255', phone: '' };
   }
 
-  private async load(): Promise<void> {
-    this.loading.set(true);
+  /** Every zone except the selected one: targets for moving communities. */
+  protected readonly otherZones = computed(() => {
+    const id = this.selectedZoneId();
+    return this.sortedZones().filter((zone) => zone.id !== id);
+  });
+
+  /**
+   * Re-reads zones, communities and people from the database. Used after any change to
+   * zones or communities so the page always shows what is really saved.
+   */
+  private async load(spinner = true): Promise<void> {
+    if (spinner) this.loading.set(true);
     try {
       const [zones, communities, people] = await Promise.all([
         this.parish.listKandas(),
@@ -412,6 +451,167 @@ export class ZonesCommunitiesPage {
     }
   }
 
+  // --- rename / move / delete zone & community -----------------------------
+
+  protected openManage(mode: ManageMode): void {
+    this.addingZone.set(false);
+    this.addingCommunity.set(false);
+    this.zoneMenuOpen.set(false);
+    this.communityMenuOpen.set(false);
+    this.manage.set(mode);
+    this.manageTargetZoneId.set(null);
+    if (mode === 'rename-zone') this.manageName.set(this.selectedZone()?.name ?? '');
+    if (mode === 'rename-community') this.manageName.set(this.selectedCommunity()?.name ?? '');
+  }
+
+  protected closeManage(): void {
+    this.manage.set(null);
+  }
+
+  protected async renameZone(): Promise<void> {
+    const zone = this.selectedZone();
+    const name = this.manageName().trim();
+    if (!zone || !name || this.saving()) return;
+    if (name === zone.name) return this.closeManage();
+    await this.run(
+      async () => {
+        await this.parish.updateKanda(zone.id, { name, notes: zone.notes ?? undefined });
+        return translate('Kanda imebadilishwa jina kuwa "{name}".', { name });
+      },
+      translate('Imeshindwa kubadilisha jina la kanda.'),
+    );
+  }
+
+  protected async renameCommunity(): Promise<void> {
+    const community = this.selectedCommunity();
+    const name = this.manageName().trim();
+    if (!community || !name || this.saving()) return;
+    if (name === community.name) return this.closeManage();
+    await this.run(
+      async () => {
+        await this.parish.updateJumuiya(community.id, {
+          name,
+          kanda_id: community.kanda_id,
+          notes: community.notes ?? undefined,
+        });
+        return translate('Jumuiya imebadilishwa jina kuwa "{name}".', { name });
+      },
+      translate('Imeshindwa kubadilisha jina la jumuiya.'),
+    );
+  }
+
+  protected async moveCommunity(): Promise<void> {
+    const community = this.selectedCommunity();
+    const targetId = this.manageTargetZoneId();
+    const target = this.zones().find((zone) => zone.id === targetId);
+    if (!community || !target || this.saving()) return;
+    const ok = await this.run(
+      async () => {
+        await this.parish.moveJumuiya(community.id, target.id);
+        return translate('"{community}" imehamishiwa kanda "{zone}".', { community: community.name, zone: target.name });
+      },
+      translate('Imeshindwa kuhamisha jumuiya.'),
+    );
+    if (ok) {
+      // Follow the community into its new zone.
+      this.selectedZoneId.set(target.id);
+      this.selectedCommunityId.set(community.id);
+    }
+  }
+
+  protected async deleteZone(): Promise<void> {
+    const zone = this.selectedZone();
+    if (!zone || this.saving()) return;
+    const communityCount = this.zoneCommunities().length;
+    const targetId = this.manageTargetZoneId();
+    const target = this.zones().find((item) => item.id === targetId) ?? null;
+    if (communityCount > 0 && !target) {
+      this.flash('err', translate('Chagua kanda ya kuhamishia jumuiya {count} kabla ya kufuta.', { count: communityCount }));
+      return;
+    }
+
+    const approval = this.deleteNeedsApproval();
+    const confirmed = await this.confirm.ask({
+      message: approval
+        ? translate('Tuma ombi la kufuta kanda "{name}"?', { name: zone.name })
+        : target
+          ? translate('Futa kanda "{name}" na kuhamishia jumuiya zake {count} kwenda "{target}"?', {
+              name: zone.name,
+              count: communityCount,
+              target: target.name,
+            })
+          : translate('Futa kanda "{name}"?', { name: zone.name }),
+      confirmLabel: approval ? 'Tuma ombi' : 'Futa',
+      tone: 'danger',
+    });
+    if (!confirmed) return;
+
+    const ok = await this.run(
+      async () => {
+        if (approval) {
+          await this.deletions.request({
+            subject_type: 'kanda',
+            subject_id: zone.id,
+            ...(target ? { move_to_kanda_id: target.id } : {}),
+          });
+          return deletionRequestNotice(zone.name);
+        }
+        await this.parish.deleteKanda(zone.id, target?.id);
+        return translate('Kanda "{name}" imefutwa. Inaweza kurejeshwa ndani ya siku 30.', { name: zone.name });
+      },
+      translate(approval ? 'Imeshindwa kutuma ombi la kufuta.' : 'Imeshindwa kufuta kanda.'),
+    );
+    if (ok && !approval) this.pickAllZones();
+  }
+
+  protected async deleteCommunity(): Promise<void> {
+    const community = this.selectedCommunity();
+    if (!community || this.saving()) return;
+    const approval = this.deleteNeedsApproval();
+    const peopleCount = this.communityPeople().length;
+    const confirmed = await this.confirm.ask({
+      message: approval
+        ? translate('Tuma ombi la kufuta jumuiya "{name}"?', { name: community.name })
+        : translate('Futa jumuiya "{name}" pamoja na watu wake {count}?', { name: community.name, count: peopleCount }),
+      confirmLabel: approval ? 'Tuma ombi' : 'Futa',
+      tone: 'danger',
+    });
+    if (!confirmed) return;
+
+    const ok = await this.run(
+      async () => {
+        if (approval) {
+          await this.deletions.request({ subject_type: 'jumuiya', subject_id: community.id });
+          return deletionRequestNotice(community.name);
+        }
+        await this.parish.deleteJumuiya(community.id);
+        return translate('Jumuiya "{name}" imefutwa. Inaweza kurejeshwa ndani ya siku 30.', { name: community.name });
+      },
+      translate(approval ? 'Imeshindwa kutuma ombi la kufuta.' : 'Imeshindwa kufuta jumuiya.'),
+    );
+    if (ok && !approval) this.pickAllCommunities();
+  }
+
+  /**
+   * Runs one change against the server, then re-reads everything from the database so the
+   * page shows exactly what was saved. Returns whether the change went through.
+   */
+  private async run(change: () => Promise<string>, failure: string): Promise<boolean> {
+    this.saving.set(true);
+    try {
+      const message = await change();
+      this.manage.set(null);
+      await this.load(false);
+      this.flash('ok', message);
+      return true;
+    } catch (error) {
+      this.flash('err', httpErrorMessage(error, failure));
+      return false;
+    } finally {
+      this.saving.set(false);
+    }
+  }
+
   // --- people --------------------------------------------------------------
 
   protected patchDraft(patch: Partial<Draft>): void {
@@ -433,6 +633,7 @@ export class ZonesCommunitiesPage {
   protected cancelAdd(): void {
     this.adding.set(false);
     this.editingId.set(null);
+    this.manage.set(null);
   }
 
   protected editPerson(person: DirectoryPerson): void {
@@ -500,12 +701,21 @@ export class ZonesCommunitiesPage {
   }
 
   protected async removePerson(person: DirectoryPerson): Promise<void> {
+    const approval = this.deleteNeedsApproval();
     const ok = await this.confirm.ask({
-      message: translate('Futa {name} kwenye orodha?', { name: person.name }),
+      message: approval
+        ? translate('Tuma ombi la kumfuta {name}?', { name: person.name })
+        : translate('Futa {name} kwenye orodha?', { name: person.name }),
+      confirmLabel: approval ? 'Tuma ombi' : 'Futa',
       tone: 'danger',
     });
     if (!ok) return;
     try {
+      if (approval) {
+        await this.deletions.request({ subject_type: 'jumuiya_member', subject_id: person.id, jumuiya_id: person.jumuiya_id });
+        this.flash('ok', deletionRequestNotice(person.name));
+        return;
+      }
       await this.parish.deleteJumuiyaMember(person.jumuiya_id, person.id);
       this.people.update((list) => list.filter((item) => item.id !== person.id));
       this.bumpCount(person.jumuiya_id, -1);
